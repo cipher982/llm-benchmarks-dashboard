@@ -1,20 +1,29 @@
 import React, { useEffect, useState } from "react";
 
 function App() {
-  const [data, setData] = useState(null);
   const [benchmarks, setBenchmarks] = useState([]);
-
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch data from your Express.js API here
     fetch("http://localhost:5000/api/benchmarks")
       .then((res) => res.json())
-      .then((data) => setData(data));
+      .then((data) => {
+        console.log("Fetched data:", data);
+        setBenchmarks(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.log("Error fetching benchmark data:", error);
+        setError(error.toString());
+        setLoading(false);
+      });
   }, []);
 
   return (
     <div>
-      {data ? data.message : "Loading..."}
+      {loading ? "Loading..." : null}
+      {error ? `Error: ${error}` : null}
       <table>
         <thead>
           <tr>
@@ -26,7 +35,10 @@ function App() {
           {benchmarks.map((benchmark, index) => (
             <tr key={index}>
               <td>{benchmark.model_name}</td>
-              <td>{benchmark.tokens_per_second}</td>
+              <td>{Array.isArray(benchmark.tokens_per_second) 
+                    ? benchmark.tokens_per_second.join(", ") 
+                    : benchmark.tokens_per_second}
+              </td>
             </tr>
           ))}
         </tbody>

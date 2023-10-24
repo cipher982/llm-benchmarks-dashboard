@@ -14,10 +14,6 @@ mongoose.connect("mongodb://jelly:27017/llm_benchmarks", { useNewUrlParser: true
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.log(err));
 
-// Dummy route to test
-app.get("/api/test", (req, res) => {
-  res.json({ message: "Test route works!" });
-});
 
 // New route to fetch data from MongoDB
 app.get("/api/benchmarks", async (req, res) => {
