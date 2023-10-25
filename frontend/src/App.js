@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import 'font-awesome/css/font-awesome.min.css';
 
 function App() {
   const [benchmarks, setBenchmarks] = useState([]);
@@ -34,6 +35,9 @@ function App() {
 
   return (
     <div>
+      <a href="https://github.com/cipher982/llm-benchmarks" target="_blank" rel="noopener noreferrer">
+        <i className="fa fa-github fa-2x"></i>
+      </a>
       {loading ? "Loading..." : null}
       {error ? `Error: ${error}` : null}
       <table>
@@ -61,6 +65,7 @@ function App() {
       </table>
     </div>
   );
+  
 }
 
 export default App;
