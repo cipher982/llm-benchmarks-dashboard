@@ -46,4 +46,4 @@ ARG PORT=5000
 EXPOSE ${PORT}
 
 # Start the server by default, this can be overwritten at runtime
-CMD [ "node", "app.js" ]
+CMD [ "node", "app/app.js" ]
