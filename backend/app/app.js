@@ -1,21 +1,26 @@
+// Import required modules
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
-const BenchmarkMetrics = require("./models/BenchmarkMetrics");  // Adjust the path as needed
+
+const BenchmarkMetrics = require("./models/BenchmarkMetrics");
 
 
-// Enable CORS for all routes
 app.use(cors());
 
 // Connect to MongoDB
-mongoose.connect("mongodb://jelly:27017/llm_benchmarks", { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log(err));
+  .catch((err) => console.log(err));
 
-
-// New route to fetch data from MongoDB
+// Route to fetch data
 app.get("/api/benchmarks", async (req, res) => {
   try {
     const metrics = await BenchmarkMetrics.find({});
@@ -26,8 +31,9 @@ app.get("/api/benchmarks", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
 
+// Start server
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
