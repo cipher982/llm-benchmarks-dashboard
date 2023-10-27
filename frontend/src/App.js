@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
+import "./App.css";
 import 'font-awesome/css/font-awesome.min.css';
+
 
 function App() {
   const [benchmarks, setBenchmarks] = useState([]);
