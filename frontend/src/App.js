@@ -34,13 +34,20 @@ function App() {
   };
 
   return (
-    <div>
+    <div className="container">
+      <h1>LLM Benchmarks</h1>
+      <p>This project aims to benchmark the popular HuggingFace language models under various configurations.</p>
+      <div className="system-specs">
+        <h3>System Specifications:</h3>
+        <p>GPU: NVIDIA GeForce RTX 3090</p>
+        <p>CPU: Intel Core i9-12900K</p>
+      </div>
       <a href="https://github.com/cipher982/llm-benchmarks" target="_blank" rel="noopener noreferrer">
         <i className="fa fa-github fa-2x"></i>
       </a>
-      {loading ? "Loading..." : null}
-      {error ? `Error: ${error}` : null}
-      <table>
+      {loading ? <div className="loading">Loading...</div> : null}
+      {error ? <div className="error">`Error: ${error}`</div> : null}
+      <table className="benchmark-table">
         <thead>
           <tr>
             <th>Model Name</th>
@@ -58,13 +65,13 @@ function App() {
               <td>{bytesToGB(calculateMean(benchmark.gpu_mem_usage)).toFixed(2) + " GB" || "None"}</td>
               <td>{benchmark.quantization_bits || "None"}</td>
               <td>{benchmark.torch_dtype}</td>
-              
             </tr>
           ))}
         </tbody>
       </table>
     </div>
   );
+  
   
 }
 
