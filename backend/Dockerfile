@@ -45,5 +45,6 @@ COPY --from=build /app/models/ ./models/
 ARG PORT=5000
 EXPOSE ${PORT}
 
-# Start the server by default, this can be overwritten at runtime
-CMD [ "node", "app/app.js" ]
+# Start the app app.js
+CMD ["node", "/app/app.js"]
+
