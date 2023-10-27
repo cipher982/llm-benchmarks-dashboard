@@ -9,32 +9,34 @@ const winston = require("winston");
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
-  defaultMeta: { service: 'your-service-name' },
+  defaultMeta: { service: 'llm-bench-back' },
   transports: [
-    new winston.transports.Console() // Log to console
+    new winston.transports.Console()
   ],
 });
 
 const app = express();
-
 const BenchmarkMetrics = require("./models/BenchmarkMetrics");
+
+mongoose.set('debug', true);
 
 app.use(cors());
 
-// Connect to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    logger.info("MongoDB connected");
-  })
-  .catch((err) => {
-    logger.error(`MongoDB connection error: ${err}`);
-  });
+async function connectToMongoDB() {
+  try {
+    logger.info(`Verifying MONGODB_URI: ${process.env.MONGODB_URI}`);
+    
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
-// Route to fetch data
+    logger.info(`MongoDB connected to ${process.env.MONGODB_URI}`);
+  } catch (err) {
+    logger.error(`MongoDB connection error: ${JSON.stringify(err)}`);
+  }
+}
+
 app.get("/api/benchmarks", async (req, res) => {
   try {
     const metrics = await BenchmarkMetrics.find({});
@@ -45,13 +47,18 @@ app.get("/api/benchmarks", async (req, res) => {
     logger.info(`Fetched ${metrics.length} metrics`);
     res.json(metrics);
   } catch (err) {
-    logger.error(`Error while fetching metrics: ${err}`);
+    logger.error(`Error while fetching metrics: ${JSON.stringify(err)}`);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// Start server
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
-});
+// Async function to start everything
+async function initialize() {
+  await connectToMongoDB();
+  const PORT = process.env.PORT;
+  app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`);
+  });
+}
+
+initialize();
