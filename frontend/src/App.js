@@ -7,7 +7,7 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/benchmarks")
+    fetch("http://llm-bench-back.fly.dev/api/benchmarks")
       .then((res) => res.json())
       .then((data) => {
         console.log("Fetched data:", data);
