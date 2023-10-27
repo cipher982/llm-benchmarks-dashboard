@@ -9,6 +9,6 @@ const BenchmarkMetricsSchema = new mongoose.Schema({
   torch_dtype: String,
 });
 
-const BenchmarkMetrics = mongoose.model("benchmark_metrics", BenchmarkMetricsSchema);
+const BenchmarkMetrics = mongoose.model("metrics", BenchmarkMetricsSchema);
 
 module.exports = BenchmarkMetrics;

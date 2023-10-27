@@ -3,11 +3,22 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const winston = require("winston");
+
+// Initialize logging with Winston
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  defaultMeta: { service: 'your-service-name' },
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+  ],
+});
 
 const app = express();
 
 const BenchmarkMetrics = require("./models/BenchmarkMetrics");
-
 
 app.use(cors());
 
@@ -17,23 +28,31 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log(err));
+  .then(() => {
+    logger.info("MongoDB connected");
+  })
+  .catch((err) => {
+    logger.error(`MongoDB connection error: ${err}`);
+  });
 
 // Route to fetch data
 app.get("/api/benchmarks", async (req, res) => {
   try {
     const metrics = await BenchmarkMetrics.find({});
+    if (!metrics || metrics.length === 0) {
+      logger.warn("No metrics found in the database");
+      return res.status(404).json({ message: "No metrics found" });
+    }
+    logger.info(`Fetched ${metrics.length} metrics`);
     res.json(metrics);
   } catch (err) {
-    console.log(err);
+    logger.error(`Error while fetching metrics: ${err}`);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-
 // Start server
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
 });
