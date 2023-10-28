@@ -1,9 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { DataGrid } from "@mui/x-data-grid";
 import "./App.css";
-import 'font-awesome/css/font-awesome.min.css';
+import "font-awesome/css/font-awesome.min.css";
 
 
-function App() {
+const columns = [
+  { field: "model_name", headerName: "Model Name", width: 150 },
+  { field: "tokens_per_second", headerName: "Tokens/Second", type: "number", width: 150 },
+  { field: "gpu_mem_usage", headerName: "GPU Memory", type: "number", width: 150 },
+  { field: "quantization_bits", headerName: "Quantization", width: 150 },
+  { field: "torch_dtype", headerName: "Torch DType", width: 150 }
+];
+
+
+const App = () => {
   const [benchmarks, setBenchmarks] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12,13 +22,19 @@ function App() {
     fetch("https://llm-bench-back.fly.dev/api/benchmarks")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Fetched data:", data);
-        setBenchmarks(data);
+        const transformedBenchmarks = data.map((benchmark, index) => ({
+          id: index,
+          model_name: benchmark.model_name,
+          tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
+          gpu_mem_usage: parseFloat(bytesToGB(calculateMean(benchmark.gpu_mem_usage)).toFixed(2)),
+          quantization_bits: benchmark.quantization_bits || "None",
+          torch_dtype: benchmark.torch_dtype
+        }));
+        setBenchmarks(transformedBenchmarks);
         setLoading(false);
       })
-      .catch((error) => {
-        console.log("Error fetching benchmark data:", error);
-        setError(error.toString());
+      .catch((err) => {
+        setError(err.toString());
         setLoading(false);
       });
   }, []);
@@ -49,32 +65,22 @@ function App() {
       </a>
       {loading ? <div className="loading">Loading...</div> : null}
       {error ? <div className="error">`Error: ${error}`</div> : null}
-      <table className="benchmark-table">
-        <thead>
-          <tr>
-            <th>Model Name</th>
-            <th>Tokens/Second</th>
-            <th>GPU Memory</th>
-            <th>Quantization</th>
-            <th>Torch DType</th>
-          </tr>
-        </thead>
-        <tbody>
-          {benchmarks.map((benchmark, index) => (
-            <tr key={index}>
-              <td>{benchmark.model_name}</td>
-              <td>{calculateMean(benchmark.tokens_per_second).toFixed(2)}</td>
-              <td>{bytesToGB(calculateMean(benchmark.gpu_mem_usage)).toFixed(2) + " GB" || "None"}</td>
-              <td>{benchmark.quantization_bits || "None"}</td>
-              <td>{benchmark.torch_dtype}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      <DataGrid
+        rows={benchmarks}
+        columns={columns}
+        pageSizeOptions={[10, 25]}
+        checkboxSelection
+        initialState={{
+          pagination: {
+            paginationModel: { page: 0, pageSize: 10 },
+          },
+        }}
+      />
     </div>
   );
-  
-  
+
+
 }
 
 export default App;
