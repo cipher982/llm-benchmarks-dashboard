@@ -22,14 +22,16 @@ const App = () => {
     fetch("https://llm-bench-back.fly.dev/api/benchmarks")
       .then((res) => res.json())
       .then((data) => {
-        const transformedBenchmarks = data.map((benchmark, index) => ({
-          id: index,
-          model_name: benchmark.model_name,
-          tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
-          gpu_mem_usage: parseFloat(bytesToGB(calculateMean(benchmark.gpu_mem_usage)).toFixed(2)),
-          quantization_bits: benchmark.quantization_bits || "None",
-          torch_dtype: benchmark.torch_dtype
-        }));
+        const transformedBenchmarks = data
+          .filter(benchmark => benchmark.tokens_per_second.length > 0 && benchmark.gpu_mem_usage.length > 0) // filter out empty arrays
+          .map((benchmark, index) => ({
+            id: index,
+            model_name: benchmark.model_name,
+            tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
+            gpu_mem_usage: parseFloat(bytesToGB(calculateMean(benchmark.gpu_mem_usage)).toFixed(2)),
+            quantization_bits: benchmark.quantization_bits || "None",
+            torch_dtype: benchmark.torch_dtype
+          }));
         setBenchmarks(transformedBenchmarks);
         setLoading(false);
       })
