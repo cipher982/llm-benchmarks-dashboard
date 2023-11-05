@@ -5,11 +5,12 @@ import "font-awesome/css/font-awesome.min.css";
 
 
 const columns = [
-  { field: "model_name", headerName: "Model Name", width: 150 },
-  { field: "tokens_per_second", headerName: "Tokens/Second", type: "number", width: 150 },
+  { field: "framework", headerName: "Framework", width: 150 },
+  { field: "model_name", headerName: "Model Name", width: 200 },
+  { field: "tokens_per_second", headerName: "Tokens/Second", type: "number", width: 100 },
   { field: "gpu_mem_usage", headerName: "GPU Memory", type: "number", width: 150 },
   { field: "quantization_bits", headerName: "Quantization", width: 150 },
-  { field: "torch_dtype", headerName: "Torch DType", width: 150 }
+  { field: "model_dtype", headerName: "Model DType", width: 150 }
 ];
 
 
@@ -23,14 +24,15 @@ const App = () => {
       .then((res) => res.json())
       .then((data) => {
         const transformedBenchmarks = data
-          .filter(benchmark => benchmark.tokens_per_second.length > 0 && benchmark.gpu_mem_usage.length > 0) // filter out empty arrays
+          .filter(benchmark => benchmark.tokens_per_second.length > 0 && benchmark.gpu_mem_usage.length > 0)
           .map((benchmark, index) => ({
             id: index,
+            framework: benchmark.framework,
             model_name: benchmark.model_name,
             tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
             gpu_mem_usage: parseFloat(bytesToGB(calculateMean(benchmark.gpu_mem_usage)).toFixed(2)),
-            quantization_bits: benchmark.quantization_bits || "None",
-            torch_dtype: benchmark.torch_dtype
+            quantization_bits: benchmark.quantization_bits && benchmark.quantization_bits !== "unknown" ? benchmark.quantization_bits : "None",
+            model_dtype: benchmark.model_dtype
           }));
         setBenchmarks(transformedBenchmarks);
         setLoading(false);
