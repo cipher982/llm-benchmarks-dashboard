@@ -1,14 +1,14 @@
 const mongoose = require("mongoose");
 
 const BenchmarkMetricsSchema = new mongoose.Schema({
+  framework: String,
   model_name: String,
+  quantization_bits: String,
   tokens_per_second: [Number],
   gpu_mem_usage: [Number],
   output_tokens: [Number],
-  quantization_bits: String,
-  torch_dtype: String,
+  model_dtype: String,
 });
 
-const BenchmarkMetrics = mongoose.model("metrics", BenchmarkMetricsSchema);
-
+const BenchmarkMetrics = mongoose.model(process.env.COLLECTION_NAME, BenchmarkMetricsSchema);
 module.exports = BenchmarkMetrics;
