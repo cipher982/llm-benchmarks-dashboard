@@ -10,5 +10,5 @@ const BenchmarkMetricsSchema = new mongoose.Schema({
   model_dtype: String,
 });
 
-const BenchmarkMetrics = mongoose.model(process.env.COLLECTION_NAME, BenchmarkMetricsSchema);
+const BenchmarkMetrics = mongoose.model("metrics_v1", BenchmarkMetricsSchema);
 module.exports = BenchmarkMetrics;
