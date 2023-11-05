@@ -15,8 +15,31 @@ const logger = winston.createLogger({
   ],
 });
 
+
 const app = express();
 const BenchmarkMetrics = require("./models/BenchmarkMetrics");
+
+// Regular expression to match the model size in the names
+const modelSizeRegex = /(\d+(\.\d+)?)(m|b)/i;
+
+// Extract size (params) in millions from name string
+function extractModelSize(modelName) {
+  const match = modelName.match(modelSizeRegex);
+  if (match) {
+    let size = parseFloat(match[1]); // Convert the number part to a float
+    let unit = match[3].toLowerCase(); // 'm' for millions, 'b' for billions
+
+    // Convert billions to millions if necessary
+    if (unit === 'b') {
+      size = size * 1000;
+    }
+
+    return Math.round(size);
+  }
+
+  return null;
+}
+
 
 mongoose.set('debug', true);
 
@@ -25,7 +48,7 @@ app.use(cors());
 async function connectToMongoDB() {
   try {
     logger.info(`Verifying MONGODB_URI: ${process.env.MONGODB_URI}`);
-    
+
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -44,10 +67,17 @@ app.get("/api/benchmarks", async (req, res) => {
       logger.warn("No metrics found in the database");
       return res.status(404).json({ message: "No metrics found" });
     }
-    logger.info(`Fetched ${metrics.length} metrics`);
-    res.json(metrics);
+
+    // Parse the model sizes and add them to the response
+    const metricsWithModelSizes = metrics.map(metric => ({
+      ...metric.toObject(),
+      model_size: extractModelSize(metric.model_name),
+    }));
+
+    logger.info(`Fetched ${metricsWithModelSizes.length} metrics with model sizes`);
+    res.json(metricsWithModelSizes); // Send data with model sizes
   } catch (err) {
-    logger.error(`Error while fetching metrics: ${JSON.stringify(err)}`);
+    logger.error(`Error while fetching metrics: ${err.message}`);
     res.status(500).json({ message: "Internal server error" });
   }
 });
