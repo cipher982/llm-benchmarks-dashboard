@@ -5,11 +5,11 @@ import "font-awesome/css/font-awesome.min.css";
 
 
 const columns = [
-  { field: "framework", headerName: "Framework", width: 150 },
-  { field: "model_name", headerName: "Model Name", width: 200 },
-  { field: "tokens_per_second", headerName: "Tokens/Second", type: "number", width: 100 },
+  { field: "framework", headerName: "Framework", width: 120 },
+  { field: "model_name", headerName: "Model Name", width: 250 },
+  { field: "tokens_per_second", headerName: "Tokens/Second", type: "number", width: 120 },
   { field: "gpu_mem_usage", headerName: "GPU Memory", type: "number", width: 150 },
-  { field: "quantization_bits", headerName: "Quantization", width: 150 },
+  { field: "quantization_bits", headerName: "Quantization", width: 120 },
   { field: "model_dtype", headerName: "Model DType", width: 150 }
 ];
 
