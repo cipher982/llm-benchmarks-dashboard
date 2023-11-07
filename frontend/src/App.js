@@ -1,28 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { DataGrid } from "@mui/x-data-grid";
-import "./App.css";
-import "font-awesome/css/font-awesome.min.css";
+import React, { useState, useEffect } from 'react';
+import BenchScatterChart from './BenchScatterChart';
+import BenchmarksTable from './BenchTable';
+import { calculateMean, bytesToGB } from './utils';
+import './App.css';
+import 'font-awesome/css/font-awesome.min.css';
 
-
-// Table columns and their properties
-const columns = [
-  { field: "framework", headerName: "Framework", width: 120 },
-  { field: "model_name", headerName: "Model Name", width: 250 },
-  {
-    field: 'model_size',
-    headerName: 'Params (M)',
-    renderCell: (params) => params.row.formatted_model_size
-  },
-  { field: "tokens_per_second", headerName: "Tokens/Second", type: "number", width: 120 },
-  { field: "gpu_mem_usage", headerName: "VRAM (GB)", type: "number", width: 120 },
-  { field: "quantization_bits", headerName: "Quantization", width: 120 },
-  { field: "model_dtype", headerName: "Model Dtype", width: 150 }
-];
 
 const App = () => {
   const [benchmarks, setBenchmarks] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
+
 
   useEffect(() => {
     fetch("https://llm-bench-back.fly.dev/api/benchmarks")
@@ -54,21 +43,10 @@ const App = () => {
       });
   }, []);
 
-  // Function to calculate the mean of an array
-  const calculateMean = (arr) => {
-    if (!Array.isArray(arr) || arr.length === 0) return null;
-    const sum = arr.reduce((a, b) => a + b, 0);
-    return sum / arr.length;
-  };
 
-  // Function to convert bytes to GB
-  const bytesToGB = (bytes) => {
-    return bytes / (1024 * 1024 * 1024);
-  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
-
 
   return (
     <div className="container">
@@ -82,29 +60,27 @@ const App = () => {
       <a href="https://github.com/cipher982/llm-benchmarks" target="_blank" rel="noopener noreferrer">
         <i className="fa fa-github fa-2x"></i>
       </a>
-      {/* {loading ? <div className="loading">Loading...</div> : null} */}
-      {/* {error ? <div className="error">`Error: ${error}`</div> : null} */}
 
-      {/* linechart */}
-      {/* <div>
-        {benchmarks.length > 0 && <BenchmarkLineChart data={benchmarks} />}
-      </div> */}
+      <h4 style={{ textAlign: "center" }}>GPU Usage vs Tokens/Second</h4>
+      <div>
+        {
+          benchmarks.length > 0 &&
+          <BenchScatterChart
+            // data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
+            // data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
+            data_f16={filteredBenchmarks.filter(benchmark => benchmark.quantization_bits === 'None')}
+            data_8bit={filteredBenchmarks.filter(benchmark => benchmark.quantization_bits === '8bit')}
+            data_4bit={filteredBenchmarks.filter(benchmark => benchmark.quantization_bits === '4bit')}
+          />
+        }
+      </div>
 
-      <DataGrid
-        rows={benchmarks}
-        columns={columns}
-        pageSizeOptions={[10, 25]}
-        checkboxSelection
-        initialState={{
-          pagination: {
-            paginationModel: { page: 0, pageSize: 10 },
-          },
-        }}
-      />
+      <h4 style={{ textAlign: "center" }}>Raw Results</h4>
+      <div>
+        <BenchmarksTable benchmarks={benchmarks} />
+      </div>
     </div>
   );
-
-
 }
 
 export default App;
