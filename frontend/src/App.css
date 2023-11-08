@@ -1,5 +1,31 @@
-.container {
+:root {
+  --main-bg-color: #f4f8ffb9;
+  --main-font-color: #333;
+  --error-color: #d9534f;
+  --border-color: #ddd;
+  --header-bg-color: #f9f9f9;
+  --zebra-stripe-color: #f2f2f2;
+  --hover-color: #e8e8e8;
+}
+
+/* body.dark-mode {
+  --main-bg-color: #333;
+  --main-font-color: #f9f9f9;
+  --error-color: #ff4d4f;
+  --border-color: #444;
+  --header-bg-color: #444;
+  --zebra-stripe-color: #3c3c3c;
+  --hover-color: #4d4d4d;
+} */
+
+body {
+  background-color: var(--main-bg-color);
+  color: var(--main-font-color);
+}
+
+.main-container {
   margin: 20px;
+  background-color: var(--main-bg-color);
 }
 
 .system-specs {
@@ -15,17 +41,61 @@
   color: red;
 }
 
-.benchmark-table {
+/* Charts!! */
+.chart-container {
+  text-align: center; /* Center the chart */
+  color: var(--main-font-color);
+  background-color: var(--main-bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px; /* Slightly rounded corners */
+  padding: 20px; /* Padding around the content */
+  margin-top: 20px; /* Space from content above */
+}
+
+
+/* Tables!! */
+.table-container {
+  text-align: center;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
-  border-collapse: collapse;
+  margin-top: 20px;
+  color: var(--main-font-color);
 }
 
-.benchmark-table th, .benchmark-table td {
-  border: 1px solid #ddd;
+.table-container th,
+.table-container td {
+  border-bottom: 1px solid #e1e1e1;
+  padding: 15px;
   text-align: left;
-  padding: 8px;
 }
 
-.benchmark-table th {
-  background-color: #f2f2f2;
+.table-container th {
+  background-color: var(--header-bg-color);
+}
+
+.table-container tr:nth-child(odd) {
+  background-color: var(--zebra-stripe-color);
+}
+
+.table-container tr:hover {
+  background-color: var(--hover-color);
+}
+
+/* Loading and Errors!! */
+.loading, .error {
+  font-size: 1rem; /* Adjust font size */
+  margin: 20px 0;
+  text-align: center;
+}
+
+.error {
+  color: var(--error-color);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .table-container, .table-container th, .table-container td {
+    font-size: 0.875rem; /* Slightly smaller font size on smaller screens */
+  }
 }

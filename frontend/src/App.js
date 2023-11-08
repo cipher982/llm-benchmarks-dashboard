@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import BenchScatterChart from './BenchScatterChart';
 import BenchmarksTable from './BenchTable';
 import { calculateMean, bytesToGB } from './utils';
-import './App.css';
 import 'font-awesome/css/font-awesome.min.css';
+import './App.css';
 
 
 const App = () => {
@@ -44,42 +44,39 @@ const App = () => {
   }, []);
 
 
-
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div className="container">
+    <div className="main-container">
       <h1>LLM Benchmarks</h1>
       <p>This project aims to benchmark popular LLM frameworks in various configurations.</p>
-      <div className="system-specs">
+      <section className="system-specs">
         <h3>System Specifications:</h3>
         <p>GPU: NVIDIA GeForce RTX 3090</p>
         <p>CPU: Intel Core i9-12900K</p>
+      </section>
+      <div className="github-link">
+        <a href="https://github.com/cipher982/llm-benchmarks" target="_blank" rel="noopener noreferrer">
+          <i className="fa fa-github fa-2x"></i>
+        </a>
       </div>
-      <a href="https://github.com/cipher982/llm-benchmarks" target="_blank" rel="noopener noreferrer">
-        <i className="fa fa-github fa-2x"></i>
-      </a>
 
-      <h4 style={{ textAlign: "center" }}>GPU Usage vs Tokens/Second</h4>
-      <div>
-        {
-          benchmarks.length > 0 &&
+      <section className="chart-container">
+        <h4>GPU Usage vs Tokens/Second</h4>
+        {/* Chart Component */}
+        {benchmarks.length > 0 && (
           <BenchScatterChart
-            data_tf_4bit={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers' && benchmark.quantization_bits === '4bit')}
-            data_tf_8bit={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers' && benchmark.quantization_bits === '8bit')}
-            data_tf_f16={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers' && benchmark.quantization_bits === 'None')}
-            data_gguf_4bit={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf' && benchmark.quantization_bits === '4bit')}
-            data_gguf_8bit={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf' && benchmark.quantization_bits === '8bit')}
-            data_gguf_f16={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf' && benchmark.quantization_bits === 'None')}
+            data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
+            data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
           />
-        }
-      </div>
+        )}
+      </section>
 
-      <h4 style={{ textAlign: "center" }}>Raw Results</h4>
-      <div>
+      <section className="table-container">
+        <h4>Raw Results</h4>
         <BenchmarksTable benchmarks={benchmarks} />
-      </div>
+      </section>
     </div>
   );
 }

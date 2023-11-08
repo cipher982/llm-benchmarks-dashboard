@@ -2,7 +2,7 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
-const BenchScatterChart = ({ data_tf_4bit, data_tf_8bit, data_tf_f16, data_gguf_4bit, data_gguf_8bit, data_gguf_f16 }) => {
+const BenchScatterChart = ({ data_tf, data_gguf }) => {
     const dataMin = 1;
     const dataMax = 25;
 
@@ -25,35 +25,20 @@ const BenchScatterChart = ({ data_tf_4bit, data_tf_8bit, data_tf_f16, data_gguf_
 
     const logTicks = generateLogTicks(dataMin, dataMax);
 
-    // const renderSquareShape = (props) => {
-    //     const { cx, cy, fill } = props;
-    //     return <rect x={cx - 5} y={cy - 5} width={10} height={10} fill={fill} />;
-    // };
-
-    // const renderCircleShape = (props) => {
-    //     const { cx, cy, fill } = props;
-    //     return <circle cx={cx} cy={cy} r={5} fill={fill} />;
-    // };
-
     return (
         <ScatterChart
             width={730}
             height={250}
             margin={{
                 top: 20,
-                right: 20,
+                right: 0,
                 bottom: 30,
                 left: 10,
             }}
         >
             {/* Scatter plots for each data type */}
-            <Scatter name="TF 4-bit" data={data_tf_4bit} fill="#FF0000" />
-            <Scatter name="TF 8-bit" data={data_tf_8bit} fill="#82ca9d" />
-            <Scatter name="TF float16" data={data_tf_f16} fill="#8884d8" />
-            <Scatter name="GGUF 4-bit" data={data_gguf_4bit} fill="#FF0000" />
-            <Scatter name="GGUF 8-bit" data={data_gguf_8bit} fill="#82ca9d" />
-            <Scatter name="GGUF float16" data={data_gguf_f16} fill="#8884d8" />
-
+            <Scatter name="Transformers" data={data_tf} fill="#4A90E2" />
+            <Scatter name="GGUF" data={data_gguf} fill="#FF6B6B" />
             {/* Axes */}
             <XAxis
                 dataKey="gpu_mem_usage"
@@ -67,7 +52,7 @@ const BenchScatterChart = ({ data_tf_4bit, data_tf_8bit, data_tf_f16, data_gguf_
             />
             <YAxis dataKey="tokens_per_second" type="number" />
             <Tooltip />
-            {/* <Legend layout="vertical" verticalAlign="top" align="right" /> */}
+            <Legend layout="vertical" verticalAlign="top" align="right" />
         </ScatterChart>
     );
 };
