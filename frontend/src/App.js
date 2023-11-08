@@ -51,7 +51,7 @@ const App = () => {
   return (
     <div className="container">
       <h1>LLM Benchmarks</h1>
-      <p>This project aims to benchmark the popular HuggingFace language models under various configurations.</p>
+      <p>This project aims to benchmark popular LLM frameworks under various configurations.</p>
       <div className="system-specs">
         <h3>System Specifications:</h3>
         <p>GPU: NVIDIA GeForce RTX 3090</p>
