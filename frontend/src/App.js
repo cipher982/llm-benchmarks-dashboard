@@ -66,11 +66,12 @@ const App = () => {
         {
           benchmarks.length > 0 &&
           <BenchScatterChart
-            // data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
-            // data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
-            data_f16={filteredBenchmarks.filter(benchmark => benchmark.quantization_bits === 'None')}
-            data_8bit={filteredBenchmarks.filter(benchmark => benchmark.quantization_bits === '8bit')}
-            data_4bit={filteredBenchmarks.filter(benchmark => benchmark.quantization_bits === '4bit')}
+            data_tf_4bit={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers' && benchmark.quantization_bits === '4bit')}
+            data_tf_8bit={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers' && benchmark.quantization_bits === '8bit')}
+            data_tf_f16={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers' && benchmark.quantization_bits === 'None')}
+            data_gguf_4bit={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf' && benchmark.quantization_bits === '4bit')}
+            data_gguf_8bit={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf' && benchmark.quantization_bits === '8bit')}
+            data_gguf_f16={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf' && benchmark.quantization_bits === 'None')}
           />
         }
       </div>
