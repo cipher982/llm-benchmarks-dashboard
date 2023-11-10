@@ -8,19 +8,26 @@
   --hover-color: #e8e8e8;
 }
 
-/* body.dark-mode {
-  --main-bg-color: #333;
+body.dark-mode {
+  --main-bg-color: #0a0a0d;
   --main-font-color: #f9f9f9;
-  --error-color: #ff4d4f;
-  --border-color: #444;
-  --header-bg-color: #444;
-  --zebra-stripe-color: #3c3c3c;
-  --hover-color: #4d4d4d;
-} */
+  --error-color: #ff2d00;
+  --border-color: #1f1f22;
+  --header-bg-color: #1f1f22;
+  --zebra-stripe-color: #141419;
+  --hover-color: #242429;
+}
 
 body {
   background-color: var(--main-bg-color);
   color: var(--main-font-color);
+}
+
+/* Dark mode specific styles for table text */
+body.dark-mode .table-container,
+body.dark-mode .table-container th,
+body.dark-mode .table-container td {
+  color: var(--main-font-color); /* Assuming you set this variable to white in dark mode */
 }
 
 .main-container {

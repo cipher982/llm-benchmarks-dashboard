@@ -1,7 +1,16 @@
+// Libraries/Modules
 import React, { useState, useEffect } from 'react';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import Button from '@mui/material/Button';
+
+// Components
 import BenchScatterChart from './BenchScatterChart';
 import BenchmarksTable from './BenchTable';
+
+// Utilities/Functions
 import { calculateMean, bytesToGB } from './utils';
+
+// Styles
 import 'font-awesome/css/font-awesome.min.css';
 import './App.css';
 
@@ -11,7 +20,17 @@ const App = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
+  const [darkMode, setDarkMode] = useState(false);
 
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', darkMode);
+  }, [darkMode]);
+
+  const darkTheme = createTheme({
+    palette: {
+      mode: darkMode ? 'dark' : 'light',
+    },
+  });
 
   useEffect(() => {
     fetch("https://llm-bench-back.fly.dev/api/benchmarks")
@@ -47,37 +66,47 @@ const App = () => {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
+
   return (
-    <div className="main-container">
-      <h1>LLM Benchmarks</h1>
-      <p>This project aims to benchmark popular LLM frameworks in various configurations.</p>
-      <section className="system-specs">
-        <h3>System Specifications:</h3>
-        <p>GPU: NVIDIA GeForce RTX 3090</p>
-        <p>CPU: Intel Core i9-12900K</p>
-      </section>
-      <div className="github-link">
-        <a href="https://github.com/cipher982/llm-benchmarks" target="_blank" rel="noopener noreferrer">
-          <i className="fa fa-github fa-2x"></i>
-        </a>
+    <ThemeProvider theme={darkTheme}>
+      <div className="main-container">
+        <Button variant="contained" color={darkMode ? "primary" : "secondary"} onClick={toggleDarkMode} size="small">
+          {darkMode ? '☀️' : '🌒'}
+        </Button>
+        <h1>LLM Benchmarks</h1>
+        <p>This project aims to benchmark popular LLM frameworks in various configurations.</p>
+        <section className="system-specs">
+          <h3>System Specifications:</h3>
+          <p>GPU: NVIDIA GeForce RTX 3090</p>
+          <p>CPU: Intel Core i9-12900K</p>
+        </section>
+        <div className="github-link">
+          <a href="https://github.com/cipher982/llm-benchmarks" target="_blank" rel="noopener noreferrer">
+            <i className="fa fa-github fa-2x"></i>
+          </a>
+        </div>
+
+        <section className="chart-container">
+          <h4>GPU Usage vs Tokens/Second</h4>
+          {/* Chart Component */}
+          {benchmarks.length > 0 && (
+            <BenchScatterChart
+              data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
+              data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
+            />
+          )}
+        </section>
+
+        <section className="table-container">
+          <h4>Raw Results</h4>
+          <BenchmarksTable benchmarks={benchmarks} darkMode={darkMode} />
+        </section>
       </div>
-
-      <section className="chart-container">
-        <h4>GPU Usage vs Tokens/Second</h4>
-        {/* Chart Component */}
-        {benchmarks.length > 0 && (
-          <BenchScatterChart
-            data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
-            data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
-          />
-        )}
-      </section>
-
-      <section className="table-container">
-        <h4>Raw Results</h4>
-        <BenchmarksTable benchmarks={benchmarks} />
-      </section>
-    </div>
+    </ThemeProvider>
   );
 }
 
