@@ -45,11 +45,64 @@ const ChartContainer = styled('section')(({ theme }) => ({
 
 const TableContainer = styled('section')(({ theme }) => ({
   textAlign: 'center',
+  backgroundColor: theme.palette.background.paper,
   border: `1px solid ${theme.palette.divider}`,
   marginTop: '20px',
   width: '100%',
 }));
 
+// Define your themes outside of the App component
+const lightPurpleTheme = createTheme({
+  palette: {
+    primary: {
+      main: '#fff', // red color
+    },
+    secondary: {
+      main: '#663399', // Choose a complementary color
+    },
+    background: {
+      default: '#fff', // Light background color
+      paper: '#663399', // White color for paper elements
+    },
+    text: {
+      primary: '#f9f9f9', // Dark text color for readability
+      secondary: '#f9f9f9', // Lighter text color
+    },
+  },
+  // ... [any other theme customizations]
+});
+
+const darkTheme = createTheme({
+  ...lightPurpleTheme,
+  palette: {
+    ...lightPurpleTheme.palette,
+    mode: 'dark',
+    primary: {
+      main: '#000',
+    },
+    secondary: {
+      main: '#000',
+    },
+    background: {
+      default: '#333333',
+      paper: '#000',
+    },
+    text: {
+      primary: '#f9f9f9',
+      secondary: '#f9f9f9', // Lighter text color
+    },
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundColor: '#333333', // Black background color
+          color: '#f9f9f9', // Text color
+        },
+      },
+    },
+  },
+});
 
 // Main App Component
 const App = () => {
@@ -60,24 +113,10 @@ const App = () => {
   const [darkMode, setDarkMode] = useState(false);
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+    setDarkMode(prevDarkMode => !prevDarkMode);
   };
 
-  const darkTheme = createTheme({
-    palette: {
-      mode: darkMode ? 'dark' : 'light',
-    },
-    components: {
-      MuiCssBaseline: {
-        styleOverrides: {
-          body: {
-            backgroundColor: darkMode ? '#0a0a0d' : '#f4f8ffb9',
-            color: darkMode ? '#f9f9f9' : '#333',
-          },
-        },
-      },
-    },
-  });
+  const theme = darkMode ? darkTheme : lightPurpleTheme;
 
   useEffect(() => {
     fetch("https://llm-bench-back.fly.dev/api/benchmarks")
@@ -114,7 +153,7 @@ const App = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
       <div style={{ display: "flex", justifyContent: "left", alignItems: "center" }}>
         <Button
@@ -144,6 +183,7 @@ const App = () => {
           <h4>GPU Usage vs Tokens/Second</h4>
           {benchmarks.length > 0 && (
             <BenchScatterChart
+              theme={theme}
               data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
               data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
             />

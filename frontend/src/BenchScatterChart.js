@@ -2,7 +2,7 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
-const BenchScatterChart = ({ data_tf, data_gguf }) => {
+const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
     const dataMin = 1;
     const dataMax = 25;
 
@@ -49,8 +49,13 @@ const BenchScatterChart = ({ data_tf, data_gguf }) => {
                 dy={10}
                 angle={0}
                 ticks={logTicks} // Set the ticks array here
+                stroke={theme.palette.text.primary}
             />
-            <YAxis dataKey="tokens_per_second" type="number" />
+            <YAxis
+                dataKey="tokens_per_second"
+                type="number"
+                stroke={theme.palette.text.primary}
+            />
             <Tooltip />
             <Legend layout="vertical" verticalAlign="top" align="right" />
         </ScatterChart>
