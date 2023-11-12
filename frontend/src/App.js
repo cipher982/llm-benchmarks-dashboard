@@ -1,30 +1,24 @@
 // Libraries/Modules
 import React, { useState, useEffect } from 'react';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
-import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
+import { AppBar } from '@mui/material';
 
 // Components
 import BenchScatterChart from './BenchScatterChart';
 import BenchmarksTable from './BenchTable';
+import Navbar from './NavBar';
 
 // Utilities/Functions
 import { calculateMean, bytesToGB } from './utils';
 
 // Styles
-import 'font-awesome/css/font-awesome.min.css';
 import './App.css';
 
-
-// Styled Components
 const MainContainer = styled('div')(({ theme }) => ({
+  paddingTop: '50px',
   margin: '20px',
   backgroundColor: theme.palette.background.default,
-}));
-
-const GitHubLink = styled('div')(({ theme }) => ({
-  textAlign: 'left',
-  margin: '20px 0',
 }));
 
 const DescriptionSection = styled('section')(({ theme }) => ({
@@ -51,22 +45,22 @@ const TableContainer = styled('section')(({ theme }) => ({
   width: '100%',
 }));
 
-// Define your themes outside of the App component
+// Themes
 const lightPurpleTheme = createTheme({
   palette: {
     primary: {
-      main: '#fff', // red color
+      main: '#fff',
     },
     secondary: {
-      main: '#663399', // Choose a complementary color
+      main: '#663399',
     },
     background: {
-      default: '#fff', // Light background color
-      paper: '#663399', // White color for paper elements
+      default: '#fff',
+      paper: '#663399',
     },
     text: {
-      primary: '#f9f9f9', // Dark text color for readability
-      secondary: '#f9f9f9', // Lighter text color
+      primary: '#f9f9f9',
+      secondary: '#f9f9f9',
     },
   },
   // ... [any other theme customizations]
@@ -89,20 +83,21 @@ const darkTheme = createTheme({
     },
     text: {
       primary: '#f9f9f9',
-      secondary: '#f9f9f9', // Lighter text color
+      secondary: '#f9f9f9',
     },
   },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#333333', // Black background color
-          color: '#f9f9f9', // Text color
+          backgroundColor: '#333333',
+          color: '#f9f9f9',
         },
       },
     },
   },
 });
+
 
 // Main App Component
 const App = () => {
@@ -155,22 +150,9 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div style={{ display: "flex", justifyContent: "left", alignItems: "center" }}>
-        <Button
-          variant="contained"
-          color={darkMode ? "primary" : "secondary"}
-          onClick={toggleDarkMode}
-          size="small"
-          style={{ marginLeft: "20px", marginRight: "20px" }}
-        >
-          {darkMode ? '☀️' : '🌒'}
-        </Button>
-        <GitHubLink>
-          <a href="https://github.com/cipher982/llm-benchmarks" target="_blank" rel="noopener noreferrer">
-            <i className="fa fa-github fa-2x"></i>
-          </a>
-        </GitHubLink>
-      </div>
+      <AppBar position="fixed">
+        <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      </AppBar>
       <MainContainer>
         <DescriptionSection>
           <h1>LLM Benchmarks</h1>
