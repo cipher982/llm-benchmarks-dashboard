@@ -1,6 +1,6 @@
 // BenchScatterChart.js
 import React from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend } from 'recharts';
 
 const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
     const dataMin = 1;
@@ -44,18 +44,33 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
                 dataKey="gpu_mem_usage"
                 type="number"
                 scale="log"
-                domain={[dataMin, dataMax]} // use variables without quotes
+                domain={[dataMin, dataMax]}
                 tickFormatter={(tick) => `${tick.toFixed(2)}`}
                 dy={10}
                 angle={0}
-                ticks={logTicks} // Set the ticks array here
+                ticks={logTicks}
                 stroke={theme.palette.text.primary}
-            />
+            >
+                <Label
+                    value="GPU Memory Usage (GB)"
+                    offset={-20}
+                    position="insideBottom"
+                    style={{ fill: theme.palette.text.primary }}
+                />
+            </XAxis>
             <YAxis
                 dataKey="tokens_per_second"
                 type="number"
                 stroke={theme.palette.text.primary}
-            />
+            >
+                <Label
+                    value="Tokens/Second"
+                    offset={0}
+                    dy={50} // Increase this value to move the label lower
+                    position="insideLeft"
+                    angle={-90} style={{ fill: theme.palette.text.primary }}
+                />
+            </YAxis>
             <Tooltip />
             <Legend layout="vertical" verticalAlign="top" align="right" />
         </ScatterChart>
