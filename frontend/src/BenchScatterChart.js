@@ -25,6 +25,21 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
 
     const logTicks = generateLogTicks(dataMin, dataMax);
 
+    const CustomTooltip = ({ active, payload }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="custom-tooltip">
+                    <p className="label">{`Framework : ${payload[0].payload.framework}`}</p>
+                    <p className="label">{`Model Name : ${payload[0].payload.model_name}`}</p>
+                    <p className="label">{`GPU Memory Usage : ${payload[0].value}`}</p>
+                    <p className="label">{`Tokens/Second : ${payload[1].value}`}</p>
+                </div>
+            );
+        }
+
+        return null;
+    };
+
     return (
         <ResponsiveContainer width="100%" height={250}>
             <ScatterChart
@@ -72,7 +87,7 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
                         angle={-90} style={{ fill: theme.palette.text.primary }}
                     />
                 </YAxis>
-                <Tooltip />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend layout="vertical" verticalAlign="top" align="right" />
             </ScatterChart>
         </ResponsiveContainer>

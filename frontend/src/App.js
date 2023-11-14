@@ -46,8 +46,10 @@ const TableContainer = styled('section')(({ theme }) => ({
   width: '100%',
 }));
 
+
+
 // Themes
-const commonTheme = {
+const commonTheme = createTheme({
   palette: {
     primary: {
       main: '#fff',
@@ -68,8 +70,36 @@ const commonTheme = {
         },
       },
     },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          color: '#f9f9f9',
+        },
+      },
+    },
+    MuiDataGrid: {
+      styleOverrides: {
+        root: {
+          '& .MuiDataGrid-menuIcon': {
+            color: '#f9f9f9',
+          },
+          '& .MuiDataGrid-menuList': {
+            backgroundColor: '#f9f9f9',
+            color: '#f9f9f9',
+          },
+        },
+      },
+    },
+    MuiListItemIcon: {
+      styleOverrides: {
+        root: {
+          color: '#f9f9f9',
+        },
+      },
+    },
   },
-};
+});
+
 
 const lightPurpleTheme = createTheme({
   ...commonTheme,
