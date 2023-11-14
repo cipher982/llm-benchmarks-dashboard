@@ -1,6 +1,6 @@
 // BenchScatterChart.js
 import React from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer } from 'recharts';
 
 const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
     const dataMin = 1;
@@ -26,54 +26,57 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
     const logTicks = generateLogTicks(dataMin, dataMax);
 
     return (
-        <ScatterChart
-            width={730}
-            height={250}
-            margin={{
-                top: 20,
-                right: 0,
-                bottom: 30,
-                left: 10,
-            }}
-        >
-            {/* Scatter plots for each data type */}
-            <Scatter name="Transformers" data={data_tf} fill="#4A90E2" />
-            <Scatter name="GGUF" data={data_gguf} fill="#FF6B6B" />
-            {/* Axes */}
-            <XAxis
-                dataKey="gpu_mem_usage"
-                type="number"
-                scale="log"
-                domain={[dataMin, dataMax]}
-                tickFormatter={(tick) => `${tick.toFixed(2)}`}
-                dy={10}
-                angle={0}
-                ticks={logTicks}
-                stroke={theme.palette.text.primary}
+        <ResponsiveContainer width="100%" height={250}>
+            <ScatterChart
+                width={730}
+                height={250}
+                margin={{
+                    top: 20,
+                    right: 0,
+                    bottom: 30,
+                    left: 10,
+                }}
             >
-                <Label
-                    value="GPU Memory Usage (GB)"
-                    offset={-20}
-                    position="insideBottom"
-                    style={{ fill: theme.palette.text.primary }}
-                />
-            </XAxis>
-            <YAxis
-                dataKey="tokens_per_second"
-                type="number"
-                stroke={theme.palette.text.primary}
-            >
-                <Label
-                    value="Tokens/Second"
-                    offset={0}
-                    dy={50} // Increase this value to move the label lower
-                    position="insideLeft"
-                    angle={-90} style={{ fill: theme.palette.text.primary }}
-                />
-            </YAxis>
-            <Tooltip />
-            <Legend layout="vertical" verticalAlign="top" align="right" />
-        </ScatterChart>
+                {/* Scatter plots for each data type */}
+                <Scatter name="Transformers" data={data_tf} fill="#4A90E2" />
+                <Scatter name="GGUF" data={data_gguf} fill="#FF6B6B" />
+                {/* Axes */}
+                <XAxis
+                    dataKey="gpu_mem_usage"
+                    type="number"
+                    scale="log"
+                    domain={[dataMin, dataMax]}
+                    tickFormatter={(tick) => `${tick.toFixed(2)}`}
+                    dy={10}
+                    angle={0}
+                    ticks={logTicks}
+                    stroke={theme.palette.text.primary}
+                >
+                    <Label
+                        value="GPU Memory Usage (GB)"
+                        offset={-20}
+                        position="insideBottom"
+                        style={{ fill: theme.palette.text.primary }}
+                    />
+                </XAxis>
+                <YAxis
+                    dataKey="tokens_per_second"
+                    type="number"
+                    stroke={theme.palette.text.primary}
+                >
+                    <Label
+                        value="Tokens/Second"
+                        offset={0}
+                        dy={50} // Increase this value to move the label lower
+                        position="insideLeft"
+                        angle={-90} style={{ fill: theme.palette.text.primary }}
+                    />
+                </YAxis>
+                <Tooltip />
+                <Legend layout="vertical" verticalAlign="top" align="right" />
+            </ScatterChart>
+        </ResponsiveContainer>
+
     );
 };
 
