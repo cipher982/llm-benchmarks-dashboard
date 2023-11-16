@@ -13,7 +13,8 @@ const columns = [
     },
     { field: "tokens_per_second", headerName: "Tokens/Second", type: "number", width: 120 },
     { field: "gpu_mem_usage", headerName: "VRAM (GB)", type: "number", width: 120 },
-    { field: "quantization_bits", headerName: "Quantization", width: 120 },
+    { field: "quantization_method", headerName: "Quant Method", width: 120 },
+    { field: "quantization_bits", headerName: "Quant Bits", width: 120 },
     { field: "model_dtype", headerName: "Model Dtype", width: 150 }
 ];
 

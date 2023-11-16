@@ -13,13 +13,14 @@ export const transformBenchmarks = (data) => {
                 formatted_model_size: rawModelSize ? rawModelSize.toLocaleString() : "N/A",
                 tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second)),
                 gpu_mem_usage: parseFloat(bytesToGB(calculateMean(benchmark.gpu_mem_usage))),
+                quantization_method: benchmark.quantization_method && benchmark.quantization_method !== "unknown" ? benchmark.quantization_method : "None",
                 quantization_bits: benchmark.quantization_bits && benchmark.quantization_bits !== "unknown" ? benchmark.quantization_bits : "None",
                 model_dtype: benchmark.model_dtype
             };
         });
 
     const dedupedBenchmarks = transformedBenchmarks.reduce((acc, curr) => {
-        const key = `${curr.model_name}-${curr.framework}-${curr.quantization_bits}-${curr.model_dtype}`;
+        const key = `${curr.model_name}-${curr.framework}-${curr.quantization_method}-${curr.quantization_bits}-${curr.model_dtype}`;
         if (acc[key]) {
             acc[key].tokens_per_second = (acc[key].tokens_per_second + curr.tokens_per_second) / 2;
             acc[key].gpu_mem_usage = (acc[key].gpu_mem_usage + curr.gpu_mem_usage) / 2;
