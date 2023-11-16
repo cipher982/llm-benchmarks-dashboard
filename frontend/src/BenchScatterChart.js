@@ -2,9 +2,19 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer } from 'recharts';
 
-const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
+const BenchScatterChart = ({ theme, data_tf, data_gguf, data_hftgi }) => {
     const dataMin = 1;
     const dataMax = 25;
+
+    // Limit datasets for aesthetics
+    const data_tf_1 = data_tf.filter(item => item.tokens_per_second <= 450);
+    const data_gguf_1 = data_gguf.filter(item => item.tokens_per_second <= 450);
+    const data_hftgi_1 = data_hftgi.filter(item => item.tokens_per_second <= 450);
+
+    const data_tf_2 = data_tf_1.filter(item => item.gpu_mem_usage <= 22);
+    const data_gguf_2 = data_gguf_1.filter(item => item.gpu_mem_usage <= 22);
+    const data_hftgi_2 = data_hftgi_1.filter(item => item.gpu_mem_usage <= 22);
+
 
     const generateLogTicks = (min, max) => {
         let ticks = [];
@@ -53,8 +63,9 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
                 }}
             >
                 {/* Scatter plots for each data type */}
-                <Scatter name="Transformers" data={data_tf} fill="#4A90E2" />
-                <Scatter name="GGUF" data={data_gguf} fill="#FF6B6B" />
+                <Scatter name="Transformers" data={data_tf_2} fill="#33CCCC" />
+                <Scatter name="GGUF" data={data_gguf_2} fill="#FFFF66" />
+                <Scatter name="HF-TGI" data={data_hftgi_2} fill="#FF99CC" />
                 {/* Axes */}
                 <XAxis
                     dataKey="gpu_mem_usage"
@@ -77,6 +88,7 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf }) => {
                 <YAxis
                     dataKey="tokens_per_second"
                     type="number"
+                    domain={[0, 400]}
                     stroke={theme.palette.text.primary}
                 >
                     <Label

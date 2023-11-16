@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppBar } from '@mui/material';
+import CircularProgress from '@mui/material/CircularProgress';
+
 
 // Components
 import BenchScatterChart from './BenchScatterChart';
@@ -45,7 +47,6 @@ const TableContainer = styled('section')(({ theme }) => ({
   marginTop: '20px',
   width: '100%',
 }));
-
 
 
 // Themes
@@ -160,7 +161,13 @@ const App = () => {
   }, []);
 
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <CircularProgress />
+      </div>
+    );
+  }
   if (error) return <div>Error: {error}</div>;
 
   return (
@@ -184,6 +191,7 @@ const App = () => {
               theme={theme}
               data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
               data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
+              data_hftgi={filteredBenchmarks.filter(benchmark => benchmark.framework === 'hf-tgi')}
             />
           )}
         </ChartContainer>
