@@ -2,7 +2,7 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer } from 'recharts';
 
-const BenchScatterChart = ({ theme, data_tf, data_gguf, data_hftgi }) => {
+const BenchScatterChart = ({ theme, data_tf, data_gguf, data_hftgi, data_vllm }) => {
     const dataMin = 1;
     const dataMax = 25;
 
@@ -10,10 +10,12 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf, data_hftgi }) => {
     const data_tf_1 = data_tf.filter(item => item.tokens_per_second <= 450);
     const data_gguf_1 = data_gguf.filter(item => item.tokens_per_second <= 450);
     const data_hftgi_1 = data_hftgi.filter(item => item.tokens_per_second <= 450);
+    const data_vllm_1 = data_vllm.filter(item => item.tokens_per_second <= 450);
 
-    const data_tf_2 = data_tf_1.filter(item => item.gpu_mem_usage <= 22);
-    const data_gguf_2 = data_gguf_1.filter(item => item.gpu_mem_usage <= 22);
-    const data_hftgi_2 = data_hftgi_1.filter(item => item.gpu_mem_usage <= 22);
+    const data_tf_2 = data_tf_1.filter(item => item.gpu_mem_usage <= 24);
+    const data_gguf_2 = data_gguf_1.filter(item => item.gpu_mem_usage <= 24);
+    const data_hftgi_2 = data_hftgi_1.filter(item => item.gpu_mem_usage <= 24);
+    const data_vllm_2 = data_vllm_1.filter(item => item.gpu_mem_usage <= 24);
 
 
     const generateLogTicks = (min, max) => {
@@ -63,9 +65,10 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf, data_hftgi }) => {
                 }}
             >
                 {/* Scatter plots for each data type */}
-                <Scatter name="Transformers" data={data_tf_2} fill="#33CCCC" />
-                <Scatter name="GGUF" data={data_gguf_2} fill="#FFFF66" />
-                <Scatter name="HF-TGI" data={data_hftgi_2} fill="#FF99CC" />
+                <Scatter name="Transformers" data={data_tf_2} fill="#2980b9" />
+                <Scatter name="llama-cpp/GGUF" data={data_gguf_2} fill="#e74c3c" />
+                <Scatter name="HF-TGI" data={data_hftgi_2} fill="#f1c40f" />
+                <Scatter name="vLLM" data={data_vllm_2} fill="#1abc9c" />
                 {/* Axes */}
                 <XAxis
                     dataKey="gpu_mem_usage"

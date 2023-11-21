@@ -192,6 +192,7 @@ const App = () => {
               data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
               data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
               data_hftgi={filteredBenchmarks.filter(benchmark => benchmark.framework === 'hf-tgi')}
+              data_vllm={filteredBenchmarks.filter(benchmark => benchmark.framework === 'vllm')}
             />
           )}
         </ChartContainer>
