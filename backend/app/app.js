@@ -74,6 +74,12 @@ app.get("/api/benchmarks", async (req, res) => {
       model_size: extractModelSize(metric.model_name),
     }));
 
+    // Shuffle the array
+    for (let i = metricsWithModelSizes.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [metricsWithModelSizes[i], metricsWithModelSizes[j]] = [metricsWithModelSizes[j], metricsWithModelSizes[i]];
+    }
+
     logger.info(`Fetched ${metricsWithModelSizes.length} metrics with model sizes`);
     res.json(metricsWithModelSizes); // Send data with model sizes
   } catch (err) {
