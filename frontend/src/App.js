@@ -4,6 +4,7 @@ import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppBar } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
+import { Analytics } from '@vercel/analytics/react';
 
 
 // Components
@@ -171,42 +172,50 @@ const App = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AppBar position="fixed">
-        <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-      </AppBar>
-      <MainContainer>
-        <DescriptionSection>
-          <h1>LLM Benchmarks</h1>
-          <p>This project aims to benchmark popular LLM frameworks in various configurations.</p>
-          <h3>System Specifications:</h3>
-          <p>GPU: NVIDIA GeForce RTX 3090</p>
-          <p>CPU: Intel Core i9-12900K</p>
-        </DescriptionSection>
-        <ChartContainer>
-          <h4>GPU Usage vs Tokens/Second</h4>
-          {benchmarks.length > 0 && (
-            <BenchScatterChart
-              theme={theme}
-              data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
-              data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
-              data_hftgi={filteredBenchmarks.filter(benchmark => benchmark.framework === 'hf-tgi')}
-              data_vllm={filteredBenchmarks.filter(benchmark => benchmark.framework === 'vllm')}
+    <>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+
+        <AppBar position="fixed">
+          <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+        </AppBar>
+
+        <MainContainer>
+
+          <DescriptionSection>
+            <h1>LLM Benchmarks</h1>
+            <p>This project aims to benchmark popular LLM frameworks in various configurations.</p>
+            <h3>System Specifications:</h3>
+            <p>GPU: NVIDIA GeForce RTX 3090</p>
+            <p>CPU: Intel Core i9-12900K</p>
+          </DescriptionSection>
+
+          <ChartContainer>
+            <h4>GPU Usage vs Tokens/Second</h4>
+            {benchmarks.length > 0 && (
+              <BenchScatterChart
+                theme={theme}
+                data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
+                data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
+                data_hftgi={filteredBenchmarks.filter(benchmark => benchmark.framework === 'hf-tgi')}
+                data_vllm={filteredBenchmarks.filter(benchmark => benchmark.framework === 'vllm')}
+              />
+            )}
+          </ChartContainer>
+
+          <TableContainer>
+            <h4>Raw Results</h4>
+            <BenchmarksTable
+              benchmarks={benchmarks}
+              darkMode={darkMode}
             />
-          )}
-        </ChartContainer>
+          </TableContainer>
 
-        <TableContainer>
-          <h4>Raw Results</h4>
-          <BenchmarksTable
-            benchmarks={benchmarks}
-            darkMode={darkMode}
-          />
-        </TableContainer>
+        </MainContainer>
 
-      </MainContainer>
-    </ThemeProvider>
+      </ThemeProvider>
+      <Analytics />
+    </>
   );
 }
 
