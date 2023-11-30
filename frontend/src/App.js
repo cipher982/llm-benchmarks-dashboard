@@ -1,10 +1,10 @@
+// App.js
 // Libraries/Modules
 import React, { useState, useEffect } from 'react';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppBar } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
-
 
 // Components
 import BenchScatterChart from './BenchScatterChart';
@@ -181,9 +181,22 @@ const App = () => {
       <MainContainer>
         <DescriptionSection>
           <h1>LLM Benchmarks</h1>
-          <p>This project aims to benchmark popular LLM frameworks in various configurations.</p>
-          <h3>System Specifications:</h3>
-          <p>GPU: NVIDIA GeForce RTX 3090</p>
+          <p>
+            This project aims to benchmark popular LLM frameworks in various configurations.
+            This project uses a combination of docker containers with various frameworks
+            (vLLM, Transformers, Text-Generation-Inference, llama-cpp) to automate the
+            benchmarks and then upload the results to the dashboard.
+            Most frameworks fetch the models from the HuggingFace Hub (most downloaded or trending)
+            and cache them to my server storage which allows them to be loaded on-demand.
+            The exception is the llama-cpp/GGUF framework that requires specially compiled
+            model formats unique to the framework.
+          </p>
+          <p>
+            The dashboard is built with React and Node and is hosted through Vercel.
+            The backend pulls from MongoDB to store all the results.
+          </p>
+          <h3>System Specs</h3>
+          <p>GPU: NVIDIA RTX 3090</p>
           <p>CPU: Intel Core i9-12900K</p>
         </DescriptionSection>
         <ChartContainer>
