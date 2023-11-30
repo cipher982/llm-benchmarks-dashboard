@@ -8,9 +8,14 @@ const ComparisonTable = ({ comparisonData }) => {
 
     // Define the columns for the DataGrid
     const columns = [
-        { field: 'model_name', headerName: 'Model Name', width: 200 },
-        { field: 'quantization_bits', headerName: 'Quantization Bits', width: 200 },
-        { field: 'comparison', headerName: 'Comparison', width: 500 },
+        { field: 'model_name', headerName: 'Model Name', width: 250 },
+        {
+            field: 'model_size',
+            headerName: 'Params (M)',
+            renderCell: (params) => params.row.formatted_model_size
+        },
+        { field: 'quantization_bits', headerName: 'Quantization Bits', width: 120 },
+        { field: 'comparison', headerName: 'Tokens/Second', width: 500 },
     ];
 
     // Define the rows for the DataGrid

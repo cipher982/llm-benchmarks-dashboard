@@ -63,6 +63,8 @@ export const compareFrameworks = (benchmarks) => {
             return {
                 model_name: group[0].model_name,
                 quantization_bits: group[0].quantization_bits,
+                model_size: group[0].model_size,
+                formatted_model_size: group[0].formatted_model_size,
                 comparison
             };
         })
