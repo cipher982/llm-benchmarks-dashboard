@@ -10,18 +10,15 @@ const ComparisonTable = ({ comparisonData }) => {
     const columns = [
         { field: 'model_name', headerName: 'Model Name', width: 200 },
         { field: 'quantization_bits', headerName: 'Quantization Bits', width: 200 },
-        ...frameworks.map(framework => ({
-            field: framework,
-            headerName: framework,
-            type: 'number',
-            width: 150
-        }))
+        { field: 'comparison', headerName: 'Comparison', width: 500 },
     ];
 
     // Define the rows for the DataGrid
     const rows = comparisonData.map((row, index) => ({
         id: index,
-        ...row
+        ...row,
+        comparison: JSON.stringify(row.comparison),
+
     }));
 
     return (
