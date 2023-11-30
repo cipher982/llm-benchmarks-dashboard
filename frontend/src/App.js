@@ -9,11 +9,11 @@ import CircularProgress from '@mui/material/CircularProgress';
 // Components
 import BenchScatterChart from './BenchScatterChart';
 import BenchmarksTable from './BenchTable';
+import ComparisonTable from './ComparisonTable';
 import Navbar from './NavBar';
 
 // Utilities/Functions
-import { transformBenchmarks } from './transformations';
-
+import { transformBenchmarks, compareFrameworks } from './transformations';
 
 // Styles
 import './App.css';
@@ -135,6 +135,7 @@ const darkTheme = createTheme({
 // Main App Component
 const App = () => {
   const [benchmarks, setBenchmarks] = useState([]);
+  const [comparisonData, setComparisonData] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
@@ -152,6 +153,8 @@ const App = () => {
       .then((data) => {
         const dedupedBenchmarksArray = transformBenchmarks(data);
         setBenchmarks(dedupedBenchmarksArray);
+        const comparisonData = compareFrameworks(dedupedBenchmarksArray);
+        setComparisonData(comparisonData);
         setLoading(false);
       })
       .catch((err) => {
@@ -159,7 +162,6 @@ const App = () => {
         setLoading(false);
       });
   }, []);
-
 
   if (loading) {
     return (
@@ -196,6 +198,8 @@ const App = () => {
             />
           )}
         </ChartContainer>
+
+        <ComparisonTable comparisonData={comparisonData} />
 
         <TableContainer>
           <h4>Raw Results</h4>
