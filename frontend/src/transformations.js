@@ -22,9 +22,9 @@ export const transformBenchmarks = (data) => {
     const dedupedBenchmarks = transformedBenchmarks.reduce((acc, curr) => {
         const key = `${curr.model_name}-${curr.framework}-${curr.quantization_method}-${curr.quantization_bits}-${curr.model_dtype}`;
         if (acc[key]) {
-            acc[key].tokens_per_second = (acc[key].tokens_per_second + curr.tokens_per_second) / 2;
-            acc[key].gpu_mem_usage = (acc[key].gpu_mem_usage + curr.gpu_mem_usage) / 2;
-            acc[key].model_size = (acc[key].model_size + curr.model_size) / 2;
+            acc[key].tokens_per_second = Math.max(acc[key].tokens_per_second, curr.tokens_per_second);
+            acc[key].gpu_mem_usage = Math.max(acc[key].gpu_mem_usage, curr.gpu_mem_usage);
+            acc[key].model_size = Math.max(acc[key].model_size, curr.model_size);
         } else {
             acc[key] = curr;
         }
@@ -41,6 +41,7 @@ export const transformBenchmarks = (data) => {
 };
 
 
+// This function is used to compare different frameworks based on their benchmarks.
 export const compareFrameworks = (benchmarks) => {
     const groupedBenchmarks = benchmarks.reduce((acc, curr) => {
         const key = `${curr.model_name}-${curr.quantization_bits}`;
@@ -51,17 +52,21 @@ export const compareFrameworks = (benchmarks) => {
         return acc;
     }, {});
 
-    const comparisonResults = Object.values(groupedBenchmarks).map(group => {
-        const comparison = group.reduce((acc, curr) => {
-            acc[curr.framework] = curr.tokens_per_second;
-            return acc;
-        }, {});
-        return {
-            model_name: group[0].model_name,
-            quantization_bits: group[0].quantization_bits,
-            comparison
-        };
-    });
+    const comparisonResults = Object.values(groupedBenchmarks)
+        .map(group => {
+            group.sort((a, b) => a.framework.localeCompare(b.framework));
+
+            const comparison = group.reduce((acc, curr) => {
+                acc[curr.framework] = curr.tokens_per_second;
+                return acc;
+            }, {});
+            return {
+                model_name: group[0].model_name,
+                quantization_bits: group[0].quantization_bits,
+                comparison
+            };
+        })
+        .filter(result => Object.keys(result.comparison).length >= 3);
 
     return comparisonResults;
 };
