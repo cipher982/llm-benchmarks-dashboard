@@ -199,10 +199,14 @@ const App = () => {
           )}
         </ChartContainer>
 
-        <ComparisonTable comparisonData={comparisonData} />
 
         <TableContainer>
-          <h4>Raw Results</h4>
+          <h4>Comparison Results</h4>
+          <ComparisonTable comparisonData={comparisonData} />
+        </TableContainer>
+
+        <TableContainer>
+          <h4>Full Results</h4>
           <BenchmarksTable
             benchmarks={benchmarks}
             darkMode={darkMode}
