@@ -1,3 +1,4 @@
+// App.js
 // Libraries/Modules
 import React, { useState, useEffect } from 'react';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
@@ -6,15 +7,14 @@ import { AppBar } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
 import { Analytics } from '@vercel/analytics/react';
 
-
 // Components
 import BenchScatterChart from './BenchScatterChart';
 import BenchmarksTable from './BenchTable';
+import ComparisonTable from './ComparisonTable';
 import Navbar from './NavBar';
 
 // Utilities/Functions
-import { transformBenchmarks } from './transformations';
-
+import { transformBenchmarks, getComparisonAndFastestFrameworks } from './transformations';
 
 // Styles
 import './App.css';
@@ -74,6 +74,9 @@ const commonTheme = createTheme({
     },
     MuiTableCell: {
       styleOverrides: {
+        head: {
+          fontWeight: '700',
+        },
         root: {
           color: '#f9f9f9',
         },
@@ -88,6 +91,9 @@ const commonTheme = createTheme({
           '& .MuiDataGrid-menuList': {
             backgroundColor: '#f9f9f9',
             color: '#f9f9f9',
+          },
+          '& .MuiDataGrid-columnHeaderTitle': {
+            fontWeight: 'bold',
           },
         },
       },
@@ -136,6 +142,8 @@ const darkTheme = createTheme({
 // Main App Component
 const App = () => {
   const [benchmarks, setBenchmarks] = useState([]);
+  const [comparisonData, setComparisonData] = useState([]);
+  const [fastestFrameworks, setFastestFrameworks] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
@@ -153,6 +161,9 @@ const App = () => {
       .then((data) => {
         const dedupedBenchmarksArray = transformBenchmarks(data);
         setBenchmarks(dedupedBenchmarksArray);
+        const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(dedupedBenchmarksArray);
+        setComparisonData(comparisonResults);
+        setFastestFrameworks(fastestFrameworks);
         setLoading(false);
       })
       .catch((err) => {
@@ -160,7 +171,6 @@ const App = () => {
         setLoading(false);
       });
   }, []);
-
 
   if (loading) {
     return (
@@ -175,22 +185,32 @@ const App = () => {
     <>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-
         <AppBar position="fixed">
           <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
         </AppBar>
-
         <MainContainer>
-
           <DescriptionSection>
-            <h1>LLM Benchmarks</h1>
-            <p>This project aims to benchmark popular LLM frameworks in various configurations.</p>
-            <h3>System Specifications:</h3>
-            <p>GPU: NVIDIA GeForce RTX 3090</p>
+            <h1 style={{ textAlign: "center" }}>🚄 LLM Benchmarks 🏎️</h1>
+            <p>
+              This project aims to benchmark popular LLM frameworks in various configurations.
+              This project uses a combination of docker containers with various frameworks
+              (vLLM, Transformers, Text-Generation-Inference, llama-cpp) to automate the
+              benchmarks and then upload the results to the dashboard.
+              Most frameworks fetch the models from the HuggingFace Hub (most downloaded or trending)
+              and cache them to my server storage which allows them to be loaded on-demand.
+              The exception is the llama-cpp/GGUF framework that requires specially compiled
+              model formats unique to the framework.
+            </p>
+            <p>
+              The dashboard is built with React and Node and is hosted through Vercel.
+              The backend pulls from MongoDB to store all the results.
+            </p>
+            <h3>System Specs ⚡️</h3>
+            <p>GPU: NVIDIA RTX 3090</p>
             <p>CPU: Intel Core i9-12900K</p>
           </DescriptionSection>
-
           <ChartContainer>
+            <h3>📊 Charts 📊</h3>
             <h4>GPU Usage vs Tokens/Second</h4>
             {benchmarks.length > 0 && (
               <BenchScatterChart
@@ -204,15 +224,37 @@ const App = () => {
           </ChartContainer>
 
           <TableContainer>
-            <h4>Raw Results</h4>
-            <BenchmarksTable
-              benchmarks={benchmarks}
-              darkMode={darkMode}
-            />
+            <h3>🏆 Comparisons 🏆</h3>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ flex: 0.3, display: "flex", flexDirection: "column", justifyContent: "center", marginRight: "10px" }}>
+                <h4>Leaderboard </h4>
+                {
+                  ["🥇 1st", "🥈 2nd", "🥉 3rd"].map((place, index) => {
+                    const [framework = "transformers", score = "0"] = Object.entries(fastestFrameworks)[index] || [];
+                    return (
+                      <p key={index}>{`${place}: ${framework} (${score})`}</p>
+                    );
+                  })
+                }
+              </div>
+              <div style={{ flex: 0.7, paddingRight: "20px", paddingBottom: "20px" }}>
+                <h4>Comparison Table</h4>
+                <ComparisonTable comparisonData={comparisonData} />
+              </div>
+            </div>
+          </TableContainer>
+
+          <TableContainer>
+            <h4>📚 Full Results 📚</h4>
+            <div style={{ height: '500px', overflow: 'auto', padding: '20px' }}>
+              <BenchmarksTable
+                benchmarks={benchmarks}
+                darkMode={darkMode}
+              />
+            </div>
           </TableContainer>
 
         </MainContainer>
-
       </ThemeProvider>
       <Analytics />
     </>

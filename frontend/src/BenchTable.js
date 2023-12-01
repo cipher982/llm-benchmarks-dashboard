@@ -23,13 +23,9 @@ const BenchmarksTable = ({ benchmarks }) => (
     <DataGrid
         rows={benchmarks}
         columns={columns}
-        pageSizeOptions={[10, 25]}
+        pageSize={100}
         checkboxSelection
-        initialState={{
-            pagination: {
-                paginationModel: { page: 0, pageSize: 10 },
-            },
-        }}
+
     />
 );
 
