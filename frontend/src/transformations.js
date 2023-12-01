@@ -44,6 +44,7 @@ export const transformBenchmarks = (data) => {
 
 // This function is used to compare different frameworks based on their benchmarks.
 export const compareFrameworks = (benchmarks) => {
+    // Group benchmarks by model_name and quantization_bits
     const groupedBenchmarks = benchmarks.reduce((acc, curr) => {
         const key = `${curr.model_name}-${curr.quantization_bits}`;
         if (!acc[key]) {
@@ -53,23 +54,60 @@ export const compareFrameworks = (benchmarks) => {
         return acc;
     }, {});
 
+    // Compare tokens/second betwen frameworks
     const comparisonResults = Object.values(groupedBenchmarks)
         .map(group => {
-            group.sort((a, b) => a.framework.localeCompare(b.framework));
+            group.sort((a, b) => b.tokens_per_second - a.tokens_per_second);
 
             const comparison = group.reduce((acc, curr) => {
                 acc[curr.framework] = curr.tokens_per_second;
                 return acc;
             }, {});
+
+            // Find the framework with the most tokens_per_second
+            let fastestFramework = group[0].framework;
+            let maxTokensPerSecond = group[0].tokens_per_second;
+            for (let i = 1; i < group.length; i++) {
+                if (group[i].tokens_per_second > maxTokensPerSecond) {
+                    fastestFramework = group[i].framework;
+                    maxTokensPerSecond = group[i].tokens_per_second;
+                }
+            }
+
             return {
                 model_name: group[0].model_name,
                 quantization_bits: group[0].quantization_bits,
                 model_size: group[0].model_size,
                 formatted_model_size: group[0].formatted_model_size,
-                comparison
+                comparison,
+                fastest_framework: fastestFramework
             };
         })
         .filter(result => Object.keys(result.comparison).length >= 3);
 
     return comparisonResults;
+};
+
+export const getComparisonAndFastestFrameworks = (benchmarks) => {
+    // First, get the comparison results
+    const comparisonResults = compareFrameworks(benchmarks);
+
+    // Then, count the number of times each framework is the fastest
+    let fastestFrameworks = comparisonResults.reduce((acc, curr) => {
+        const framework = curr.fastest_framework;
+        if (!acc[framework]) {
+            acc[framework] = 1;
+        } else {
+            acc[framework]++;
+        }
+        return acc;
+    }, {});
+
+    // Convert the object to an array of tuples, sort it by values in descending order, and convert it back to an object
+    fastestFrameworks = Object.entries(fastestFrameworks)
+        .sort((a, b) => b[1] - a[1])
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+
+    // Return both results
+    return { comparisonResults, fastestFrameworks };
 };
