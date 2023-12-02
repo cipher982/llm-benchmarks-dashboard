@@ -4,8 +4,7 @@ import { styled } from '@mui/material/styles';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import GitHubIcon from '@mui/icons-material/GitHub';
-// import 'font-awesome/css/font-awesome.min.css';
-
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
 const NavBarContainer = styled('div')(({ theme }) => ({
     display: 'flex',
@@ -41,6 +40,15 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                 darkMode={darkMode}
             >
                 <GitHubIcon style={{ color: darkMode ? "white" : "black" }} />
+            </StyledButton>
+            <StyledButton
+                variant="contained"
+                onClick={() => window.open("https://drose.io", "_blank")}
+                size="small"
+                darkMode={darkMode}
+            >
+                <PersonOutlineIcon style={{ color: darkMode ? "white" : "black", marginRight: "5px" }} />
+                <span style={{ color: darkMode ? "white" : "black" }}>drose.io</span>
             </StyledButton>
         </NavBarContainer>
     );
