@@ -190,7 +190,7 @@ const App = () => {
         </AppBar>
         <MainContainer>
           <DescriptionSection>
-            <h1 style={{ textAlign: "center" }}>🚄 LLM Benchmarks 🏎️</h1>
+            <h1 style={{ textAlign: "center" }}>⚡️ LLM Benchmarks ⚡️</h1>
             <p>
               This project aims to benchmark inference speeds for popular LLM frameworks in various configurations.
               It uses a combination of docker containers and flask with various frameworks
