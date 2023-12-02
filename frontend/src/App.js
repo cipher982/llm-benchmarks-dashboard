@@ -192,12 +192,12 @@ const App = () => {
           <DescriptionSection>
             <h1 style={{ textAlign: "center" }}>🚄 LLM Benchmarks 🏎️</h1>
             <p>
-              This project aims to benchmark popular LLM frameworks in various configurations.
-              This project uses a combination of docker containers with various frameworks
+              This project aims to benchmark inference speeds for popular LLM frameworks in various configurations.
+              It uses a combination of docker containers and flask with various frameworks
               (vLLM, Transformers, Text-Generation-Inference, llama-cpp) to automate the
               benchmarks and then upload the results to the dashboard.
               Most frameworks fetch the models from the HuggingFace Hub (most downloaded or trending)
-              and cache them to my server storage which allows them to be loaded on-demand.
+              and cache them to my server storage which allows them to be shared betweeen runs.
               The exception is the llama-cpp/GGUF framework that requires specially compiled
               model formats unique to the framework.
             </p>
@@ -209,19 +209,6 @@ const App = () => {
             <p>GPU: NVIDIA RTX 3090</p>
             <p>CPU: Intel Core i9-12900K</p>
           </DescriptionSection>
-          <ChartContainer>
-            <h3>📊 Charts 📊</h3>
-            <h4>GPU Usage vs Tokens/Second</h4>
-            {benchmarks.length > 0 && (
-              <BenchScatterChart
-                theme={theme}
-                data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
-                data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
-                data_hftgi={filteredBenchmarks.filter(benchmark => benchmark.framework === 'hf-tgi')}
-                data_vllm={filteredBenchmarks.filter(benchmark => benchmark.framework === 'vllm')}
-              />
-            )}
-          </ChartContainer>
 
           <TableContainer>
             <h3>🏆 Comparisons 🏆</h3>
@@ -243,6 +230,20 @@ const App = () => {
               </div>
             </div>
           </TableContainer>
+
+          <ChartContainer>
+            <h3>📊 Charts 📊</h3>
+            <h4>GPU Usage vs Tokens/Second</h4>
+            {benchmarks.length > 0 && (
+              <BenchScatterChart
+                theme={theme}
+                data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
+                data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
+                data_hftgi={filteredBenchmarks.filter(benchmark => benchmark.framework === 'hf-tgi')}
+                data_vllm={filteredBenchmarks.filter(benchmark => benchmark.framework === 'vllm')}
+              />
+            )}
+          </ChartContainer>
 
           <TableContainer>
             <h4>📚 Full Results 📚</h4>
