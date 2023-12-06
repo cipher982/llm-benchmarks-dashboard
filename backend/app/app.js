@@ -17,7 +17,7 @@ const logger = winston.createLogger({
 
 
 const app = express();
-const BenchmarkMetrics = require("./models/BenchmarkMetrics");
+const LocalMetrics = require("./models/BenchmarkMetrics");
 
 // Regular expression to match the model size in the names
 const modelSizeRegex = /(\d+(\.\d+)?)(m|b)/i;
@@ -62,7 +62,7 @@ async function connectToMongoDB() {
 
 app.get("/api/benchmarks", async (req, res) => {
   try {
-    const metrics = await BenchmarkMetrics.find({});
+    const metrics = await LocalMetrics.find({});
     if (!metrics || metrics.length === 0) {
       logger.warn("No metrics found in the database");
       return res.status(404).json({ message: "No metrics found" });
