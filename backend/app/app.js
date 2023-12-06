@@ -15,12 +15,15 @@ const logger = winston.createLogger({
   ],
 });
 
-
 const app = express();
-const LocalMetrics = require("./models/BenchmarkMetrics");
+const { LocalMetrics, CloudMetrics } = require("./models/BenchmarkMetrics");
 
 // Regular expression to match the model size in the names
 const modelSizeRegex = /(\d+(\.\d+)?)(m|b)/i;
+
+mongoose.set('debug', true);
+
+app.use(cors());
 
 // Extract size (params) in millions from name string
 function extractModelSize(modelName) {
@@ -40,11 +43,36 @@ function extractModelSize(modelName) {
   return null;
 }
 
+// Grab the metrics from the database and send them to the client
+function createEndpoint(app, path, model) {
+  app.get(path, async (req, res) => {
+    try {
+      const metrics = await model.find({});
+      if (!metrics || metrics.length === 0) {
+        logger.warn("No metrics found in the database");
+        return res.status(404).json({ message: "No metrics found" });
+      }
 
-mongoose.set('debug', true);
+      const metricsWithModelSizes = metrics.map(metric => ({
+        ...metric.toObject(),
+        model_size: extractModelSize(metric.model_name),
+      }));
 
-app.use(cors());
+      for (let i = metricsWithModelSizes.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [metricsWithModelSizes[i], metricsWithModelSizes[j]] = [metricsWithModelSizes[j], metricsWithModelSizes[i]];
+      }
 
+      logger.info(`Fetched ${metricsWithModelSizes.length} metrics with model sizes`);
+      res.json(metricsWithModelSizes);
+    } catch (err) {
+      logger.error(`Error while fetching metrics: ${err.message}`);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+}
+
+// Connecting to mongo
 async function connectToMongoDB() {
   try {
     logger.info(`Verifying MONGODB_URI: ${process.env.MONGODB_URI}`);
@@ -60,33 +88,6 @@ async function connectToMongoDB() {
   }
 }
 
-app.get("/api/benchmarks", async (req, res) => {
-  try {
-    const metrics = await LocalMetrics.find({});
-    if (!metrics || metrics.length === 0) {
-      logger.warn("No metrics found in the database");
-      return res.status(404).json({ message: "No metrics found" });
-    }
-
-    // Parse the model sizes and add them to the response
-    const metricsWithModelSizes = metrics.map(metric => ({
-      ...metric.toObject(),
-      model_size: extractModelSize(metric.model_name),
-    }));
-
-    // Shuffle the array
-    for (let i = metricsWithModelSizes.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [metricsWithModelSizes[i], metricsWithModelSizes[j]] = [metricsWithModelSizes[j], metricsWithModelSizes[i]];
-    }
-
-    logger.info(`Fetched ${metricsWithModelSizes.length} metrics with model sizes`);
-    res.json(metricsWithModelSizes); // Send data with model sizes
-  } catch (err) {
-    logger.error(`Error while fetching metrics: ${err.message}`);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
 
 // Async function to start everything
 async function initialize() {
@@ -96,5 +97,9 @@ async function initialize() {
     logger.info(`Server running on port ${PORT}`);
   });
 }
+
+// Create endpoints for the two collections
+createEndpoint(app, "/api/localBenchmarks", LocalMetrics);
+createEndpoint(app, "/api/cloudBenchmarks", CloudMetrics);
 
 initialize();
