@@ -6,6 +6,8 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { Link as RouterLink } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+
 
 const NavBarContainer = styled('div')(({ theme }) => ({
     display: 'flex',
@@ -23,24 +25,24 @@ const NavBarContainer = styled('div')(({ theme }) => ({
 const LinksContainer = styled('div')(({ theme }) => ({
     display: 'flex',
     flexDirection: 'row',
-    order: 1, // Set order to 1 for desktop
+    order: 1,
     [`@media (max-width:600px)`]: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
-        marginBottom: theme.spacing(2),
-        order: 2, // Set order to 2 for mobile to move it below the buttons
+        marginBottom: theme.spacing(0),
+        order: 2,
     },
 }));
 
 const ButtonsContainer = styled('div')(({ theme }) => ({
-    order: 2, // Set order to 2 for desktop
+    order: 2,
     [`@media (max-width:600px)`]: {
-        marginBottom: theme.spacing(5),
+        marginBottom: theme.spacing(2),
         width: '100%',
         display: 'flex',
         justifyContent: 'flex-end',
-        order: 1, // Set order to 1 for mobile to move it above the links
+        order: 1,
     },
 }));
 
@@ -54,19 +56,29 @@ const StyledButton = styled(MuiButton)(({ theme, darkMode }) => ({
     },
 }));
 
-const StyledLink = styled(RouterLink)(({ theme, darkMode }) => ({
-    color: darkMode ? "white" : "black",
-    textDecoration: 'none',
-    marginRight: theme.spacing(2),
-    padding: theme.spacing(1),
-    backgroundColor: theme.palette.primary.main,
-    borderRadius: '4px',
-    [`@media (max-width:600px)`]: {
-        display: 'block',
-        margin: theme.spacing(1),
-        textAlign: 'center',
-    },
-}));
+const StyledLink = styled(RouterLink)(({ theme, darkMode, to }) => {
+    const location = useLocation();
+    const isActive = location.pathname === to;
+    const color = darkMode ? "white" : "black";
+    const boxShadowColor = darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.5)';
+
+
+
+    return {
+        textDecoration: 'none',
+        marginRight: theme.spacing(2),
+        padding: theme.spacing(1),
+        color: color,
+        backgroundColor: theme.palette.primary.main,
+        borderRadius: '4px',
+        boxShadow: isActive ? `0px 0px 5px 5px ${boxShadowColor}` : 'none',
+        [`@media (max-width:600px)`]: {
+            display: 'block',
+            margin: theme.spacing(1),
+            textAlign: 'center',
+        },
+    };
+});
 
 const Navbar = ({ darkMode, toggleDarkMode }) => {
     return (
