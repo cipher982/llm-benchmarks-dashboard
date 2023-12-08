@@ -4,13 +4,13 @@ import { DataGrid } from '@mui/x-data-grid';
 
 // Table columns and their properties
 const columns = [
-    { field: "provider", headerName: "Provider", width: 120 },
+    { field: "provider", headerName: "Provider", width: 150 },
     { field: "model_name", headerName: "Model Name", width: 200 },
     {
         field: "tokens_per_second",
         headerName: "Tokens/Second",
         type: "number",
-        width: 120,
+        width: 150,
         valueFormatter: (params) => {
             const value = parseFloat(params.value);
             return isNaN(value) ? params.value : value.toFixed(2);
