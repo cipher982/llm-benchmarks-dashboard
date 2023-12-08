@@ -1,5 +1,5 @@
 // transformations.js
-import { calculateMean, bytesToGB } from './utils';
+import { calculateMean, calculateMin, calculateMax, calculateQuartiles, bytesToGB } from './utils';
 
 
 // Clean up and transform the local benchmarks data
@@ -67,10 +67,25 @@ export const transformCloud = (data) => {
         return acc;
     }, {});
 
-    const dedupedBenchmarksArray = Object.values(dedupedBenchmarks).map(benchmark => ({
-        ...benchmark,
-        tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
-    }));
+    const dedupedBenchmarksArray = Object.values(dedupedBenchmarks).map(benchmark => {
+        const sortedTokensPerSecond = benchmark.tokens_per_second.sort((a, b) => a - b);
+        sortedTokensPerSecond.pop();
+        sortedTokensPerSecond.shift();
+
+        const tokensPerSecond = {
+            mean: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
+            min: parseFloat(calculateMin(benchmark.tokens_per_second).toFixed(2)),
+            max: parseFloat(calculateMax(benchmark.tokens_per_second).toFixed(2)),
+            quartiles: calculateQuartiles(benchmark.tokens_per_second).map(val => parseFloat(val.toFixed(2))),
+        };
+        return {
+            ...benchmark,
+            tokens_per_second_mean: tokensPerSecond.mean,
+            tokens_per_second_min: tokensPerSecond.min,
+            tokens_per_second_max: tokensPerSecond.max,
+            tokens_per_second_quartiles: tokensPerSecond.quartiles,
+        };
+    });
 
     return dedupedBenchmarksArray;
 };

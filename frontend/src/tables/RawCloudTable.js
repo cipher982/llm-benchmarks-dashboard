@@ -7,15 +7,23 @@ const columns = [
     { field: "provider", headerName: "Provider", width: 150 },
     { field: "model_name", headerName: "Model Name", width: 180 },
     {
-        field: "tokens_per_second",
-        headerName: "Tokens/Second",
+        field: "tokens_per_second_mean",
+        headerName: "Tokens/Second (Mean)",
         type: "number",
-        width: 150,
-        valueFormatter: (params) => {
-            const value = parseFloat(params.value);
-            return isNaN(value) ? params.value : value.toFixed(2);
-        },
-    }
+        width: 200,
+    },
+    {
+        field: "tokens_per_second_min",
+        headerName: "Min",
+        type: "number",
+        width: 100,
+    },
+    {
+        field: "tokens_per_second_max",
+        headerName: "Max",
+        type: "number",
+        width: 100,
+    },
 ];
 
 
@@ -28,7 +36,7 @@ const RawCloudTable = ({ benchmarks }) => {
             pageSize={100}
             sortModel={[
                 {
-                    field: 'tokens_per_second',
+                    field: 'tokens_per_second_mean',
                     sort: 'desc',
                 },
             ]} />

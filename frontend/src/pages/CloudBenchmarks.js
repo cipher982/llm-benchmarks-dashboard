@@ -47,15 +47,15 @@ const CloudBenchmarks = () => {
     return (
         <MainContainer isMobile={isMobile}>
             <DescriptionSection>
-                <h1 style={{ textAlign: "center" }}>⚡️ Cloud Benchmarks ⚡️</h1>
+                <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
                 <div style={{ textAlign: "center" }}>
-                    ** UNDER CONSTRUCTION **
+                    <h4>New models being added daily 😊</h4>
                     <div style={{
                         height: '600px',
                         overflow: 'auto',
                         paddingLeft: isMobile ? "0px" : "20px",
                         paddingRight: isMobile ? "0px" : "20px",
-                        maxWidth: isMobile ? '100%' : '550px',
+                        maxWidth: isMobile ? '100%' : '800px',
                         margin: 'auto',
                         overflowX: 'auto'
                     }}>
