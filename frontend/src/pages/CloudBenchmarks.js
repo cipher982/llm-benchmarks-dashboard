@@ -51,7 +51,7 @@ const CloudBenchmarks = () => {
                         height: '500px',
                         overflow: 'auto',
                         padding: '20px',
-                        maxWidth: '500px',
+                        maxWidth: '600px',
                         margin: 'auto',
                     }}>
                         <RawCloudTable

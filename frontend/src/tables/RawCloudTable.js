@@ -5,7 +5,7 @@ import { DataGrid } from '@mui/x-data-grid';
 // Table columns and their properties
 const columns = [
     { field: "provider", headerName: "Provider", width: 120 },
-    { field: "model_name", headerName: "Model Name", width: 120 },
+    { field: "model_name", headerName: "Model Name", width: 200 },
     {
         field: "tokens_per_second",
         headerName: "Tokens/Second",
