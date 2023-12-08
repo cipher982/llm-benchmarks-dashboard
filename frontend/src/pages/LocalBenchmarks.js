@@ -1,11 +1,11 @@
 // LocalBenchmarks.js
 import React, { useState, useEffect } from 'react';
-import BenchScatterChart from './BenchScatterChart';
-import BenchmarksTable from './BenchTable';
-import ComparisonTable from './ComparisonTable';
+import BenchScatterChart from '../charts/BenchScatterChart';
+import RawLocalTable from '../tables/RawLocalTable';
+import ComparisonTable from '../tables/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
-import { transformBenchmarks, getComparisonAndFastestFrameworks } from './transformations';
-import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from './theme';
+import { transformBenchmarks, getComparisonAndFastestFrameworks } from '../transformations';
+import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
 
 const LocalBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);
@@ -132,7 +132,7 @@ const LocalBenchmarks = () => {
                     maxWidth: '1100px',
                     margin: 'auto',
                 }}>
-                    <BenchmarksTable
+                    <RawLocalTable
                         benchmarks={benchmarks}
                         darkMode={darkMode}
                     />

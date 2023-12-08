@@ -9,8 +9,8 @@ import { Analytics } from '@vercel/analytics/react';
 
 // Components
 import Navbar from './NavBar';
-import LocalBenchmarks from './LocalBenchmarks';
-import CloudBenchmarks from './CloudBenchmarks';
+import LocalBenchmarks from './pages/LocalBenchmarks';
+import CloudBenchmarks from './pages/CloudBenchmarks';
 
 // Styles
 import './App.css';

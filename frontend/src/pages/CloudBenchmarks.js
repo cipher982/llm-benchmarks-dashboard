@@ -1,7 +1,8 @@
 // CloudBenchmarks.js
 import React, { useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
-import { MainContainer, DescriptionSection, lightPurpleTheme, darkTheme } from './theme';
+import { MainContainer, DescriptionSection, lightPurpleTheme, darkTheme } from '../theme';
+import RawCloudTable from '../tables/RawCloudTable';
 
 const CloudBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);
@@ -9,10 +10,7 @@ const CloudBenchmarks = () => {
     const [loading, setLoading] = useState(true);
 
     // Dark Mode
-    const [darkMode, setDarkMode] = useState(false);
-    const toggleDarkMode = () => {
-        setDarkMode(prevDarkMode => !prevDarkMode);
-    };
+    const [darkMode] = useState(false);
     const theme = darkMode ? darkTheme : lightPurpleTheme;
 
     useEffect(() => {
@@ -47,6 +45,18 @@ const CloudBenchmarks = () => {
                 <h1 style={{ textAlign: "center" }}>⚡️ Cloud Benchmarks ⚡️</h1>
                 <p style={{ textAlign: "center" }}>
                     ** COMING SOON **
+                    <div style={{
+                        height: '500px',
+                        overflow: 'auto',
+                        padding: '20px',
+                        maxWidth: '1100px',
+                        margin: 'auto',
+                    }}>
+                        <RawCloudTable
+                            benchmarks={benchmarks}
+                            darkMode={darkMode}
+                        />
+                    </div>
                 </p>
             </DescriptionSection>
         </MainContainer>

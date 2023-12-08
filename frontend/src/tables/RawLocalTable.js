@@ -1,4 +1,4 @@
-// BenchmarksTable.js
+// RawLocalTable.js
 import React from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 
@@ -18,7 +18,7 @@ const columns = [
 ];
 
 
-const BenchmarksTable = ({ benchmarks }) => (
+const RawLocalTable = ({ benchmarks }) => (
     <DataGrid
         rows={benchmarks}
         columns={columns}
@@ -28,4 +28,4 @@ const BenchmarksTable = ({ benchmarks }) => (
     />
 );
 
-export default BenchmarksTable;
+export default RawLocalTable;
