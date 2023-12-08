@@ -26,8 +26,12 @@ const RawCloudTable = ({ benchmarks }) => {
             rows={rows}
             columns={columns}
             pageSize={100}
-            checkboxSelection
-        />
+            sortModel={[
+                {
+                    field: 'tokens_per_second',
+                    sort: 'desc',
+                },
+            ]} />
     );
 };
 
