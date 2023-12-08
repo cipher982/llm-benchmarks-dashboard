@@ -16,7 +16,7 @@ const NavBarContainer = styled('div')(({ theme }) => ({
     alignItems: 'center',
     backgroundColor: theme.palette.secondary.main,
     padding: '10px 20px',
-    [`@media (max-width:600px)`]: {
+    [`@media (max-width:700px)`]: {
         flexDirection: 'column',
         alignItems: 'center',
     },
@@ -26,7 +26,7 @@ const LinksContainer = styled('div')(({ theme }) => ({
     display: 'flex',
     flexDirection: 'row',
     order: 1,
-    [`@media (max-width:600px)`]: {
+    [`@media (max-width:700px)`]: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         width: '100%',
@@ -37,7 +37,7 @@ const LinksContainer = styled('div')(({ theme }) => ({
 
 const ButtonsContainer = styled('div')(({ theme }) => ({
     order: 2,
-    [`@media (max-width:600px)`]: {
+    [`@media (max-width:700px)`]: {
         marginBottom: theme.spacing(2),
         width: '100%',
         display: 'flex',
@@ -50,7 +50,7 @@ const StyledButton = styled(MuiButton)(({ theme, darkMode }) => ({
     color: theme.palette.background.default,
     backgroundColor: theme.palette.primary.main,
     marginRight: theme.spacing(2),
-    [`@media (max-width:600px)`]: {
+    [`@media (max-width:700px)`]: {
         margin: theme.spacing(0.5),
         padding: theme.spacing(0.5),
     },
@@ -72,7 +72,7 @@ const StyledLink = styled(RouterLink)(({ theme, darkMode, to }) => {
         backgroundColor: theme.palette.primary.main,
         borderRadius: '4px',
         boxShadow: isActive ? `0px 0px 5px 5px ${boxShadowColor}` : 'none',
-        [`@media (max-width:600px)`]: {
+        [`@media (max-width:700px)`]: {
             display: 'block',
             margin: theme.spacing(1),
             textAlign: 'center',
