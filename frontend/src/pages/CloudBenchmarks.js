@@ -45,7 +45,7 @@ const CloudBenchmarks = () => {
         <MainContainer>
             <DescriptionSection>
                 <h1 style={{ textAlign: "center" }}>⚡️ Cloud Benchmarks ⚡️</h1>
-                <p style={{ textAlign: "center" }}>
+                <div style={{ textAlign: "center" }}>
                     ** UNDER CONSTRUCTION **
                     <div style={{
                         height: '500px',
@@ -59,7 +59,7 @@ const CloudBenchmarks = () => {
                             darkMode={darkMode}
                         />
                     </div>
-                </p>
+                </div>
             </DescriptionSection>
         </MainContainer>
     );
