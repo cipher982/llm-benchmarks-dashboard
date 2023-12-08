@@ -5,19 +5,30 @@ import { DataGrid } from '@mui/x-data-grid';
 // Table columns and their properties
 const columns = [
     { field: "provider", headerName: "Provider", width: 120 },
-    { field: "model_name", headerName: "Model Name", width: 270 },
-    { field: "tokens_per_second", headerName: "Tokens/Second", type: "number", width: 120 },
+    { field: "model_name", headerName: "Model Name", width: 120 },
+    {
+        field: "tokens_per_second",
+        headerName: "Tokens/Second",
+        type: "number",
+        width: 120,
+        valueFormatter: (params) => {
+            const value = parseFloat(params.value);
+            return isNaN(value) ? params.value : value.toFixed(2);
+        },
+    }
 ];
 
 
-const RawCloudTable = ({ benchmarks }) => (
-    <DataGrid
-        rows={benchmarks}
-        columns={columns}
-        pageSize={100}
-        checkboxSelection
-
-    />
-);
+const RawCloudTable = ({ benchmarks }) => {
+    const rows = benchmarks.map((row, index) => ({ id: index, ...row }));
+    return (
+        <DataGrid
+            rows={rows}
+            columns={columns}
+            pageSize={100}
+            checkboxSelection
+        />
+    );
+};
 
 export default RawCloudTable;

@@ -46,12 +46,12 @@ const CloudBenchmarks = () => {
             <DescriptionSection>
                 <h1 style={{ textAlign: "center" }}>⚡️ Cloud Benchmarks ⚡️</h1>
                 <p style={{ textAlign: "center" }}>
-                    ** COMING SOON **
+                    ** UNDER CONSTRUCTION **
                     <div style={{
                         height: '500px',
                         overflow: 'auto',
                         padding: '20px',
-                        maxWidth: '1100px',
+                        maxWidth: '500px',
                         margin: 'auto',
                     }}>
                         <RawCloudTable
