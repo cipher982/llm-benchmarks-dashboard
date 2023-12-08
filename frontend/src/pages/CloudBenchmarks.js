@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import { MainContainer, DescriptionSection, lightPurpleTheme, darkTheme } from '../theme';
 import RawCloudTable from '../tables/RawCloudTable';
+import { transformCloud } from '../transformations';
 
 const CloudBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);
@@ -14,17 +15,16 @@ const CloudBenchmarks = () => {
     const theme = darkMode ? darkTheme : lightPurpleTheme;
 
     useEffect(() => {
-        // Fetch cloud benchmarks
         const fetchCloudBenchmarks = async () => {
             try {
                 const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarks");
-                const data = await res.json();
-                console.log("Fetched data:", data); // Log the fetched data
-                // Set the cloud data
+                let data = await res.json();
+                // Clean up and remove duplicates
+                data = transformCloud(data);
                 setBenchmarks(data);
                 setLoading(false);
             } catch (err) {
-                console.error("Error fetching data:", err); // Log any errors
+                console.error("Error fetching data:", err);
                 setError(err.toString());
                 setLoading(false);
             }

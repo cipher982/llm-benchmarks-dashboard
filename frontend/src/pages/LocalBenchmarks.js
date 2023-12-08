@@ -4,7 +4,7 @@ import BenchScatterChart from '../charts/BenchScatterChart';
 import RawLocalTable from '../tables/RawLocalTable';
 import ComparisonTable from '../tables/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
-import { transformBenchmarks, getComparisonAndFastestFrameworks } from '../transformations';
+import { transformLocal, getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
 
 const LocalBenchmarks = () => {
@@ -26,7 +26,7 @@ const LocalBenchmarks = () => {
                 const res = await fetch("https://llm-bench-back.fly.dev/api/localBenchmarks");
                 const data = await res.json();
                 // Remove duplicates by pulling fastest run for each model
-                const dedupedBenchmarksArray = transformBenchmarks(data);
+                const dedupedBenchmarksArray = transformLocal(data);
                 setBenchmarks(dedupedBenchmarksArray);
                 // Get leaderboard/comparison data
                 const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(dedupedBenchmarksArray);

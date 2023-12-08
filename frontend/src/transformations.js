@@ -1,7 +1,9 @@
 // transformations.js
 import { calculateMean, bytesToGB } from './utils';
 
-export const transformBenchmarks = (data) => {
+
+// Clean up and transform the local benchmarks data
+export const transformLocal = (data) => {
     const transformedBenchmarks = data
         .filter(benchmark => benchmark.tokens_per_second.length > 0 && benchmark.gpu_mem_usage.length > 0)
         .map((benchmark, index) => {
@@ -42,7 +44,42 @@ export const transformBenchmarks = (data) => {
 };
 
 
-// This function is used to compare different frameworks based on their benchmarks.
+// Clean up and transform the cloud benchmarks data
+export const transformCloud = (data) => {
+    const transformedBenchmarks = data
+        .filter(benchmark => benchmark.tokens_per_second.length > 0)
+        .map((benchmark, index) => {
+            return {
+                id: index,
+                provider: benchmark.provider,
+                model_name: benchmark.model_name,
+                tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second)),
+            };
+        });
+
+    const dedupedBenchmarks = transformedBenchmarks.reduce((acc, curr) => {
+        const key = `${curr.model_name}-${curr.provider}`;
+        if (acc[key]) {
+            acc[key].tokens_per_second.push(curr.tokens_per_second);
+        } else {
+            acc[key] = { ...curr, tokens_per_second: [curr.tokens_per_second] };
+        }
+        return acc;
+    }, {});
+
+    const dedupedBenchmarksArray = Object.values(dedupedBenchmarks).map(benchmark => ({
+        ...benchmark,
+        tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
+    }));
+
+    return dedupedBenchmarksArray;
+};
+
+
+
+
+
+// Compare different frameworks based on their benchmarks.
 export const compareFrameworks = (benchmarks) => {
     // Group benchmarks by model_name and quantization_bits
     const groupedBenchmarks = benchmarks.reduce((acc, curr) => {
