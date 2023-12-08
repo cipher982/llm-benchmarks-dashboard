@@ -14,12 +14,44 @@ const NavBarContainer = styled('div')(({ theme }) => ({
     alignItems: 'center',
     backgroundColor: theme.palette.secondary.main,
     padding: '10px 20px',
+    [`@media (max-width:600px)`]: {
+        flexDirection: 'column',
+        alignItems: 'center',
+    },
+}));
+
+const LinksContainer = styled('div')(({ theme }) => ({
+    display: 'flex',
+    flexDirection: 'row',
+    order: 1, // Set order to 1 for desktop
+    [`@media (max-width:600px)`]: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: theme.spacing(2),
+        order: 2, // Set order to 2 for mobile to move it below the buttons
+    },
+}));
+
+const ButtonsContainer = styled('div')(({ theme }) => ({
+    order: 2, // Set order to 2 for desktop
+    [`@media (max-width:600px)`]: {
+        marginBottom: theme.spacing(5),
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'flex-end',
+        order: 1, // Set order to 1 for mobile to move it above the links
+    },
 }));
 
 const StyledButton = styled(MuiButton)(({ theme, darkMode }) => ({
     color: theme.palette.background.default,
     backgroundColor: theme.palette.primary.main,
     marginRight: theme.spacing(2),
+    [`@media (max-width:600px)`]: {
+        margin: theme.spacing(0.5),
+        padding: theme.spacing(0.5),
+    },
 }));
 
 const StyledLink = styled(RouterLink)(({ theme, darkMode }) => ({
@@ -29,16 +61,17 @@ const StyledLink = styled(RouterLink)(({ theme, darkMode }) => ({
     padding: theme.spacing(1),
     backgroundColor: theme.palette.primary.main,
     borderRadius: '4px',
+    [`@media (max-width:600px)`]: {
+        display: 'block',
+        margin: theme.spacing(1),
+        textAlign: 'center',
+    },
 }));
 
 const Navbar = ({ darkMode, toggleDarkMode }) => {
     return (
         <NavBarContainer>
-            <div>
-                <StyledLink to="/" darkMode={darkMode}>Local Benchmarks</StyledLink>
-                <StyledLink to="/cloud" darkMode={darkMode}>Cloud Benchmarks</StyledLink>
-            </div>
-            <div>
+            <ButtonsContainer>
                 <StyledButton
                     variant="contained"
                     onClick={toggleDarkMode}
@@ -64,7 +97,11 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                     <PersonOutlineIcon style={{ color: darkMode ? "white" : "black", marginRight: "5px" }} />
                     <span style={{ color: darkMode ? "white" : "black" }}>drose.io</span>
                 </StyledButton>
-            </div>
+            </ButtonsContainer>
+            <LinksContainer>
+                <StyledLink to="/" darkMode={darkMode}>Local Benchmarks</StyledLink>
+                <StyledLink to="/cloud" darkMode={darkMode}>Cloud Benchmarks</StyledLink>
+            </LinksContainer>
         </NavBarContainer>
     );
 }

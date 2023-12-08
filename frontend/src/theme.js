@@ -3,9 +3,9 @@ import { createTheme, styled } from '@mui/material/styles';
 
 
 // Styles
-const MainContainer = styled('div')(({ theme }) => ({
-    paddingTop: '50px',
-    margin: '20px',
+const MainContainer = styled('div')(({ theme, isMobile }) => ({
+    paddingTop: isMobile ? '90px' : '30px',
+    margin: isMobile ? '2px' : '10px',
     backgroundColor: theme.palette.background.default,
 }));
 

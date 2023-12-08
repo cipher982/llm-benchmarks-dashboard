@@ -1,6 +1,7 @@
 // CloudBenchmarks.js
 import React, { useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useMediaQuery } from '@mui/material';
 import { MainContainer, DescriptionSection, lightPurpleTheme, darkTheme } from '../theme';
 import RawCloudTable from '../tables/RawCloudTable';
 import { transformCloud } from '../transformations';
@@ -9,6 +10,8 @@ const CloudBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
+    const isMobile = useMediaQuery('(max-width:500px)');
+
 
     // Dark Mode
     const [darkMode] = useState(false);
@@ -42,17 +45,19 @@ const CloudBenchmarks = () => {
     if (error) return <div>Error: {error}</div>;
 
     return (
-        <MainContainer>
+        <MainContainer isMobile={isMobile}>
             <DescriptionSection>
                 <h1 style={{ textAlign: "center" }}>⚡️ Cloud Benchmarks ⚡️</h1>
                 <div style={{ textAlign: "center" }}>
                     ** UNDER CONSTRUCTION **
                     <div style={{
-                        height: '550px',
+                        height: '500px',
                         overflow: 'auto',
-                        padding: '20px',
-                        maxWidth: '550px',
+                        paddingLeft: isMobile ? "0px" : "20px",
+                        paddingRight: isMobile ? "0px" : "20px",
+                        maxWidth: isMobile ? '100%' : '1100px',
                         margin: 'auto',
+                        overflowX: 'auto'
                     }}>
                         <RawCloudTable
                             benchmarks={benchmarks}

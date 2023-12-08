@@ -4,6 +4,7 @@ import BenchScatterChart from '../charts/BenchScatterChart';
 import RawLocalTable from '../tables/RawLocalTable';
 import ComparisonTable from '../tables/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useMediaQuery } from '@mui/material';
 import { transformLocal, getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
 
@@ -14,6 +15,7 @@ const LocalBenchmarks = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
+    const isMobile = useMediaQuery('(max-width:500px)');
 
     // Dark Mode
     const [darkMode] = useState(false);
@@ -51,7 +53,7 @@ const LocalBenchmarks = () => {
     if (error) return <div>Error: {error}</div>;
 
     return (
-        <MainContainer>
+        <MainContainer isMobile={isMobile}>
             <DescriptionSection>
                 <h1 style={{ textAlign: "center" }}>⚡️ LLM Benchmarks ⚡️</h1>
                 <p>
@@ -74,7 +76,7 @@ const LocalBenchmarks = () => {
             </DescriptionSection>
             <TableContainer>
                 <h3>🏆 Comparisons 🏆</h3>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between" }}>
                     <div style={{
                         flex: 0.3,
                         display: "flex",
@@ -93,10 +95,11 @@ const LocalBenchmarks = () => {
                     </div>
                     <div style={{
                         flex: 0.8,
-                        paddingRight: "20px",
-                        paddingBottom: "20px",
-                        maxWidth: '1100px',
+                        paddingLeft: isMobile ? "0px" : "20px",
+                        paddingRight: isMobile ? "0px" : "20px", paddingBottom: "20px",
+                        maxWidth: isMobile ? '100%' : '1100px',
                         margin: 'auto',
+                        overflowX: 'auto'
                     }}>
                         <h4>Comparison Table</h4>
                         <ComparisonTable comparisonData={comparisonData} />
@@ -109,11 +112,12 @@ const LocalBenchmarks = () => {
                 <h4>GPU Usage vs Tokens/Second</h4>
                 {benchmarks.length > 0 && (
                     <div style={{
-                        maxWidth: '1200px',
+                        maxWidth: isMobile ? '100%' : '1200px',
                         margin: 'auto',
                     }}>
                         <BenchScatterChart
                             theme={theme}
+                            isMobile={isMobile}
                             data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
                             data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
                             data_hftgi={filteredBenchmarks.filter(benchmark => benchmark.framework === 'hf-tgi')}
@@ -128,9 +132,12 @@ const LocalBenchmarks = () => {
                 <div style={{
                     height: '500px',
                     overflow: 'auto',
-                    padding: '20px',
-                    maxWidth: '1100px',
+                    // padding: '20px',
+                    paddingLeft: isMobile ? "0px" : "20px",
+                    paddingRight: isMobile ? "0px" : "20px",
+                    maxWidth: isMobile ? '100%' : '1100px',
                     margin: 'auto',
+                    overflowX: 'auto'
                 }}>
                     <RawLocalTable
                         benchmarks={benchmarks}

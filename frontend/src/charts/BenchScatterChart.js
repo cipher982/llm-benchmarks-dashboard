@@ -2,7 +2,7 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer } from 'recharts';
 
-const BenchScatterChart = ({ theme, data_tf, data_gguf, data_hftgi, data_vllm }) => {
+const BenchScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi, data_vllm }) => {
     const dataMin = 1;
     const dataMax = 25;
 
@@ -103,8 +103,12 @@ const BenchScatterChart = ({ theme, data_tf, data_gguf, data_hftgi, data_vllm })
                     />
                 </YAxis>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend layout="vertical" verticalAlign="top" align="right" />
-            </ScatterChart>
+                <Legend
+                    layout={isMobile ? "horizontal" : "vertical"}
+                    verticalAlign={isMobile ? "bottom" : "top"}
+                    align={isMobile ? "center" : "right"}
+                    wrapperStyle={isMobile ? { bottom: 0 } : { right: 0 }}
+                />            </ScatterChart>
         </ResponsiveContainer>
 
     );
