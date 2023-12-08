@@ -48,7 +48,7 @@ const CloudBenchmarks = () => {
                 <div style={{ textAlign: "center" }}>
                     ** UNDER CONSTRUCTION **
                     <div style={{
-                        height: '500px',
+                        height: '700px',
                         overflow: 'auto',
                         padding: '20px',
                         maxWidth: '600px',
