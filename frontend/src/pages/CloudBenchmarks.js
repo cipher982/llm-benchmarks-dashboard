@@ -19,10 +19,12 @@ const CloudBenchmarks = () => {
             try {
                 const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarks");
                 const data = await res.json();
+                console.log("Fetched data:", data); // Log the fetched data
                 // Set the cloud data
                 setBenchmarks(data);
                 setLoading(false);
             } catch (err) {
+                console.error("Error fetching data:", err); // Log any errors
                 setError(err.toString());
                 setLoading(false);
             }

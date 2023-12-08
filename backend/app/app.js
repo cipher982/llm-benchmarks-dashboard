@@ -44,7 +44,7 @@ function extractModelSize(modelName) {
 }
 
 // Grab the metrics from the database and send them to the client
-function createEndpoint(app, path, model) {
+function createEndpoint(app, path, model, addModelSize = false) {
   app.get(path, async (req, res) => {
     try {
       const metrics = await model.find({});
@@ -53,18 +53,22 @@ function createEndpoint(app, path, model) {
         return res.status(404).json({ message: "No metrics found" });
       }
 
-      const metricsWithModelSizes = metrics.map(metric => ({
-        ...metric.toObject(),
-        model_size: extractModelSize(metric.model_name),
-      }));
+      let metricsToSend = metrics;
 
-      for (let i = metricsWithModelSizes.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [metricsWithModelSizes[i], metricsWithModelSizes[j]] = [metricsWithModelSizes[j], metricsWithModelSizes[i]];
+      if (addModelSize) {
+        metricsToSend = metrics.map(metric => ({
+          ...metric.toObject(),
+          model_size: extractModelSize(metric.model_name),
+        }));
       }
 
-      logger.info(`Fetched ${metricsWithModelSizes.length} metrics with model sizes`);
-      res.json(metricsWithModelSizes);
+      for (let i = metricsToSend.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [metricsToSend[i], metricsToSend[j]] = [metricsToSend[j], metricsToSend[i]];
+      }
+
+      logger.info(`Fetched ${metricsToSend.length} metrics`);
+      res.json(metricsToSend);
     } catch (err) {
       logger.error(`Error while fetching metrics: ${err.message}`);
       res.status(500).json({ message: "Internal server error" });
@@ -99,7 +103,7 @@ async function initialize() {
 }
 
 // Create endpoints for the two collections
-createEndpoint(app, "/api/localBenchmarks", LocalMetrics);
+createEndpoint(app, "/api/localBenchmarks", LocalMetrics, true);
 createEndpoint(app, "/api/cloudBenchmarks", CloudMetrics);
 
 initialize();
