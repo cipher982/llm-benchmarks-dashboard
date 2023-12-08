@@ -20,6 +20,6 @@ const CloudSchema = new mongoose.Schema({
   tokens_per_second: [Number],
 });
 
-const CloudMetrics = mongoose.model("metrics_cloud", CloudSchema);
+const CloudMetrics = mongoose.model("metrics_cloud", CloudSchema, "metrics_cloud");
 
 module.exports = { LocalMetrics, CloudMetrics };
