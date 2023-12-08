@@ -45,11 +45,18 @@ const LocalBenchmarks = () => {
 
     if (loading) {
         return (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-                <CircularProgress />
+            <div style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100vh",
+                backgroundColor: "white"
+            }}>
+                <CircularProgress style={{ color: "#663399" }} size={80} />
             </div>
         );
     }
+
     if (error) return <div>Error: {error}</div>;
 
     return (
