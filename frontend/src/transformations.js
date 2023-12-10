@@ -68,9 +68,11 @@ export const transformCloud = (data) => {
     }, {});
 
     const dedupedBenchmarksArray = Object.values(dedupedBenchmarks).map(benchmark => {
-        const sortedTokensPerSecond = benchmark.tokens_per_second.sort((a, b) => a - b);
-        sortedTokensPerSecond.pop();
-        sortedTokensPerSecond.shift();
+        let sortedTokensPerSecond = benchmark.tokens_per_second.sort((a, b) => a - b);
+        if (sortedTokensPerSecond.length > 5) {
+            sortedTokensPerSecond.pop();
+            sortedTokensPerSecond.shift();
+        }
 
         const tokensPerSecond = {
             mean: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
