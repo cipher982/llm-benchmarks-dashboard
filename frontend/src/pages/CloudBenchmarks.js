@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
-import { MainContainer, DescriptionSection, lightPurpleTheme, darkTheme } from '../theme';
+import { MainContainer, DescriptionSection, lightPurpleTheme, darkTheme, TableContainer } from '../theme';
 import RawCloudTable from '../tables/RawCloudTable';
 import { transformCloud } from '../transformations';
 
@@ -50,22 +50,26 @@ const CloudBenchmarks = () => {
                 <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
                 <div style={{ textAlign: "center" }}>
                     <h4>New models being added daily 😊</h4>
-                    <div style={{
-                        height: '600px',
-                        overflow: 'auto',
-                        paddingLeft: isMobile ? "0px" : "20px",
-                        paddingRight: isMobile ? "0px" : "20px",
-                        maxWidth: isMobile ? '100%' : '800px',
-                        margin: 'auto',
-                        overflowX: 'auto'
-                    }}>
-                        <RawCloudTable
-                            benchmarks={benchmarks}
-                            darkMode={darkMode}
-                        />
-                    </div>
                 </div>
             </DescriptionSection>
+            <TableContainer>
+                <h4>📚 Full Results 📚</h4>
+                <div style={{
+                    height: '800px',
+                    overflow: 'auto',
+                    paddingLeft: isMobile ? "0px" : "20px",
+                    paddingRight: isMobile ? "0px" : "20px",
+                    maxWidth: isMobile ? '100%' : '800px',
+                    margin: 'auto',
+                    overflowX: 'auto'
+                }}>
+                    <RawCloudTable
+                        benchmarks={benchmarks}
+                        darkMode={darkMode}
+                    />
+                </div>
+            </TableContainer>
+
         </MainContainer>
     );
 }
