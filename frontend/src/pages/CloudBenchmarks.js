@@ -4,7 +4,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
 import { MainContainer, DescriptionSection, ChartContainer, lightPurpleTheme, darkTheme, TableContainer } from '../theme';
 import RawCloudTable from '../tables/RawCloudTable';
-import SpeedChart from '../charts/CloudDistChart';
+import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import { transformCloud } from '../transformations';
 
 const CloudBenchmarks = () => {
@@ -21,7 +21,7 @@ const CloudBenchmarks = () => {
     useEffect(() => {
         const fetchCloudBenchmarks = async () => {
             try {
-                const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarks");
+                const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarksOld");
                 let data = await res.json();
                 // Clean up and remove duplicates
                 data = transformCloud(data);
@@ -58,7 +58,7 @@ const CloudBenchmarks = () => {
 
                 <h4>📊 Speed Distribution 📊</h4>
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
-                    <SpeedChart
+                    <SpeedDistChart
                         data={benchmarks}
                         theme={theme}
                         isMobile={isMobile}

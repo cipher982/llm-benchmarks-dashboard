@@ -2,7 +2,7 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer } from 'recharts';
 
-const BenchScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi, data_vllm }) => {
+const SpeedGpuScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi, data_vllm }) => {
     const dataMin = 1;
     const dataMax = 25;
 
@@ -114,4 +114,4 @@ const BenchScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi, da
     );
 };
 
-export default BenchScatterChart;
+export default SpeedGpuScatterChart;

@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import React, { useEffect, useRef } from 'react';
 
-const SpeedChart = ({ data }) => {
+const SpeedDistChart = ({ data }) => {
     const d3Container = useRef(null);
     const margin = { top: 30, right: 30, bottom: 70, left: 60 };
     const width = 800 - margin.left - margin.right;
@@ -183,4 +183,4 @@ const SpeedChart = ({ data }) => {
     );
 };
 
-export default SpeedChart;
+export default SpeedDistChart;

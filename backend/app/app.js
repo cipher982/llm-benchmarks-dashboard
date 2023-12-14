@@ -16,7 +16,7 @@ const logger = winston.createLogger({
 });
 
 const app = express();
-const { LocalMetrics, CloudMetrics } = require("./models/BenchmarkMetrics");
+const { LocalMetrics, CloudMetrics, CloudMetricsOld } = require("./models/BenchmarkMetrics");
 
 // Regular expression to match the model size in the names
 const modelSizeRegex = /(\d+(\.\d+)?)(m|b)/i;
@@ -105,5 +105,6 @@ async function initialize() {
 // Create endpoints for the two collections
 createEndpoint(app, "/api/localBenchmarks", LocalMetrics, true);
 createEndpoint(app, "/api/cloudBenchmarks", CloudMetrics);
+createEndpoint(app, "/api/cloudBenchmarksOld", CloudMetricsOld);
 
 initialize();

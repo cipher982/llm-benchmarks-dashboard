@@ -1,6 +1,6 @@
 // LocalBenchmarks.js
 import React, { useState, useEffect } from 'react';
-import BenchScatterChart from '../charts/BenchScatterChart';
+import SpeedGpuScatterChart from '../charts/local/SpeedGpuScatterChart';
 import RawLocalTable from '../tables/RawLocalTable';
 import ComparisonTable from '../tables/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -122,7 +122,7 @@ const LocalBenchmarks = () => {
                         maxWidth: isMobile ? '100%' : '1200px',
                         margin: 'auto',
                     }}>
-                        <BenchScatterChart
+                        <SpeedGpuScatterChart
                             theme={theme}
                             isMobile={isMobile}
                             data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
