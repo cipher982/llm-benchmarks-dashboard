@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
-import { MainContainer, DescriptionSection, lightPurpleTheme, darkTheme, TableContainer } from '../theme';
+import { MainContainer, DescriptionSection, ChartContainer, lightPurpleTheme, darkTheme, TableContainer } from '../theme';
 import RawCloudTable from '../tables/RawCloudTable';
+import SpeedChart from '../charts/CloudDistChart';
 import { transformCloud } from '../transformations';
 
 const CloudBenchmarks = () => {
@@ -52,6 +53,19 @@ const CloudBenchmarks = () => {
                     <h4>New models being added daily 😊</h4>
                 </div>
             </DescriptionSection>
+
+            <ChartContainer style={{ maxWidth: '100%', overflowX: 'auto' }}>
+
+                <h4>📊 Speed Distribution 📊</h4>
+                <div style={{ maxWidth: '800px', width: '100%', margin: 'auto' }}>
+                    <SpeedChart
+                        data={benchmarks}
+                        theme={theme}
+                        isMobile={isMobile}
+                    />
+                </div>
+            </ChartContainer>
+
             <TableContainer>
                 <h4>📚 Full Results 📚</h4>
                 <div style={{

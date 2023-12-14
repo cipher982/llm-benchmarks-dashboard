@@ -97,7 +97,7 @@ const BenchScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi, da
                     <Label
                         value="Tokens/Second"
                         offset={0}
-                        dy={50} // Increase this value to move the label lower
+                        dy={50}
                         position="insideLeft"
                         angle={-90} style={{ fill: theme.palette.text.primary }}
                     />
