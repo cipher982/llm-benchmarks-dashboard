@@ -36,8 +36,8 @@ export const transformLocal = (data) => {
 
     const dedupedBenchmarksArray = Object.values(dedupedBenchmarks).map(benchmark => ({
         ...benchmark,
-        tokens_per_second: parseFloat(benchmark.tokens_per_second.toFixed(2)),
-        gpu_mem_usage: parseFloat(benchmark.gpu_mem_usage.toFixed(2)),
+        tokens_per_second: parseFloat(benchmark.tokens_per_second),
+        gpu_mem_usage: parseFloat(benchmark.gpu_mem_usage),
     }));
 
     return dedupedBenchmarksArray;
