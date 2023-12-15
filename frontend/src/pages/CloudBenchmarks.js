@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
 import { MainContainer, DescriptionSection, ChartContainer, lightPurpleTheme, darkTheme, TableContainer } from '../theme';
-import RawCloudTable from '../tables/RawCloudTable';
+import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
-import { transformCloud } from '../transformations';
+import { aggregateAndCalcMetrics } from '../transformations';
 
 const CloudBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);
@@ -21,10 +21,11 @@ const CloudBenchmarks = () => {
     useEffect(() => {
         const fetchCloudBenchmarks = async () => {
             try {
-                const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarksOld");
+                const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarks");
                 let data = await res.json();
-                // Clean up and remove duplicates
-                data = transformCloud(data);
+                console.log("Fetched data:", data);
+                data = aggregateAndCalcMetrics(data); // aggregation and metric calculation
+                console.log("Transformed data:", data);
                 setBenchmarks(data);
                 setLoading(false);
             } catch (err) {

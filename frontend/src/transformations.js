@@ -44,56 +44,48 @@ export const transformLocal = (data) => {
 };
 
 
-// Clean up and transform the cloud benchmarks data
-export const transformCloud = (data) => {
+export const aggregateAndCalcMetrics = (data) => {
+    // Step 1: Filter and transform the data
     const transformedBenchmarks = data
-        .filter(benchmark => benchmark.tokens_per_second.length > 0)
-        .map((benchmark, index) => {
-            return {
-                id: index,
-                provider: benchmark.provider,
-                model_name: benchmark.model_name,
-                tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second)),
-            };
-        });
+        .filter(benchmark => benchmark.tokens_per_second > 0)
+        .map((benchmark, index) => ({
+            id: index,
+            provider: benchmark.provider,
+            model_name: benchmark.model_name,
+            tokens_per_second: benchmark.tokens_per_second,
+        }));
 
-    const dedupedBenchmarks = transformedBenchmarks.reduce((acc, curr) => {
+    // Step 2: Aggregate benchmarks by model_name and provider
+    const aggregatedBenchmarks = transformedBenchmarks.reduce((acc, curr) => {
         const key = `${curr.model_name}-${curr.provider}`;
-        if (acc[key]) {
-            acc[key].tokens_per_second.push(curr.tokens_per_second);
-        } else {
+        if (!acc[key]) {
             acc[key] = { ...curr, tokens_per_second: [curr.tokens_per_second] };
+        } else {
+            acc[key].tokens_per_second.push(curr.tokens_per_second);
         }
         return acc;
     }, {});
 
-    const dedupedBenchmarksArray = Object.values(dedupedBenchmarks).map(benchmark => {
-        let sortedTokensPerSecond = benchmark.tokens_per_second.sort((a, b) => a - b);
-        if (sortedTokensPerSecond.length > 5) {
-            sortedTokensPerSecond.pop();
-            sortedTokensPerSecond.shift();
+    // Step 3: Calculate statistics and final transformation
+    const finalBenchmarks = Object.values(aggregatedBenchmarks).map(benchmark => {
+        const tokensPerSecond = benchmark.tokens_per_second;
+        tokensPerSecond.sort((a, b) => a - b);
+        if (tokensPerSecond.length > 5) {
+            tokensPerSecond.pop();
+            tokensPerSecond.shift();
         }
 
-        const tokensPerSecond = {
-            mean: parseFloat(calculateMean(benchmark.tokens_per_second).toFixed(2)),
-            min: parseFloat(calculateMin(benchmark.tokens_per_second).toFixed(2)),
-            max: parseFloat(calculateMax(benchmark.tokens_per_second).toFixed(2)),
-            quartiles: calculateQuartiles(benchmark.tokens_per_second).map(val => parseFloat(val.toFixed(2))),
-        };
         return {
             ...benchmark,
-            tokens_per_second_mean: tokensPerSecond.mean,
-            tokens_per_second_min: tokensPerSecond.min,
-            tokens_per_second_max: tokensPerSecond.max,
-            tokens_per_second_quartiles: tokensPerSecond.quartiles,
+            tokens_per_second_mean: parseFloat(calculateMean(tokensPerSecond).toFixed(2)),
+            tokens_per_second_min: parseFloat(calculateMin(tokensPerSecond).toFixed(2)),
+            tokens_per_second_max: parseFloat(calculateMax(tokensPerSecond).toFixed(2)),
+            tokens_per_second_quartiles: calculateQuartiles(tokensPerSecond).map(val => parseFloat(val.toFixed(2))),
         };
     });
 
-    return dedupedBenchmarksArray;
+    return finalBenchmarks;
 };
-
-
-
 
 
 // Compare different frameworks based on their benchmarks.

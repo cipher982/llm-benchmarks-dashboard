@@ -1,8 +1,8 @@
 // LocalBenchmarks.js
 import React, { useState, useEffect } from 'react';
 import SpeedGpuScatterChart from '../charts/local/SpeedGpuScatterChart';
-import RawLocalTable from '../tables/RawLocalTable';
-import ComparisonTable from '../tables/ComparisonTable';
+import RawLocalTable from '../tables/local/RawLocalTable';
+import ComparisonTable from '../tables/local/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
 import { transformLocal, getComparisonAndFastestFrameworks } from '../transformations';
