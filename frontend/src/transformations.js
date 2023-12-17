@@ -136,7 +136,7 @@ export const compareFrameworks = (benchmarks) => {
 
 export const getComparisonAndFastestFrameworks = (benchmarks) => {
     // First, get the comparison results
-    const comparisonResults = compareFrameworks(benchmarks);
+    let comparisonResults = compareFrameworks(benchmarks);
 
     // Then, count the number of times each framework is the fastest
     let fastestFrameworks = comparisonResults.reduce((acc, curr) => {
@@ -153,6 +153,15 @@ export const getComparisonAndFastestFrameworks = (benchmarks) => {
     fastestFrameworks = Object.entries(fastestFrameworks)
         .sort((a, b) => b[1] - a[1])
         .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+
+    // Round the comparison results to the nearest integer
+    comparisonResults = comparisonResults.map(result => {
+        const roundedComparison = {};
+        for (const [framework, tokensPerSecond] of Object.entries(result.comparison)) {
+            roundedComparison[framework] = Math.round(tokensPerSecond);
+        }
+        return { ...result, comparison: roundedComparison };
+    });
 
     // Return both results
     return { comparisonResults, fastestFrameworks };
