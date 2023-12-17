@@ -11,8 +11,8 @@ const ComparisonTable = ({ comparisonData }) => {
             renderCell: (params) => params.row.formatted_model_size
         },
         { field: 'quantization_bits', headerName: 'Quant Bits', width: 120 },
-        { field: 'comparison', headerName: 'Tokens/Second', width: 400 },
-        { field: 'fastest_framework', headerName: 'Winner', width: 120 }
+        { field: 'comparison', headerName: 'Tokens/Second', width: 320 },
+        { field: 'fastest_framework', headerName: 'Winner', width: 110 }
     ];
 
     const rows = comparisonData.map((row, index) => ({

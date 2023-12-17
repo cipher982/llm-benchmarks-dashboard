@@ -122,9 +122,26 @@ const darkTheme = createTheme({
             default: '#333333',
             paper: '#000',
         },
+        divider: '#f9f9f9', // Set the color of the grid lines here
     },
     components: {
         ...commonTheme.components,
+        MuiDataGrid: {
+            styleOverrides: {
+                root: {
+                    '& .MuiDataGrid-menuIcon': {
+                        color: '#f9f9f9',
+                    },
+                    '& .MuiDataGrid-menuList': {
+                        backgroundColor: '#f9f9f9',
+                        color: '#f9f9f9',
+                    },
+                    '& .MuiDataGrid-columnHeaderTitle': {
+                        fontWeight: 'bold',
+                    },
+                },
+            },
+        },
     },
 });
 
