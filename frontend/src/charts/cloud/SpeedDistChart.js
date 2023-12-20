@@ -6,13 +6,16 @@ const SpeedDistChart = ({ data }) => {
     const margin = { top: 30, right: 30, bottom: 70, left: 60 };
     const width = 800 - margin.left - margin.right;
     const height = 400 - margin.top - margin.bottom;
+    const providers = [...new Set(data.map(d => d.provider))];
 
     // Define scales
     const x = d3.scaleLinear().range([0, width]);
     const y = d3.scaleLinear().range([height, 0]);
 
     // Define color scale
-    const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+    const colorScale = d3.scaleOrdinal()
+        .domain(providers)
+        .range(["#FF0000", "#7FFF00", "#00FFFF"]);
 
     useEffect(() => {
         if (data && d3Container.current) {
@@ -77,7 +80,7 @@ const SpeedDistChart = ({ data }) => {
                 .attr("id", lineId)
                 .attr("fill", "none")
                 .attr("opacity", ".9")
-                .attr("stroke", colorScale(index))
+                .attr("stroke", colorScale(modelData.provider)) // Use provider to assign color
                 .attr("stroke-width", 2.5)
                 .attr("d", d3.line()
                     .curve(d3.curveBasis)
@@ -85,7 +88,7 @@ const SpeedDistChart = ({ data }) => {
                     .y(d => y(d[1])));
 
             path.on("mouseover", function (event, d) {
-                d3.select(this).raise().attr("stroke-width", 5); // Use .raise() to move to the top
+                d3.select(this).raise().attr("stroke-width", 5);
                 d3.select(`#${textId}`).raise().style("font-weight", "bold").style("font-size", "14px");
             })
                 .on("mouseout", function (d) {
@@ -99,7 +102,7 @@ const SpeedDistChart = ({ data }) => {
                 .attr("x", x(maxDensityPoint[0]))
                 .attr("y", y(maxDensityPoint[1]) - 10)
                 .attr("text-anchor", "middle")
-                .style("fill", colorScale(index))
+                .style("fill", colorScale(modelData.provider))
                 .style("font-size", "10px")
                 .text(modelData.model_name);
         });

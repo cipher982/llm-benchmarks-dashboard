@@ -23,9 +23,9 @@ const CloudBenchmarks = () => {
             try {
                 const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarks");
                 let data = await res.json();
-                console.log("Fetched data:", data);
+                console.log("Fetched data length:", data.length);
                 data = aggregateAndCalcMetrics(data); // aggregation and metric calculation
-                console.log("Transformed data:", data);
+                console.log("Transformed data length:", data.length);
                 setBenchmarks(data);
                 setLoading(false);
             } catch (err) {
