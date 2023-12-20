@@ -47,7 +47,7 @@ function extractModelSize(modelName) {
 function createEndpoint(app, path, model, addModelSize = false) {
   app.get(path, async (req, res) => {
     try {
-      const metrics = await model.find({});
+      const metrics = await model.find({}).select('-times_between_tokens');
       if (!metrics || metrics.length === 0) {
         logger.warn("No metrics found in the database");
         return res.status(404).json({ message: "No metrics found" });
