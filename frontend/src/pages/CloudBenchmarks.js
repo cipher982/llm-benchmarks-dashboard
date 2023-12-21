@@ -49,9 +49,13 @@ const CloudBenchmarks = () => {
     return (
         <MainContainer isMobile={isMobile}>
             <DescriptionSection>
-                <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
-                <div style={{ textAlign: "center" }}>
-                    <h4>New models being added daily 😊</h4>
+                <div style={{ maxWidth: "1200px", margin: "auto" }}>
+                    <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
+                    <p>
+                        I run cron jobs to periodically test the token generation speed of different cloud LLM providers.
+                        The chart helps visualize the distributions of different speeds, as they can vary somewhat depending on the loads.
+                        For readability not all models are shown, but you can see the full results in the table below.
+                    </p>
                 </div>
             </DescriptionSection>
 
