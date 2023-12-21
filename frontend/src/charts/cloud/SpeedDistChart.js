@@ -31,9 +31,12 @@ const SpeedDistChart = ({ data }) => {
             const modelMapping = {
                 // claude-instant
                 "anthropic.claude-instant-v1": "claude-instant-1",
+                // claude-1
+                "anthropic.claude-v1": "claude-1",
                 // claude-2
                 "claude-2": "claude-2",
                 "claude-2.1": "claude-2",
+                "anthropic.claude-v2": "claude-2",
                 // claude-instant
                 "claude-instant-1": "claude-instant-1",
                 "claude-instant-1.2": "claude-instant-1",
