@@ -131,25 +131,31 @@ const SpeedDistChart = ({ data }) => {
             const lineId = `line-${index}`;
             const textId = `text-${index}`;
 
+            // Hovering and not
+            const NORMAL_STROKE_WIDTH = 2.5;
+            const HOVER_STROKE_WIDTH = 7;
+            const NORMAL_FONT_SIZE = "10px";
+            const HOVER_FONT_SIZE = "16px";
+
             const path = svg.append("path")
                 .datum(densityData)
                 .attr("id", lineId)
                 .attr("fill", "none")
                 .attr("opacity", ".9")
                 .attr("stroke", colorScale(modelData.provider)) // Use provider to assign color
-                .attr("stroke-width", 2.5)
+                .attr("stroke-width", NORMAL_STROKE_WIDTH)
                 .attr("d", d3.line()
                     .curve(d3.curveBasis)
                     .x(d => x(d[0]))
                     .y(d => y(d[1])));
 
             path.on("mouseover", function (event, d) {
-                d3.select(this).raise().attr("stroke-width", 5);
-                d3.select(`#${textId}`).raise().style("font-weight", "bold").style("font-size", "14px");
+                d3.select(this).raise().attr("stroke-width", HOVER_STROKE_WIDTH);
+                d3.select(`#${textId}`).raise().style("font-weight", "bold").style("font-size", HOVER_FONT_SIZE);
             })
                 .on("mouseout", function (d) {
-                    d3.select(this).attr("stroke-width", 2.5);
-                    d3.select(`#${textId}`).style("font-weight", "normal").style("font-size", "10px");
+                    d3.select(this).attr("stroke-width", NORMAL_STROKE_WIDTH);
+                    d3.select(`#${textId}`).style("font-weight", "normal").style("font-size", NORMAL_FONT_SIZE);
                 });
 
             // Add label to the line at the peak of the distribution
@@ -159,7 +165,7 @@ const SpeedDistChart = ({ data }) => {
                 .attr("y", y(maxDensityPoint[1]) - 10)
                 .attr("text-anchor", "middle")
                 .style("fill", colorScale(modelData.provider))
-                .style("font-size", "14px")
+                .style("font-size", NORMAL_FONT_SIZE)
                 .text(modelData.display_name.split('/')[1] || modelData.display_name);
         });
     };
