@@ -23,7 +23,8 @@ const SpeedDistChart = ({ data }) => {
     // Define color scale
     const colorScale = d3.scaleOrdinal()
         .domain(providers)
-        .range(["#FF0000", "#7FFF00", "#00FFFF", "#fff"]);
+        // .range(["#FF0000", "#7FFF00", "#00FFFF", "#fff"]);
+        .range(d3.schemeCategory10);
 
     useEffect(() => {
         if (data && d3Container.current) {
