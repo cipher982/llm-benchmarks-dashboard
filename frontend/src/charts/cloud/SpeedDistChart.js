@@ -94,7 +94,7 @@ const SpeedDistChart = ({ data }) => {
 
     const setupScales = (svg) => {
         // x.domain(d3.extent(data.flatMap(d => d.tokens_per_second)));
-        x.domain([0, 130]);
+        x.domain([0, 140]);
         // x.domain([0, d3.max(data.flatMap(d => d.tokens_per_second))]);
         y.domain([0, getMaxDensity()]);
     };
@@ -160,7 +160,7 @@ const SpeedDistChart = ({ data }) => {
                 .attr("text-anchor", "middle")
                 .style("fill", colorScale(modelData.provider))
                 .style("font-size", "14px")
-                .text(modelData.display_name);
+                .text(modelData.display_name.split('/')[1] || modelData.display_name);
         });
     };
 
