@@ -23,7 +23,7 @@ const SpeedDistChart = ({ data }) => {
     // Define color scale
     const colorScale = d3.scaleOrdinal()
         .domain(providers)
-        .range(["#FF0000", "#7FFF00", "#00FFFF"]);
+        .range(["#FF0000", "#7FFF00", "#00FFFF", "#fff"]);
 
     useEffect(() => {
         if (data && d3Container.current) {
@@ -99,7 +99,7 @@ const SpeedDistChart = ({ data }) => {
     };
 
     const getMaxDensity = () => {
-        const kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(40));
+        const kde = kernelDensityEstimator(kernelEpanechnikov(6), x.ticks(40));
         return d3.max(data.flatMap(modelData => {
             return kde(modelData.tokens_per_second).map(d => d[1]);
         }));
@@ -120,7 +120,7 @@ const SpeedDistChart = ({ data }) => {
 
 
     const drawDensityPaths = (svg) => {
-        const kde = kernelDensityEstimator(kernelEpanechnikov(7), x.ticks(40));
+        const kde = kernelDensityEstimator(kernelEpanechnikov(6), x.ticks(40));
 
         data.forEach((modelData, index) => {
             const densityData = kde(modelData.tokens_per_second);
