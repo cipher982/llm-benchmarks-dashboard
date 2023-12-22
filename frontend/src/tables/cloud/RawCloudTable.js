@@ -5,12 +5,12 @@ import { DataGrid } from '@mui/x-data-grid';
 // Table columns and their properties
 const columns = [
     { field: "provider", headerName: "Provider", width: 150 },
-    { field: "model_name", headerName: "Model Name", width: 180 },
+    { field: "model_name", headerName: "Model Name", width: 260 },
     {
         field: "tokens_per_second_mean",
-        headerName: "Tokens/Second (Mean)",
+        headerName: "Toks/Sec (Mean)",
         type: "number",
-        width: 200,
+        width: 150,
     },
     {
         field: "tokens_per_second_min",
