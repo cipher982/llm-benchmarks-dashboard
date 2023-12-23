@@ -5,6 +5,7 @@ import { useMediaQuery } from '@mui/material';
 import { MainContainer, DescriptionSection, ChartContainer, lightPurpleTheme, darkTheme, TableContainer } from '../theme';
 import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
+import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
 import { aggregateAndCalcMetrics } from '../transformations';
 
 const CloudBenchmarks = () => {
@@ -60,10 +61,21 @@ const CloudBenchmarks = () => {
             </DescriptionSection>
 
             <ChartContainer style={{ maxWidth: '100%', overflowX: 'auto' }}>
-
                 <h4>📊 Speed Distribution 📊</h4>
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedDistChart
+                        data={benchmarks}
+                        theme={theme}
+                        isMobile={isMobile}
+                    />
+                </div>
+            </ChartContainer>
+
+            <ChartContainer style={{ maxWidth: '100%', overflowX: 'auto' }}>
+
+                <h4>🦙 Llama Comparisons 🦙</h4>
+                <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
+                    <SpeedCompareChart
                         data={benchmarks}
                         theme={theme}
                         isMobile={isMobile}
