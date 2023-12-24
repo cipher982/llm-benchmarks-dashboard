@@ -70,6 +70,9 @@ const SpeedCompareChart = ({ data, theme }) => {
     // Sort the combinedData array
     combinedData.sort((a, b) => order.indexOf(a.model_name) - order.indexOf(b.model_name));
 
+    const renderLegendText = (value, entry) => {
+        return <span style={{ color: '#fff' }}>{value}</span>;
+    };
 
     return (
         <BarChart
@@ -92,7 +95,7 @@ const SpeedCompareChart = ({ data, theme }) => {
                 stroke={theme.palette.text.primary}
             />
             <Tooltip />
-            <Legend />
+            <Legend formatter={renderLegendText} />
             <Bar dataKey="anyscale" fill="#2295ff" stackId="a" />
             <Bar dataKey="together" fill="#0f6fff" stackId="b" />
         </BarChart>
