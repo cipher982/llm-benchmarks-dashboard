@@ -12,7 +12,11 @@ const SpeedCompareChart = ({ data, theme }) => {
         // llama 70b
         "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b",
         "togethercomputer/llama-2-70b-chat": "llama-2-70b",
-        // Add more mappings as needed
+        // mistral 7b
+        "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
+        "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b",
+        // mistral 8x7b
+        "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistral-8x7b",
     };
 
     // Filter out data not from 'anyscale' or 'together'
@@ -89,8 +93,8 @@ const SpeedCompareChart = ({ data, theme }) => {
             />
             <Tooltip />
             <Legend />
-            <Bar dataKey="anyscale" fill="#993333" stackId="a" />
-            <Bar dataKey="together" fill="#669933" stackId="b" />
+            <Bar dataKey="anyscale" fill="#2295ff" stackId="a" />
+            <Bar dataKey="together" fill="#0f6fff" stackId="b" />
         </BarChart>
     );
 };

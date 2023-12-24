@@ -73,7 +73,7 @@ const CloudBenchmarks = () => {
 
             <ChartContainer style={{ maxWidth: '100%', overflowX: 'auto' }}>
 
-                <h4>🦙 Llama Comparisons 🦙</h4>
+                <h4>🦙 Some Comparisons! 🦙</h4>
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedCompareChart
                         data={benchmarks}
