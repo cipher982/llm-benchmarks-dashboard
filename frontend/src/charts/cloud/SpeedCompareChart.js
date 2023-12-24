@@ -65,7 +65,7 @@ const SpeedCompareChart = ({ data, theme }) => {
     }, {}));
 
     // Define the order
-    const order = ["llama-2-7b", "llama-2-13b", "llama-2-70b"];
+    const order = ["mistral-7b", "mistral-8x7b", "llama-2-7b", "llama-2-13b", "llama-2-70b"];
 
     // Sort the combinedData array
     combinedData.sort((a, b) => order.indexOf(a.model_name) - order.indexOf(b.model_name));
