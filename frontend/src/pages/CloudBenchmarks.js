@@ -14,7 +14,6 @@ const CloudBenchmarks = () => {
     const [loading, setLoading] = useState(true);
     const isMobile = useMediaQuery('(max-width:500px)');
 
-
     // Dark Mode
     const [darkMode] = useState(false);
     const theme = darkMode ? darkTheme : lightPurpleTheme;
