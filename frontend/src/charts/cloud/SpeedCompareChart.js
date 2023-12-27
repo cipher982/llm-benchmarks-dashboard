@@ -13,19 +13,23 @@ const SpeedCompareChart = ({ data, theme }) => {
         "meta-llama/Llama-2-13b-chat-hf": "llama-2-13b",
         "togethercomputer/llama-2-13b-chat": "llama-2-13b",
         "llama-2-13b-chat": "llama-2-13b",
+        "meta-llama/llama-2-13b-chat": "llama-2-13b",
         // llama 70b
         "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b",
         "togethercomputer/llama-2-70b-chat": "llama-2-70b",
         "llama-2-70b-chat": "llama-2-70b",
+        "meta-llama/llama-2-70b-chat": "llama-2-70b",
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
         "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b",
+        "mistralai/mistral-7b-instruct": "mistral-7b",
         // mistral 8x7b
         "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistral-8x7b",
+        "mistralai/mixtral-8x7b-instruct": "mistral-8x7b",
     };
 
     // Filter out data not from 'anyscale' or 'together'
-    const filteredData = data.filter(item => ["anyscale", "together", "azure"].includes(item.provider));
+    const filteredData = data.filter(item => ["anyscale", "together", "azure", "openrouter"].includes(item.provider));
 
     // Group and calculate mean tokens_per_second
     const groupedData = filteredData.reduce((acc, item) => {
@@ -83,7 +87,7 @@ const SpeedCompareChart = ({ data, theme }) => {
         <BarChart
             layout="vertical"
             width={700}
-            height={300}
+            height={400}
             data={combinedData}
             margin={{
                 top: 20, right: 30, left: 50, bottom: 5,
@@ -104,6 +108,7 @@ const SpeedCompareChart = ({ data, theme }) => {
             <Bar dataKey="anyscale" fill={colorScale("anyscale")} stackId="a" />
             <Bar dataKey="together" fill={colorScale("together")} stackId="b" />
             <Bar dataKey="azure" fill={colorScale("azure")} stackId="c" />
+            <Bar dataKey="openrouter" fill={colorScale("openrouter")} stackId="d" />
         </BarChart>
     );
 };
