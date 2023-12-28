@@ -76,8 +76,12 @@ const LocalBenchmarks = () => {
                     </p>
                     <p>
                         The dashboard is built with React and Node and is hosted through Vercel.
-                        The backend pulls from MongoDB to store all the results.
+                        The backend pulls from MongoDB to store all the results in present them in real-time.
                     </p>
+                    <p>
+                        I am working daily to add more providers and models, looking anywhere that
+                        does not require purchasing dedicated endpoints for hosting (why some models may appear
+                        to be missing). If you have any more suggestions let me know on GitHub!! 😊</p>
                     <h3>System Specs ⚡️</h3>
                     <p>GPU: NVIDIA RTX 3090</p>
                     <p>CPU: Intel Core i9-12900K</p>
