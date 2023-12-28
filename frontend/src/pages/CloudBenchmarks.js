@@ -56,6 +56,12 @@ const CloudBenchmarks = () => {
                         The chart helps visualize the distributions of different speeds, as they can vary somewhat depending on the loads.
                         For readability not all models are shown, but you can see the full results in the table below.
                     </p>
+                    <p>
+                        I am working daily to add more providers and models, looking anywhere that
+                        does not require purchasing dedicated endpoints for hosting (why some models may appear
+                        to be missing). If you have any more suggestions let me know on GitHub!! 😊
+
+                    </p>
                 </div>
             </DescriptionSection>
 
