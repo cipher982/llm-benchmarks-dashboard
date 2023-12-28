@@ -117,8 +117,14 @@ const LocalBenchmarks = () => {
             </TableContainer>
 
             <ChartContainer>
-                <h3>📊 Charts 📊</h3>
-                <h4>GPU Usage vs Tokens/Second</h4>
+                <div style={{ maxWidth: "1200px", margin: "auto" }}>
+                    <h3>📊 Charts 📊</h3>
+                    <h4>GPU Usage vs Tokens/Second</h4>
+                    <p>
+                        Some frameworks enable batching multiple requests more easily by loading multiple
+                        sets of model weights, hence the GPU usage weirdness on the right side of this graph.
+                    </p>
+                </div>
                 {benchmarks.length > 0 && (
                     <div style={{
                         maxWidth: isMobile ? '100%' : '1200px',
