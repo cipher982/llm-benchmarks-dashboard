@@ -135,10 +135,24 @@ export const compareFrameworks = (benchmarks) => {
 };
 
 export const getComparisonAndFastestFrameworks = (benchmarks) => {
-    // First, get the comparison results
+
+    // model mapping dictionary
+    const modelMapping = {
+    };
+
+    // First, standardize the model names
+    benchmarks = benchmarks.map(benchmark => {
+        const modelName = benchmark.model_name;
+        if (modelMapping[modelName]) {
+            benchmark.model_name = modelMapping[modelName];
+        }
+        return benchmark;
+    });
+
+    // Then, get the comparison results
     let comparisonResults = compareFrameworks(benchmarks);
 
-    // Then, count the number of times each framework is the fastest
+    // Count the number of times each framework is the fastest
     let fastestFrameworks = comparisonResults.reduce((acc, curr) => {
         const framework = curr.fastest_framework;
         if (!acc[framework]) {
