@@ -84,7 +84,21 @@ const LocalBenchmarks = () => {
                 </div>
             </DescriptionSection>
             <TableContainer>
-                <h3>🏆 Comparisons 🏆</h3>
+                <div style={{ maxWidth: "1200px", margin: "auto" }}>
+
+                    <h3>🏆 Comparisons 🏆</h3>
+                    <p>
+                        I try and compare frameworks with similar model support. GGUF/llama-cpp has specialized conversion
+                        scripts for some models, but not nearly as wide of support as Transformers/HF based models.
+                        I am in the process of adding in GGUF to help make better comparisons.
+                    </p>
+                    <p>
+                        Another issue is the difference in quantization methods and accuracy. vLLM, Transformers, and HF-TGI
+                        all share a similar quantization method (bitsandbytes) so they can be compared more easily. GGUF has
+                        so many quant levels that it is hard to compare to the others. So for now I just have no quantization
+                        for this comparison.
+                    </p>
+                </div>
                 <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between" }}>
                     <div style={{
                         flex: 0.3,
