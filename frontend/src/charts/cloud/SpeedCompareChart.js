@@ -73,11 +73,22 @@ const SpeedCompareChart = ({ data, theme }) => {
         return acc;
     }, {}));
 
+    // Round tokens_per_second_mean to two decimal places
+    const roundedData = combinedData.map(item => {
+        const providers = ["anyscale", "together", "azure", "openrouter"];
+        providers.forEach(provider => {
+            if (item[provider]) {
+                item[provider] = parseFloat(item[provider].toFixed(2));
+            }
+        });
+        return item;
+    });
+
     // Define the order
     const order = ["mistral-7b", "mistral-8x7b", "llama-2-7b", "llama-2-13b", "llama-2-70b"];
 
     // Sort the combinedData array
-    combinedData.sort((a, b) => order.indexOf(a.model_name) - order.indexOf(b.model_name));
+    roundedData.sort((a, b) => order.indexOf(a.model_name) - order.indexOf(b.model_name));
 
     const renderLegendText = (value, entry) => {
         return <span style={{ color: '#fff' }}>{value}</span>;
