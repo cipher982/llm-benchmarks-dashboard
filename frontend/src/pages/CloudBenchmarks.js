@@ -95,7 +95,7 @@ const CloudBenchmarks = () => {
                     overflow: 'auto',
                     paddingLeft: isMobile ? "0px" : "20px",
                     paddingRight: isMobile ? "0px" : "20px",
-                    maxWidth: isMobile ? '100%' : '820px',
+                    maxWidth: isMobile ? '100%' : '920px',
                     margin: 'auto',
                     overflowX: 'auto'
                 }}>
