@@ -24,6 +24,12 @@ const columns = [
         type: "number",
         width: 100,
     },
+    {
+        field: "time_to_first_token_mean",
+        headerName: "First Token",
+        type: "number",
+        width: 100,
+    },
 ];
 
 

@@ -44,44 +44,52 @@ export const transformLocal = (data) => {
 };
 
 
-export const aggregateAndCalcMetrics = (data) => {
+// cloud transformations
+export const aggregateAndCalcMetrics = (data, fields = ['tokens_per_second', 'time_to_first_token']) => {
     // Step 1: Filter and transform the data
     const transformedBenchmarks = data
-        .filter(benchmark => benchmark.tokens_per_second > 0)
-        .map((benchmark, index) => ({
-            id: index,
-            provider: benchmark.provider,
-            model_name: benchmark.model_name,
-            tokens_per_second: benchmark.tokens_per_second,
-        }));
+        .filter(benchmark => fields.every(field => benchmark[field] > 0))
+        .map((benchmark, index) => {
+            let transformedBenchmark = {
+                id: index,
+                provider: benchmark.provider,
+                model_name: benchmark.model_name,
+            };
+            fields.forEach(field => {
+                transformedBenchmark[field] = benchmark[field];
+            });
+            return transformedBenchmark;
+        });
 
     // Step 2: Aggregate benchmarks by model_name and provider
     const aggregatedBenchmarks = transformedBenchmarks.reduce((acc, curr) => {
         const key = `${curr.model_name}-${curr.provider}`;
         if (!acc[key]) {
-            acc[key] = { ...curr, tokens_per_second: [curr.tokens_per_second] };
-        } else {
-            acc[key].tokens_per_second.push(curr.tokens_per_second);
+            acc[key] = { ...curr };
+            fields.forEach(field => {
+                acc[key][field] = [curr[field]];
+
+            });
         }
         return acc;
     }, {});
 
     // Step 3: Calculate statistics and final transformation
     const finalBenchmarks = Object.values(aggregatedBenchmarks).map(benchmark => {
-        const tokensPerSecond = benchmark.tokens_per_second;
-        tokensPerSecond.sort((a, b) => a - b);
-        if (tokensPerSecond.length > 5) {
-            tokensPerSecond.pop();
-            tokensPerSecond.shift();
-        }
-
-        return {
-            ...benchmark,
-            tokens_per_second_mean: parseFloat(calculateMean(tokensPerSecond).toFixed(2)),
-            tokens_per_second_min: parseFloat(calculateMin(tokensPerSecond).toFixed(2)),
-            tokens_per_second_max: parseFloat(calculateMax(tokensPerSecond).toFixed(2)),
-            tokens_per_second_quartiles: calculateQuartiles(tokensPerSecond).map(val => parseFloat(val.toFixed(2))),
-        };
+        let finalBenchmark = { ...benchmark };
+        fields.forEach(field => {
+            let values = benchmark[field];
+            values.sort((a, b) => a - b);
+            if (values.length > 5) {
+                values.pop();
+                values.shift();
+            }
+            finalBenchmark[`${field}_mean`] = parseFloat(calculateMean(values).toFixed(2));
+            finalBenchmark[`${field}_min`] = parseFloat(calculateMin(values).toFixed(2));
+            finalBenchmark[`${field}_max`] = parseFloat(calculateMax(values).toFixed(2));
+            finalBenchmark[`${field}_quartiles`] = calculateQuartiles(values).map(val => parseFloat(val.toFixed(2)));
+        });
+        return finalBenchmark;
     });
 
     return finalBenchmarks;
@@ -134,10 +142,12 @@ export const compareFrameworks = (benchmarks) => {
     return comparisonResults;
 };
 
+
 export const getComparisonAndFastestFrameworks = (benchmarks) => {
 
     // model mapping dictionary
     const modelMapping = {
+        "llama-7B/ggml-model-f16.gguf": "llama-7B",
     };
 
     // First, standardize the model names
@@ -179,4 +189,39 @@ export const getComparisonAndFastestFrameworks = (benchmarks) => {
 
     // Return both results
     return { comparisonResults, fastestFrameworks };
+};
+
+
+export const compareFastest7BModels = (benchmarks) => {
+    // Group benchmarks by model_name
+    const groupedBenchmarks = benchmarks.reduce((acc, curr) => {
+        const key = curr.model_name;
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(curr);
+        return acc;
+    }, {});
+
+    // Filter for models with '7b' in the name and calculate mean tokens/second
+    const meanBenchmarks = Object.entries(groupedBenchmarks)
+        .filter(([modelName]) => modelName.toLowerCase().includes('7b'))
+        .map(([modelName, group]) => {
+            const totalTokensPerSecond = group.reduce((total, benchmark) => total + benchmark.tokens_per_second, 0);
+            const meanTokensPerSecond = totalTokensPerSecond / group.length;
+            return {
+                model_name: modelName,
+                mean_tokens_per_second: meanTokensPerSecond
+            };
+        });
+
+    // Find the model with the highest mean tokens/second
+    let fastestModel = meanBenchmarks[0];
+    for (let i = 1; i < meanBenchmarks.length; i++) {
+        if (meanBenchmarks[i].mean_tokens_per_second > fastestModel.mean_tokens_per_second) {
+            fastestModel = meanBenchmarks[i];
+        }
+    }
+
+    return fastestModel;
 };
