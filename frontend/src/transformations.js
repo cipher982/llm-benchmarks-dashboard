@@ -56,7 +56,7 @@ export const aggregateAndCalcMetrics = (data, fields = ['tokens_per_second', 'ti
                 model_name: benchmark.model_name,
             };
             fields.forEach(field => {
-                transformedBenchmark[field] = benchmark[field];
+                transformedBenchmark[field] = [benchmark[field]]; // Initialize as an array
             });
             return transformedBenchmark;
         });
@@ -66,9 +66,9 @@ export const aggregateAndCalcMetrics = (data, fields = ['tokens_per_second', 'ti
         const key = `${curr.model_name}-${curr.provider}`;
         if (!acc[key]) {
             acc[key] = { ...curr };
+        } else {
             fields.forEach(field => {
-                acc[key][field] = [curr[field]];
-
+                acc[key][field] = acc[key][field].concat(curr[field]); // Update this line
             });
         }
         return acc;
@@ -87,7 +87,7 @@ export const aggregateAndCalcMetrics = (data, fields = ['tokens_per_second', 'ti
             finalBenchmark[`${field}_mean`] = parseFloat(calculateMean(values).toFixed(2));
             finalBenchmark[`${field}_min`] = parseFloat(calculateMin(values).toFixed(2));
             finalBenchmark[`${field}_max`] = parseFloat(calculateMax(values).toFixed(2));
-            finalBenchmark[`${field}_quartiles`] = calculateQuartiles(values).map(val => parseFloat(val.toFixed(2)));
+            finalBenchmark[`${field}_quartiles`] = calculateQuartiles(values).map(val => typeof val === 'number' ? parseFloat(val.toFixed(2)) : val);
         });
         return finalBenchmark;
     });
