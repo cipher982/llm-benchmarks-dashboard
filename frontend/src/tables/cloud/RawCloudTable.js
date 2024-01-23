@@ -16,13 +16,13 @@ const columns = [
         field: "tokens_per_second_min",
         headerName: "Min",
         type: "number",
-        width: 100,
+        width: 60,
     },
     {
         field: "tokens_per_second_max",
         headerName: "Max",
         type: "number",
-        width: 100,
+        width: 60,
     },
     {
         field: "time_to_first_token_mean",
@@ -34,7 +34,15 @@ const columns = [
 
 
 const RawCloudTable = ({ benchmarks }) => {
-    const rows = benchmarks.map((row, index) => ({ id: index, ...row }));
+    const rows = benchmarks.map((row, index) => ({
+        id: index,
+        provider: row.provider,
+        model_name: row.model_name,
+        tokens_per_second_mean: row.tokens_per_second_mean,
+        tokens_per_second_min: Math.floor(row.tokens_per_second_min),
+        tokens_per_second_max: Math.ceil(row.tokens_per_second_max),
+        time_to_first_token_mean: row.time_to_first_token_mean,
+    }));
     return (
         <DataGrid
             rows={rows}
