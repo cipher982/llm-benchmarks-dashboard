@@ -47,7 +47,7 @@ const SpeedCompareChart = ({ data, theme }) => {
     };
 
     // Filter out data not from 'anyscale' or 'together'
-    const filteredData = data.filter(item => ["anyscale", "together", "runpod", "openrouter"].includes(item.provider));
+    const filteredData = data.filter(item => ["anyscale", "together", "runpod", "openrouter", "fireworks"].includes(item.provider));
 
     // Group and calculate mean tokens_per_second
     const groupedData = filteredData.reduce((acc, item) => {
@@ -93,7 +93,7 @@ const SpeedCompareChart = ({ data, theme }) => {
 
     // Round tokens_per_second_mean to two decimal places
     const roundedData = combinedData.map(item => {
-        const providers = ["anyscale", "together", "runpod", "openrouter"];
+        const providers = ["anyscale", "together", "runpod", "openrouter", "fireworks"];
         providers.forEach(provider => {
             if (item[provider]) {
                 item[provider] = parseFloat(item[provider].toFixed(2));
@@ -138,6 +138,7 @@ const SpeedCompareChart = ({ data, theme }) => {
             <Bar dataKey="together" fill={colorScale("together")} stackId="b" />
             <Bar dataKey="runpod" fill={colorScale("runpod")} stackId="c" />
             <Bar dataKey="openrouter" fill={colorScale("openrouter")} stackId="d" />
+            <Bar dataKey="fireworks" fill={colorScale("fireworks")} stackId="d" />
         </BarChart>
     );
 };
