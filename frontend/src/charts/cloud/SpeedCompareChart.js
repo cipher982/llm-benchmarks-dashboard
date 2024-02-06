@@ -23,7 +23,7 @@ const SpeedCompareChart = ({ data, theme }) => {
         "accounts/fireworks/models/llama-v2-13b-chat": "llama-2-13b",
 
         // llama 34b - code
-        "accounts/fireworks/models/llama-v2-34b-code": "llama-2-34b",
+        // "accounts/fireworks/models/llama-v2-34b-code": "llama-2-34b",
 
         // llama 70b
         "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b",
@@ -47,7 +47,7 @@ const SpeedCompareChart = ({ data, theme }) => {
     };
 
     // Filter out data not from 'anyscale' or 'together'
-    const filteredData = data.filter(item => ["anyscale", "together", "runpod", "openrouter", "fireworks"].includes(item.provider));
+    const filteredData = data.filter(item => ["anyscale", "together", "openrouter", "fireworks"].includes(item.provider));
 
     // Group and calculate mean tokens_per_second
     const groupedData = filteredData.reduce((acc, item) => {
@@ -93,7 +93,7 @@ const SpeedCompareChart = ({ data, theme }) => {
 
     // Round tokens_per_second_mean to two decimal places
     const roundedData = combinedData.map(item => {
-        const providers = ["anyscale", "together", "runpod", "openrouter", "fireworks"];
+        const providers = ["anyscale", "together", "openrouter", "fireworks"];
         providers.forEach(provider => {
             if (item[provider]) {
                 item[provider] = parseFloat(item[provider].toFixed(2));
@@ -116,7 +116,7 @@ const SpeedCompareChart = ({ data, theme }) => {
         <BarChart
             layout="vertical"
             width={700}
-            height={400}
+            height={700}
             data={combinedData}
             margin={{
                 top: 20, right: 30, left: 50, bottom: 5,
@@ -134,11 +134,10 @@ const SpeedCompareChart = ({ data, theme }) => {
             />
             <Tooltip />
             <Legend formatter={renderLegendText} />
-            <Bar dataKey="anyscale" fill={colorScale("anyscale")} stackId="a" />
-            <Bar dataKey="together" fill={colorScale("together")} stackId="b" />
-            <Bar dataKey="runpod" fill={colorScale("runpod")} stackId="c" />
-            <Bar dataKey="openrouter" fill={colorScale("openrouter")} stackId="d" />
-            <Bar dataKey="fireworks" fill={colorScale("fireworks")} stackId="d" />
+            <Bar dataKey="anyscale" fill={colorScale("anyscale")} />
+            <Bar dataKey="together" fill={colorScale("together")} />
+            <Bar dataKey="openrouter" fill={colorScale("openrouter")} />
+            <Bar dataKey="fireworks" fill={colorScale("fireworks")} />
         </BarChart>
     );
 };
