@@ -10,6 +10,8 @@ const SpeedCompareChart = ({ data, theme }) => {
         "togethercomputer/llama-2-7b-chat": "llama-2-7b",
         "llama-2-7b-chat": "llama-2-7b",
         "llama2-7b-chat": "llama-2-7b",
+        "accounts/fireworks/models/llama-v2-7b": "llama-2-7b",
+        "accounts/fireworks/models/llama-v2-7b-chat": "llama-2-7b",
 
         // llama 13b
         "meta-llama/Llama-2-13b-chat-hf": "llama-2-13b",
@@ -17,18 +19,31 @@ const SpeedCompareChart = ({ data, theme }) => {
         "llama-2-13b-chat": "llama-2-13b",
         "meta-llama/llama-2-13b-chat": "llama-2-13b",
         "llama2-13b-chat": "llama-2-13b",
+        "accounts/fireworks/models/llama-v2-13b": "llama-2-13b",
+        "accounts/fireworks/models/llama-v2-13b-chat": "llama-2-13b",
+
+        // llama 34b - code
+        "accounts/fireworks/models/llama-v2-34b-code": "llama-2-34b",
+
         // llama 70b
         "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b",
         "togethercomputer/llama-2-70b-chat": "llama-2-70b",
         "llama-2-70b-chat": "llama-2-70b",
         "meta-llama/llama-2-70b-chat": "llama-2-70b",
+        "accounts/fireworks/models/llama-v2-70b": "llama-2-70b",
+        "accounts/fireworks/models/llama-v2-70b-chat": "llama-2-70b",
+
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
         "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b",
         "mistralai/mistral-7b-instruct": "mistral-7b",
+        "accounts/fireworks/models/mistral-7b": "mistral-7b",
+
         // mistral 8x7b
         "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistral-8x7b",
         "mistralai/mixtral-8x7b-instruct": "mistral-8x7b",
+        "accounts/fireworks/models/mixtral-8x7b": "mistral-8x7b",
+        "accounts/fireworks/models/mixtral-8x7b-instruct": "mistral-8x7b"
     };
 
     // Filter out data not from 'anyscale' or 'together'
