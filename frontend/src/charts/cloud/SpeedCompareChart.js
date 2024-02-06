@@ -116,7 +116,7 @@ const SpeedCompareChart = ({ data, theme }) => {
         <BarChart
             layout="vertical"
             width={700}
-            height={700}
+            height={600}
             data={combinedData}
             margin={{
                 top: 20, right: 30, left: 50, bottom: 5,
