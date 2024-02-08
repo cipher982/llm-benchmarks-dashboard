@@ -36,3 +36,5 @@ function extractModelSize(modelName) {
         return Math.round(totalSize);
     }
 }
+
+module.exports = extractModelSize;
