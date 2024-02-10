@@ -1,4 +1,4 @@
-import createApiEndpoint from '../../utils/createApiEndpoint';
+import createApiEndpoint from '../../utils/createEndpoint';
 import { LocalMetrics } from '../../models/BenchmarkMetrics';
 
 export default createApiEndpoint(LocalMetrics, true);
