@@ -1,7 +1,5 @@
-
-
 // Extract size (params) in millions from name string
-function extractModelSize(modelName) {
+function extractModelSize(modelName: string): number | null {
     // Special case for 'mixtral' models
     if (modelName.toLowerCase().includes("mixtral")) {
         // If it's a 'mixtral' model, set the numerical part to 56 billion
@@ -17,24 +15,24 @@ function extractModelSize(modelName) {
             return null;
         }
         let size = parseFloat(match[1]);
-        let unit = match[3] ? match[3].toLowerCase() : null; // Corrected this line
+        let unit: string | null = match[3] ? match[3].toLowerCase() : null;
         // Convert billions to millions if necessary
         if (unit === 'b') {
-            size = size * 1000;
+            size *= 1000;
         }
         return Math.round(size);
     } else {
         // If multiplier pattern is found, calculate the total size
-        let multiplier = parseInt(match[1]);
+        let multiplier = parseInt(match[1], 10);
         let size = parseFloat(match[2]);
-        let unit = match[4] ? match[4].toLowerCase() : null; // Corrected this line
+        let unit: string | null = match[4] ? match[4].toLowerCase() : null;
         let totalSize = size * multiplier;
         // Convert billions to millions if necessary
         if (unit === 'b') {
-            totalSize = totalSize * 1000;
+            totalSize *= 1000;
         }
         return Math.round(totalSize);
     }
 }
 
-module.exports = extractModelSize;
+export default extractModelSize;
