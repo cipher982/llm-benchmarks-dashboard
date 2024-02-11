@@ -19,9 +19,20 @@ function shuffleArray<T>(array: T[]): T[] {
     return array;
 }
 
-async function createEndpoint(req: NextApiRequest, res: NextApiResponse, model: { find: (query?: any) => any }, addModelSize: boolean = false): Promise<void> {
+async function createEndpoint(
+    req: NextApiRequest, 
+    res: NextApiResponse, 
+    model: { find: (query?: any) => any }, 
+    addModelSize: boolean = false
+): Promise<void> {
     try {
-        const metrics: Metric[] = await model.find({}).select('-times_between_tokens');
+        const dateFilter = new Date();
+        dateFilter.setDate(dateFilter.getDate() - 5);
+
+        const metrics: Metric[] = await model.find({
+            run_ts: { $gte: dateFilter }
+        }).select('-times_between_tokens');
+
         if (!metrics || metrics.length === 0) {
             return res.status(404).json({ message: "No metrics found" });
         }
