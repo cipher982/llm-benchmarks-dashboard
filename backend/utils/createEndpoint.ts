@@ -1,14 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import extractModelSize from './extractModelSize';
 
-// Assuming the structure of your metric object, adjust as necessary
 interface Metric {
     model_name: string;
-    [key: string]: any; // For other properties that might exist
+    [key: string]: any;
 }
 
 interface MetricToSend extends Metric {
-    model_size?: string; // Assuming model_size is a string, adjust as necessary
+    model_size?: string;
 }
 
 // Utility function for shuffling array elements
@@ -36,7 +35,7 @@ async function createEndpoint(req: NextApiRequest, res: NextApiResponse, model: 
 
         res.status(200).json(metricsToSend);
     } catch (err) {
-        console.error(err); // Log the error for debugging purposes
+        console.error(err);
         res.status(500).json({ message: "Internal server error" });
     }
 }
