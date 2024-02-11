@@ -23,11 +23,12 @@ async function createEndpoint(
     req: NextApiRequest, 
     res: NextApiResponse, 
     model: { find: (query?: any) => any }, 
-    addModelSize: boolean = false
+    addModelSize: boolean = false,
+    daysAgo: number = 5
 ): Promise<void> {
     try {
         const dateFilter = new Date();
-        dateFilter.setDate(dateFilter.getDate() - 5);
+        dateFilter.setDate(dateFilter.getDate() - daysAgo);
 
         const metrics: Metric[] = await model.find({
             run_ts: { $gte: dateFilter }

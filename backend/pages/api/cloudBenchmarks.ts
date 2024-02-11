@@ -13,7 +13,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       logger.debug("Processing GET request");
       const cloudMetricsEndpoint = async (req: NextApiRequest, res: NextApiResponse) => {
         logger.info("Entering cloudMetricsEndpoint");
-        return createEndpoint(req, res, CloudMetrics, false);
+        return createEndpoint(req, res, CloudMetrics, false, 7);
       };
       return cloudMetricsEndpoint(req, res);
     } else {
