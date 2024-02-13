@@ -3,7 +3,7 @@ import { calculateMean, calculateMin, calculateMax, calculateQuartiles, bytesToG
 
 
 // Clean up and transform the local benchmarks data
-export const cleanLocal = (data) => {
+export const cleanTransformLocal = (data) => {
     // Combine filtering, mapping, and deduplication into a single step for efficiency and conciseness
     const dedupedBenchmarks = data.reduce((acc, benchmark, index) => {
         if (benchmark.tokens_per_second.length > 0 && benchmark.gpu_mem_usage.length > 0) {
@@ -45,7 +45,7 @@ export const cleanLocal = (data) => {
 };
 
 
-// cloud transformations
+// Clean up and transform the cloud benchmarks data
 export const aggregateAndCalcMetrics = (data, fields = ['tokens_per_second', 'time_to_first_token']) => {
     // Step 1: Filter and transform the data
     const transformedBenchmarks = data

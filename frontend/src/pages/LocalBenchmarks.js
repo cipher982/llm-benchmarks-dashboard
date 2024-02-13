@@ -5,7 +5,7 @@ import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
-import { cleanLocal, getComparisonAndFastestFrameworks } from '../transformations';
+import { cleanTransformLocal, getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
 
 const LocalBenchmarks = () => {
@@ -30,7 +30,7 @@ const LocalBenchmarks = () => {
                 console.log(`Original data size: ${(JSON.stringify(data).length / 1048576).toFixed(2)} MB`);
 
                 // Clean up and transform the local benchmarks data
-                const cleanedData = cleanLocal(data);
+                const cleanedData = cleanTransformLocal(data);
                 console.log(`Cleaned data size: ${(JSON.stringify(cleanedData).length / 1048576).toFixed(2)} MB`);
 
                 // Get leaderboard/comparison data
