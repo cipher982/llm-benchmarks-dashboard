@@ -1,5 +1,5 @@
 // Extract size (params) in millions from name string
-function extractModelSize(modelName: string): number | null {
+function extractModelSize(modelName: string): number {
     // Special case for 'mixtral' models
     if (modelName.toLowerCase().includes("mixtral")) {
         // If it's a 'mixtral' model, set the numerical part to 56 billion
@@ -12,7 +12,7 @@ function extractModelSize(modelName: string): number | null {
         // If no multiplier pattern is found, try matching without multiplier
         match = modelName.match(/(\d+(\.\d+)?)([MmBb])/);
         if (!match) {
-            return null;
+            return 0;
         }
         let size = parseFloat(match[1]);
         let unit: string | null = match[3] ? match[3].toLowerCase() : null;

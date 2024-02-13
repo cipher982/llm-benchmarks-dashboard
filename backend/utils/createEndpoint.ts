@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import extractModelSize from './extractModelSize';
+import { shuffleArray } from './dataUtils';
 
 interface Metric {
     model_name: string;
@@ -10,19 +11,11 @@ interface MetricToSend extends Metric {
     model_size?: string;
 }
 
-// Utility function for shuffling array elements
-function shuffleArray<T>(array: T[]): T[] {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
 
 async function createEndpoint(
-    req: NextApiRequest, 
-    res: NextApiResponse, 
-    model: { find: (query?: any) => any }, 
+    req: NextApiRequest,
+    res: NextApiResponse,
+    model: { find: (query?: any) => any },
     addModelSize: boolean = false,
     daysAgo: number = 5
 ): Promise<void> {
