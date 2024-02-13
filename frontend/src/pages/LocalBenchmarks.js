@@ -7,6 +7,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
 import { cleanTransformLocal, getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
+import { calculateMB } from '../utils'
 
 const LocalBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);
@@ -27,17 +28,14 @@ const LocalBenchmarks = () => {
             try {
                 const res = await fetch("https://llm-bench-back.fly.dev/api/localBenchmarks");
                 const data = await res.json();
-                console.log(`Original data size: ${(JSON.stringify(data).length / 1048576).toFixed(2)} MB`);
-
+                console.log(`local: raw size: ${calculateMB(data)} MB`);
                 // Clean up and transform the local benchmarks data
                 const cleanedData = cleanTransformLocal(data);
-                console.log(`Cleaned data size: ${(JSON.stringify(cleanedData).length / 1048576).toFixed(2)} MB`);
-
+                console.log(`local: processed size: ${calculateMB(cleanedData)} MB`);
                 // Get leaderboard/comparison data
                 const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(cleanedData);
-                console.log(`Comparison data size: ${(JSON.stringify(comparisonResults).length / 1048576).toFixed(2)} MB`);
-                console.log(`Fastest frameworks data size: ${(JSON.stringify(fastestFrameworks).length / 1048576).toFixed(2)} MB`);
-
+                console.log(`local: comparison size: ${calculateMB(comparisonResults)} MB`);
+                console.log(`local: fastest frameworks size: ${calculateMB(fastestFrameworks)} MB`);
                 setBenchmarks(cleanedData);
                 setComparisonData(comparisonResults);
                 setFastestFrameworks(fastestFrameworks);

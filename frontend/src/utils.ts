@@ -33,5 +33,17 @@ const calculateQuartiles = (arr: number[]): number[] => {
     return [q1, q2, q3];
 };
 
+function calculateMB(data: any): string {
+    return (JSON.stringify(data).length / 1048576).toFixed(2);
+}
+
 // Consolidated export statement
-export { calculateMean, bytesToGB, calculateStats, calculateMin, calculateMax, calculateQuartiles };
+export { 
+    calculateMean, 
+    bytesToGB, 
+    calculateStats, 
+    calculateMin, 
+    calculateMax, 
+    calculateQuartiles,
+    calculateMB 
+};

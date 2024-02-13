@@ -7,6 +7,8 @@ import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
 import { cleanTransformCloud } from '../transformations';
+import { calculateMB } from '../utils'
+
 
 const CloudBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);
@@ -23,10 +25,10 @@ const CloudBenchmarks = () => {
             try {
                 const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarks");
                 let data = await res.json();
-                console.log("Fetched data length:", data.length);
-                data = cleanTransformCloud(data); // aggregation and metric calculation
-                console.log("Transformed data length:", data.length);
-                setBenchmarks(data);
+                console.log(`cloud: raw size: ${calculateMB(data)} MB`);
+                let cleanedData = cleanTransformCloud(data);
+                console.log(`cloud: processed size: ${calculateMB(cleanedData)} MB`);
+                setBenchmarks(cleanedData);
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching data:", err);

@@ -83,7 +83,6 @@ export const cleanTransformCloud = (data, fields = ['tokens_per_second', 'time_t
 
 // Compare different frameworks based on their benchmarks.
 export const compareFrameworks = (benchmarks) => {
-    console.log("Starting compareFrameworks with benchmarks count:", benchmarks.length);
     const groupedBenchmarks = new Map();
 
     // Group benchmarks by model_name and quantization_bits
@@ -120,7 +119,6 @@ export const compareFrameworks = (benchmarks) => {
         })
         .filter(result => Object.keys(result.comparison).length >= 3);
 
-    console.log("Completed compareFrameworks with results count:", comparisonResults.length);
     return comparisonResults;
 };
 
