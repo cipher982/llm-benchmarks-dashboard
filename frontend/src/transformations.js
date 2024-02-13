@@ -99,35 +99,31 @@ export const aggregateAndCalcMetrics = (data, fields = ['tokens_per_second', 'ti
 
 // Compare different frameworks based on their benchmarks.
 export const compareFrameworks = (benchmarks) => {
+    console.log("Starting compareFrameworks with benchmarks count:", benchmarks.length);
+    const groupedBenchmarks = new Map();
+
     // Group benchmarks by model_name and quantization_bits
-    const groupedBenchmarks = benchmarks.reduce((acc, curr) => {
-        const key = `${curr.model_name}-${curr.quantization_bits}`;
-        if (!acc[key]) {
-            acc[key] = [];
+    benchmarks.forEach((benchmark) => {
+        const key = `${benchmark.model_name}-${benchmark.quantization_bits}`;
+        if (!groupedBenchmarks.has(key)) {
+            groupedBenchmarks.set(key, []);
         }
-        acc[key].push(curr);
-        return acc;
-    }, {});
+        groupedBenchmarks.get(key).push(benchmark);
+    });
 
-    // Compare tokens/second betwen frameworks
-    const comparisonResults = Object.values(groupedBenchmarks)
+    const comparisonResults = Array.from(groupedBenchmarks.values())
         .map(group => {
-            group.sort((a, b) => b.tokens_per_second - a.tokens_per_second);
+            let maxTokensPerSecond = 0;
+            let fastestFramework = "";
+            const comparison = {};
 
-            const comparison = group.reduce((acc, curr) => {
-                acc[curr.framework] = curr.tokens_per_second;
-                return acc;
-            }, {});
-
-            // Find the framework with the most tokens_per_second
-            let fastestFramework = group[0].framework;
-            let maxTokensPerSecond = group[0].tokens_per_second;
-            for (let i = 1; i < group.length; i++) {
-                if (group[i].tokens_per_second > maxTokensPerSecond) {
-                    fastestFramework = group[i].framework;
-                    maxTokensPerSecond = group[i].tokens_per_second;
+            group.forEach(benchmark => {
+                comparison[benchmark.framework] = benchmark.tokens_per_second;
+                if (benchmark.tokens_per_second > maxTokensPerSecond) {
+                    maxTokensPerSecond = benchmark.tokens_per_second;
+                    fastestFramework = benchmark.framework;
                 }
-            }
+            });
 
             return {
                 model_name: group[0].model_name,
@@ -140,6 +136,7 @@ export const compareFrameworks = (benchmarks) => {
         })
         .filter(result => Object.keys(result.comparison).length >= 3);
 
+    console.log("Completed compareFrameworks with results count:", comparisonResults.length);
     return comparisonResults;
 };
 
