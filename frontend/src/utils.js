@@ -1,15 +1,27 @@
 // utils.js
 
-// Function to calculate the mean of an array
+// Calculate the mean of an array
 const calculateMean = (arr) => {
     if (!Array.isArray(arr) || arr.length === 0) return null;
     const sum = arr.reduce((a, b) => a + b, 0);
     return sum / arr.length;
 };
 
-// Function to convert bytes to GB
+// Convert bytes to GB
 const bytesToGB = (bytes) => {
     return bytes / (1024 * 1024 * 1024);
+};
+
+// Calculate statistics
+const calculateStats = (values) => {
+    values.sort((a, b) => a - b);
+    const trimmedValues = values.length > 5 ? values.slice(1, -1) : values;
+    return {
+        mean: parseFloat(calculateMean(trimmedValues).toFixed(2)),
+        min: parseFloat(calculateMin(trimmedValues).toFixed(2)),
+        max: parseFloat(calculateMax(trimmedValues).toFixed(2)),
+        quartiles: calculateQuartiles(trimmedValues).map(val => parseFloat(val.toFixed(2)))
+    };
 };
 
 // Function to get array statistics
@@ -23,6 +35,6 @@ export const calculateQuartiles = (arr) => {
     return [q1, q2, q3];
 };
 
-export { calculateMean, bytesToGB };
+export { calculateMean, bytesToGB, calculateStats };
 
 
