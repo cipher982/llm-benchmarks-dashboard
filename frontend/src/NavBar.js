@@ -46,23 +46,24 @@ const ButtonsContainer = styled('div')(({ theme }) => ({
     },
 }));
 
-const StyledButton = styled(MuiButton)(({ theme, darkMode }) => ({
+const StyledButton = styled(({ darkMode, ...otherProps }) => <MuiButton {...otherProps} />)(({ theme, darkMode }) => ({
     color: theme.palette.background.default,
     backgroundColor: theme.palette.primary.main,
     marginRight: theme.spacing(2),
+    "&:hover": {
+        backgroundColor: darkMode ? theme.palette.secondary.dark : theme.palette.primary.light,
+    },
     [`@media (max-width:700px)`]: {
         margin: theme.spacing(0.5),
         padding: theme.spacing(0.5),
     },
 }));
 
-const StyledLink = styled(RouterLink)(({ theme, darkMode, to }) => {
+const StyledLink = styled(({ darkMode, ...otherProps }) => <RouterLink {...otherProps} />)(({ theme, to, ...props }) => {
     const location = useLocation();
     const isActive = location.pathname === to;
-    const color = darkMode ? "white" : "black";
-    const boxShadowColor = darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.5)';
-
-
+    const color = props.darkMode ? "white" : "black";
+    const boxShadowColor = 'rgba(255,255,255,0.5)';
 
     return {
         textDecoration: 'none',
