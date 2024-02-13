@@ -3,44 +3,45 @@ import { calculateMean, calculateMin, calculateMax, calculateQuartiles, bytesToG
 
 
 // Clean up and transform the local benchmarks data
-export const transformLocal = (data) => {
-    const transformedBenchmarks = data
-        .filter(benchmark => benchmark.tokens_per_second.length > 0 && benchmark.gpu_mem_usage.length > 0)
-        .map((benchmark, index) => {
-            const rawModelSize = benchmark.model_size;
-            return {
-                id: index,
-                framework: benchmark.framework,
-                model_name: benchmark.model_name,
-                model_size: rawModelSize,
-                formatted_model_size: rawModelSize ? rawModelSize.toLocaleString() : "N/A",
-                tokens_per_second: parseFloat(calculateMean(benchmark.tokens_per_second)),
-                gpu_mem_usage: parseFloat(bytesToGB(calculateMean(benchmark.gpu_mem_usage))),
-                quantization_method: benchmark.quantization_method && benchmark.quantization_method !== "unknown" ? benchmark.quantization_method : "None",
-                quantization_bits: benchmark.quantization_bits && benchmark.quantization_bits !== "unknown" ? benchmark.quantization_bits : "None",
-                model_dtype: benchmark.model_dtype
-            };
-        });
+export const cleanLocal = (data) => {
+    // Combine filtering, mapping, and deduplication into a single step for efficiency and conciseness
+    const dedupedBenchmarks = data.reduce((acc, benchmark, index) => {
+        if (benchmark.tokens_per_second.length > 0 && benchmark.gpu_mem_usage.length > 0) {
+            const key = `${benchmark.model_name}-${benchmark.framework}-${benchmark.quantization_method || "None"}-${benchmark.quantization_bits || "None"}-${benchmark.model_dtype}`;
+            const modelSize = benchmark.model_size;
+            const tokensPerSecond = parseFloat(calculateMean(benchmark.tokens_per_second));
+            const gpuMemUsage = parseFloat(bytesToGB(calculateMean(benchmark.gpu_mem_usage)));
 
-    const dedupedBenchmarks = transformedBenchmarks.reduce((acc, curr) => {
-        const key = `${curr.model_name}-${curr.framework}-${curr.quantization_method}-${curr.quantization_bits}-${curr.model_dtype}`;
-        if (acc[key]) {
-            acc[key].tokens_per_second = Math.max(acc[key].tokens_per_second, curr.tokens_per_second);
-            acc[key].gpu_mem_usage = Math.max(acc[key].gpu_mem_usage, curr.gpu_mem_usage);
-            acc[key].model_size = Math.max(acc[key].model_size, curr.model_size);
-        } else {
-            acc[key] = curr;
+            // Update the benchmark if it exists, else create a new entry
+            if (!acc[key]) {
+                acc[key] = {
+                    id: index,
+                    framework: benchmark.framework,
+                    model_name: benchmark.model_name,
+                    model_size: modelSize,
+                    formatted_model_size: modelSize ? modelSize.toLocaleString() : "N/A",
+                    tokens_per_second: tokensPerSecond,
+                    gpu_mem_usage: gpuMemUsage,
+                    quantization_method: benchmark.quantization_method !== "unknown" ? benchmark.quantization_method : "None",
+                    quantization_bits: benchmark.quantization_bits !== "unknown" ? benchmark.quantization_bits : "None",
+                    model_dtype: benchmark.model_dtype
+                };
+            } else {
+                // Update existing entry with max values
+                acc[key].tokens_per_second = Math.max(acc[key].tokens_per_second, tokensPerSecond);
+                acc[key].gpu_mem_usage = Math.max(acc[key].gpu_mem_usage, gpuMemUsage);
+                acc[key].model_size = Math.max(acc[key].model_size, modelSize);
+            }
         }
         return acc;
     }, {});
 
-    const dedupedBenchmarksArray = Object.values(dedupedBenchmarks).map(benchmark => ({
+    // Convert the deduplicated benchmarks into an array for the final output
+    return Object.values(dedupedBenchmarks).map(benchmark => ({
         ...benchmark,
         tokens_per_second: parseFloat(benchmark.tokens_per_second),
         gpu_mem_usage: parseFloat(benchmark.gpu_mem_usage),
     }));
-
-    return dedupedBenchmarksArray;
 };
 
 

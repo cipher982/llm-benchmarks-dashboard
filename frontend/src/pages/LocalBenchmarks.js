@@ -5,7 +5,7 @@ import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
-import { transformLocal, getComparisonAndFastestFrameworks } from '../transformations';
+import { cleanLocal, getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
 
 const LocalBenchmarks = () => {
@@ -27,11 +27,18 @@ const LocalBenchmarks = () => {
             try {
                 const res = await fetch("https://llm-bench-back.fly.dev/api/localBenchmarks");
                 const data = await res.json();
-                // Remove duplicates by pulling fastest run for each model
-                const dedupedBenchmarksArray = transformLocal(data);
-                setBenchmarks(dedupedBenchmarksArray);
+                console.log(`Original data size: ${(JSON.stringify(data).length / 1048576).toFixed(2)} MB`);
+
+                // Clean up and transform the local benchmarks data
+                const cleanedData = cleanLocal(data);
+                console.log(`Cleaned data size: ${(JSON.stringify(cleanedData).length / 1048576).toFixed(2)} MB`);
+
                 // Get leaderboard/comparison data
-                const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(dedupedBenchmarksArray);
+                const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(cleanedData);
+                console.log(`Comparison data size: ${(JSON.stringify(comparisonResults).length / 1048576).toFixed(2)} MB`);
+                console.log(`Fastest frameworks data size: ${(JSON.stringify(fastestFrameworks).length / 1048576).toFixed(2)} MB`);
+
+                setBenchmarks(cleanedData);
                 setComparisonData(comparisonResults);
                 setFastestFrameworks(fastestFrameworks);
                 setLoading(false);
@@ -43,6 +50,7 @@ const LocalBenchmarks = () => {
         fetchLocalBenchmarks();
     }, []);
 
+    // Loading spinner
     if (loading) {
         return (
             <div style={{
@@ -59,6 +67,7 @@ const LocalBenchmarks = () => {
 
     if (error) return <div>Error: {error}</div>;
 
+    // Render the local benchmarks page
     return (
         <MainContainer isMobile={isMobile}>
             <DescriptionSection>
