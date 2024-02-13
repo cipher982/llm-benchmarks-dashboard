@@ -6,7 +6,7 @@ import { MainContainer, DescriptionSection, ChartContainer, lightPurpleTheme, da
 import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
-import { aggregateAndCalcMetrics } from '../transformations';
+import { cleanTransformCloud } from '../transformations';
 
 const CloudBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);
@@ -24,7 +24,7 @@ const CloudBenchmarks = () => {
                 const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarks");
                 let data = await res.json();
                 console.log("Fetched data length:", data.length);
-                data = aggregateAndCalcMetrics(data); // aggregation and metric calculation
+                data = cleanTransformCloud(data); // aggregation and metric calculation
                 console.log("Transformed data length:", data.length);
                 setBenchmarks(data);
                 setLoading(false);

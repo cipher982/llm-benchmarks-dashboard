@@ -44,43 +44,27 @@ export const cleanTransformLocal = (data) => {
     }));
 };
 
-
 // Clean up and transform the cloud benchmarks data
-export const aggregateAndCalcMetrics = (data, fields = ['tokens_per_second', 'time_to_first_token']) => {
-    // Step 1: Filter and transform the data
-    const transformedBenchmarks = data
-        .filter(benchmark => fields.every(field => benchmark[field] > 0))
-        .map((benchmark, index) => {
-            let transformedBenchmark = {
-                id: index,
-                provider: benchmark.provider,
-                model_name: benchmark.model_name,
-            };
-            fields.forEach(field => {
-                transformedBenchmark[field] = [benchmark[field]]; // Initialize as an array
-            });
-            return transformedBenchmark;
-        });
-
-    // Step 2: Aggregate benchmarks by model_name and provider
-    const aggregatedBenchmarks = transformedBenchmarks.reduce((acc, curr) => {
-        const key = `${curr.model_name}-${curr.provider}`;
-        if (!acc[key]) {
-            acc[key] = { ...curr };
-        } else {
-            fields.forEach(field => {
-                acc[key][field] = acc[key][field].concat(curr[field]); // Update this line
-            });
+export const cleanTransformCloud = (data, fields = ['tokens_per_second', 'time_to_first_token']) => {
+    // Step 1: Filter, transform, and aggregate in one step
+    const aggregatedBenchmarks = data.reduce((acc, benchmark, index) => {
+        if (fields.every(field => benchmark[field] > 0)) {
+            const key = `${benchmark.model_name}-${benchmark.provider}`;
+            if (!acc[key]) {
+                acc[key] = { id: index, provider: benchmark.provider, model_name: benchmark.model_name };
+                fields.forEach(field => acc[key][field] = [benchmark[field]]);
+            } else {
+                fields.forEach(field => acc[key][field].push(benchmark[field]));
+            }
         }
         return acc;
     }, {});
 
-    // Step 3: Calculate statistics and final transformation
+    // Step 2: Calculate statistics and final transformation
     const finalBenchmarks = Object.values(aggregatedBenchmarks).map(benchmark => {
-        let finalBenchmark = { ...benchmark };
+        const finalBenchmark = { ...benchmark };
         fields.forEach(field => {
-            let values = benchmark[field];
-            values.sort((a, b) => a - b);
+            const values = benchmark[field].sort((a, b) => a - b);
             if (values.length > 5) {
                 values.pop();
                 values.shift();
@@ -88,7 +72,7 @@ export const aggregateAndCalcMetrics = (data, fields = ['tokens_per_second', 'ti
             finalBenchmark[`${field}_mean`] = parseFloat(calculateMean(values).toFixed(2));
             finalBenchmark[`${field}_min`] = parseFloat(calculateMin(values).toFixed(2));
             finalBenchmark[`${field}_max`] = parseFloat(calculateMax(values).toFixed(2));
-            finalBenchmark[`${field}_quartiles`] = calculateQuartiles(values).map(val => typeof val === 'number' ? parseFloat(val.toFixed(2)) : val);
+            finalBenchmark[`${field}_quartiles`] = calculateQuartiles(values).map(val => parseFloat(val.toFixed(2)));
         });
         return finalBenchmark;
     });
