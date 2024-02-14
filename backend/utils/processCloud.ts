@@ -96,14 +96,14 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         processedData.tokens_per_second_mean = parseFloat(calculateMean(tokensPerSecondValues).toFixed(2));
         processedData.tokens_per_second_min = parseFloat(calculateMin(tokensPerSecondValues).toFixed(2));
         processedData.tokens_per_second_max = parseFloat(calculateMax(tokensPerSecondValues).toFixed(2));
-        processedData.tokens_per_second_quartiles = calculateQuartiles(tokensPerSecondValues).map(val => parseFloat(val.toFixed(2)));
+        processedData.tokens_per_second_quartiles = calculateQuartiles(tokensPerSecondValues).map(val => val !== null ? parseFloat(val.toFixed(2)) : 0);
 
         // Process time_to_first_token
         const timeToFirstTokenValues = benchmark.time_to_first_token.sort((a, b) => a - b);
         processedData.time_to_first_token_mean = parseFloat(calculateMean(timeToFirstTokenValues).toFixed(2));
         processedData.time_to_first_token_min = parseFloat(calculateMin(timeToFirstTokenValues).toFixed(2));
         processedData.time_to_first_token_max = parseFloat(calculateMax(timeToFirstTokenValues).toFixed(2));
-        processedData.time_to_first_token_quartiles = calculateQuartiles(timeToFirstTokenValues).map(val => parseFloat(val.toFixed(2)));
+        processedData.time_to_first_token_quartiles = calculateQuartiles(timeToFirstTokenValues).map(val => val !== null ? parseFloat(val.toFixed(2)) : 0);
 
         return processedData;
     });
