@@ -24,13 +24,13 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     }
 
     logger.debug("Processing GET request");
-    let rawMetrics = await fetchCloudData(CloudMetrics, 7); // Assuming 7 days as in the original
+    let rawMetrics = await fetchCloudData(CloudMetrics, 365);
 
     if (rawMetrics.length === 0) {
       return res.status(404).json({ message: "No metrics found" });
     }
 
-    const processedMetrics: ProcessedData[] = cleanTransformCloud(rawMetrics); // Assuming this function exists
+    const processedMetrics: ProcessedData[] = cleanTransformCloud(rawMetrics);
     res.status(200).json(processedMetrics);
   } catch (error) {
     logger.error(`Error: ${error}`);
