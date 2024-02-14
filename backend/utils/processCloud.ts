@@ -28,6 +28,8 @@ export interface ProcessedData {
     _id: string;
     provider: string;
     model_name: string;
+    tokens_per_second: number[];
+    time_to_first_token: number[];
     tokens_per_second_mean: number;
     tokens_per_second_min: number;
     tokens_per_second_max: number;
@@ -81,10 +83,12 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             _id: benchmark._id,
             provider: benchmark.provider,
             model_name: benchmark.model_name,
+            tokens_per_second: benchmark.tokens_per_second.sort((a, b) => a - b),
             tokens_per_second_mean: 0,
             tokens_per_second_min: 0,
             tokens_per_second_max: 0,
             tokens_per_second_quartiles: [],
+            time_to_first_token: benchmark.time_to_first_token.sort((a, b) => a - b),
             time_to_first_token_mean: 0,
             time_to_first_token_min: 0,
             time_to_first_token_max: 0,

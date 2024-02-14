@@ -6,7 +6,6 @@ import { MainContainer, DescriptionSection, ChartContainer, lightPurpleTheme, da
 import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
-import { cleanTransformCloud } from '../transformations';
 import { calculateMB } from '../utils'
 
 
@@ -23,12 +22,10 @@ const CloudBenchmarks = () => {
     useEffect(() => {
         const fetchCloudBenchmarks = async () => {
             try {
-                const res = await fetch("https://llm-bench-back.fly.dev/api/cloudBenchmarks");
+                const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
                 let data = await res.json();
-                console.log(`cloud: raw size: ${calculateMB(data)} MB`);
-                let cleanedData = cleanTransformCloud(data);
-                console.log(`cloud: processed size: ${calculateMB(cleanedData)} MB`);
-                setBenchmarks(cleanedData);
+                console.log(`cloud: size: ${calculateMB(data)} MB`);
+                setBenchmarks(data);
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching data:", err);
