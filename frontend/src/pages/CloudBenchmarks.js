@@ -38,8 +38,14 @@ const CloudBenchmarks = () => {
 
     if (loading) {
         return (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-                <CircularProgress />
+            <div style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100vh",
+                backgroundColor: "white" // Added background color
+            }}>
+                <CircularProgress style={{ color: "#663399" }} size={80} />
             </div>
         );
     }
