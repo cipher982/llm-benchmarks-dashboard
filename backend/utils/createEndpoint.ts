@@ -28,7 +28,7 @@ async function createEndpoint(
         }).select('-times_between_tokens');
 
         if (!metrics || metrics.length === 0) {
-            return res.status(404).json({ message: "No metrics found" });
+            return res.status(404).json({ message: "oops no metrics found :(" });
         }
 
         let metricsToSend: MetricToSend[] = metrics.map(metric => ({
