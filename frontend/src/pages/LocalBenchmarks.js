@@ -5,7 +5,7 @@ import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
-import { cleanTransformLocal, getComparisonAndFastestFrameworks } from '../transformations';
+import { getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
 import { calculateMB } from '../utils'
 
@@ -26,17 +26,13 @@ const LocalBenchmarks = () => {
         // Fetch local benchmarks
         const fetchLocalBenchmarks = async () => {
             try {
-                const res = await fetch("https://llm-bench-back.fly.dev/api/localBenchmarks");
+                const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/local");
                 const data = await res.json();
-                console.log(`local: raw size: ${calculateMB(data)} MB`);
-                // Clean up and transform the local benchmarks data
-                const cleanedData = cleanTransformLocal(data);
-                console.log(`local: processed size: ${calculateMB(cleanedData)} MB`);
-                // Get leaderboard/comparison data
-                const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(cleanedData);
+                console.log(`local: size: ${calculateMB(data)} MB`);
+                const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(data);
                 console.log(`local: comparison size: ${calculateMB(comparisonResults)} MB`);
                 console.log(`local: fastest frameworks size: ${calculateMB(fastestFrameworks)} MB`);
-                setBenchmarks(cleanedData);
+                setBenchmarks(data);
                 setComparisonData(comparisonResults);
                 setFastestFrameworks(fastestFrameworks);
                 setLoading(false);
