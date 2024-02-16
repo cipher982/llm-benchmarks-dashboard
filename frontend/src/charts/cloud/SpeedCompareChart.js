@@ -4,51 +4,12 @@ import { scaleOrdinal, schemeCategory10 } from 'd3';
 
 const SpeedCompareChart = ({ data, theme }) => {
     const colorScale = scaleOrdinal(schemeCategory10);
-    const nameMapping = {
-        // llama 7b
-        "meta-llama/Llama-2-7b-chat-hf": "llama-2-7b",
-        "togethercomputer/llama-2-7b-chat": "llama-2-7b",
-        "llama-2-7b-chat": "llama-2-7b",
-        "llama2-7b-chat": "llama-2-7b",
-        "accounts/fireworks/models/llama-v2-7b": "llama-2-7b",
-        "accounts/fireworks/models/llama-v2-7b-chat": "llama-2-7b",
-
-        // llama 13b
-        "meta-llama/Llama-2-13b-chat-hf": "llama-2-13b",
-        "togethercomputer/llama-2-13b-chat": "llama-2-13b",
-        "llama-2-13b-chat": "llama-2-13b",
-        "meta-llama/llama-2-13b-chat": "llama-2-13b",
-        "llama2-13b-chat": "llama-2-13b",
-        "accounts/fireworks/models/llama-v2-13b": "llama-2-13b",
-        "accounts/fireworks/models/llama-v2-13b-chat": "llama-2-13b",
-
-        // llama 34b - code
-        // "accounts/fireworks/models/llama-v2-34b-code": "llama-2-34b",
-
-        // llama 70b
-        "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b",
-        "togethercomputer/llama-2-70b-chat": "llama-2-70b",
-        "llama-2-70b-chat": "llama-2-70b",
-        "meta-llama/llama-2-70b-chat": "llama-2-70b",
-        "accounts/fireworks/models/llama-v2-70b": "llama-2-70b",
-        "accounts/fireworks/models/llama-v2-70b-chat": "llama-2-70b",
-
-        // mistral 7b
-        "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
-        "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b",
-        "mistralai/mistral-7b-instruct": "mistral-7b",
-        "accounts/fireworks/models/mistral-7b": "mistral-7b",
-
-        // mistral 8x7b
-        "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistral-8x7b",
-        "mistralai/mixtral-8x7b-instruct": "mistral-8x7b",
-        "accounts/fireworks/models/mixtral-8x7b": "mistral-8x7b",
-        "accounts/fireworks/models/mixtral-8x7b-instruct": "mistral-8x7b"
-    };
 
     // Filter out data not from 'anyscale' or 'together'
-    const filteredData = data.filter(item => ["anyscale", "together", "openrouter", "fireworks"].includes(item.provider));
-
+    const filteredData = data.filter(item =>
+        ["anyscale", "together", "openrouter", "fireworks"].includes(item.provider) &&
+        ["llama-2-7b", "llama-2-13b", "llama-2-70b", "mistral-7b", "mistral-8x7b"].includes(item.model_name)
+    );
     // Group and calculate mean tokens_per_second
     const groupedData = filteredData.reduce((acc, item) => {
         const key = `${item.provider}-${item.model_name}`;
@@ -67,20 +28,13 @@ const SpeedCompareChart = ({ data, theme }) => {
         return {
             ...item,
             tokens_per_second_mean: mean,
-            name: nameMapping[item.model_name] || item.model_name, // Use the mapped name without provider
+            name: item.model_name,
         };
     });
 
-    // Apply model name mapping and filter out unmapped models
-    const mappedData = transformedData
-        .filter(item => nameMapping[item.model_name]) // Ensure only mapped models are included
-        .map(item => ({
-            ...item,
-            model_name: nameMapping[item.model_name],
-        }));
 
     // Combine the data from both providers
-    const combinedData = Object.values(mappedData.reduce((acc, item) => {
+    const combinedData = Object.values(transformedData.reduce((acc, item) => {
         const { model_name, tokens_per_second_mean, provider } = item;
         const key = model_name;
         if (!acc[key]) {

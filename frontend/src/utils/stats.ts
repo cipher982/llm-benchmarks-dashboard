@@ -38,12 +38,12 @@ function calculateMB(data: any): string {
 }
 
 // Consolidated export statement
-export { 
-    calculateMean, 
-    bytesToGB, 
-    calculateStats, 
-    calculateMin, 
-    calculateMax, 
+export {
+    calculateMean,
+    bytesToGB,
+    calculateStats,
+    calculateMin,
+    calculateMax,
     calculateQuartiles,
-    calculateMB 
+    calculateMB
 };

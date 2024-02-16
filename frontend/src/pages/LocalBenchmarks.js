@@ -7,7 +7,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
 import { getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
-import { calculateMB } from '../utils'
+import { calculateMB } from '../utils/stats';
 
 const LocalBenchmarks = () => {
     const [benchmarks, setBenchmarks] = useState([]);

@@ -6,7 +6,8 @@ import { MainContainer, DescriptionSection, ChartContainer, lightPurpleTheme, da
 import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
-import { calculateMB } from '../utils'
+import { calculateMB } from '../utils/stats';
+import { mapModelNames } from '../utils/modelMapping';
 
 
 const CloudBenchmarks = () => {
@@ -25,7 +26,10 @@ const CloudBenchmarks = () => {
                 const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
                 let data = await res.json();
                 console.log(`cloud: size: ${calculateMB(data)} MB`);
-                setBenchmarks(data);
+
+                const mappedData = mapModelNames(data);
+
+                setBenchmarks(mappedData);
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching data:", err);
