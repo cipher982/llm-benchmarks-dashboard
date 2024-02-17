@@ -45,7 +45,7 @@ export async function handleApiRequest(
         }
 
         const processedMetrics = cleanTransform(rawMetrics);
-        await redisClient.set(cacheKey, JSON.stringify(processedMetrics), "EX", 3600);
+        await redisClient.set(cacheKey, JSON.stringify(processedMetrics));
         await redisClient.set(`${cacheKey}_lastUpdate`, Date.now().toString());
         logger.info("Cache updated successfully");
     };
