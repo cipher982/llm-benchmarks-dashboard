@@ -18,7 +18,7 @@ async function serveCachedData(res: NextApiResponse, cacheKey: string) {
     return true;
 }
 
-export async function handleApiRequest(
+export async function handleCachedApiResponse(
     req: NextApiRequest,
     res: NextApiResponse,
     model: { find: (query?: any) => any },

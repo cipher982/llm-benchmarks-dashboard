@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { handleApiRequest } from './apiUtils';
+import { handleCachedApiResponse } from './cacheUtils';
 
 export async function setupApiEndpoint(req: NextApiRequest, res: NextApiResponse, MetricsModel: any, transformFunction: any, cacheKey: any) {
     console.log("CORS Debug: Setting CORS headers");
@@ -23,6 +23,6 @@ export async function setupApiEndpoint(req: NextApiRequest, res: NextApiResponse
         return res.status(200).end();
     }
     if (req.method !== 'OPTIONS') {
-        await handleApiRequest(req, res, MetricsModel, transformFunction, cacheKey);
+        await handleCachedApiResponse(req, res, MetricsModel, transformFunction, cacheKey);
     }
 }
