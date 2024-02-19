@@ -24,6 +24,7 @@ export const mapModelNames = (data: ModelItem[]): ModelItem[] => {
 
         // llama 34b - code
         "accounts/fireworks/models/llama-v2-34b-code": "llama-2-34b",
+        "codellama/CodeLlama-34b-Instruct-hf": "llama-2-34b",
 
         // llama 70b
         "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b",
