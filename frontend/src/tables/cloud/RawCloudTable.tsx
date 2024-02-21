@@ -1,6 +1,18 @@
-// RawCloudTable.js
 import React from 'react';
 import { DataGrid } from '@mui/x-data-grid';
+
+interface Benchmark {
+    provider: string;
+    model_name: string;
+    tokens_per_second_mean: number;
+    tokens_per_second_min: number;
+    tokens_per_second_max: number;
+    time_to_first_token_mean: number;
+}
+
+interface RawCloudTableProps {
+    benchmarks: Benchmark[];
+}
 
 // Table columns and their properties
 const columns = [
@@ -33,7 +45,7 @@ const columns = [
 ];
 
 
-const RawCloudTable = ({ benchmarks }) => {
+const RawCloudTable: React.FC<RawCloudTableProps> = ({ benchmarks }) => {
     const rows = benchmarks.map((row, index) => ({
         id: index,
         provider: row.provider,
@@ -47,14 +59,17 @@ const RawCloudTable = ({ benchmarks }) => {
         <DataGrid
             rows={rows}
             columns={columns}
-            pageSize={100}
+            // pageSize={100}
             sortModel={[
                 {
                     field: 'tokens_per_second_mean',
                     sort: 'desc',
-                },
-            ]} />
-    );
-};
-
-export default RawCloudTable;
+                }
+            ]}
+                // checkboxSelection
+                // disableSelectionOnClick
+            />
+        );
+    };
+    
+    export default RawCloudTable;
