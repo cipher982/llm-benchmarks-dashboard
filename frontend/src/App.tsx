@@ -1,13 +1,12 @@
-// App.js
+// App.tsx
 // Libraries/Modules
-import React, { useState } from 'react';
+import React, { useState, FC } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppBar } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { useMediaQuery } from '@mui/material';
-
 
 // Components
 import Navbar from './NavBar';
@@ -20,15 +19,14 @@ import './App.css';
 import { MainContainer, lightPurpleTheme, darkTheme } from './theme';
 
 // Main App Component
-const App = () => {
+const App: FC = () => {
   // Dark Mode
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState < boolean > (false);
   const toggleDarkMode = () => {
     setDarkMode(prevDarkMode => !prevDarkMode);
   };
   const theme = darkMode ? darkTheme : lightPurpleTheme;
   const isMobile = useMediaQuery('(max-width:500px)');
-
 
   return (
     <Router>
