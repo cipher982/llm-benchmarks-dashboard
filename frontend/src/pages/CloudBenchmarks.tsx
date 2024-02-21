@@ -1,4 +1,4 @@
-// CloudBenchmarks.js
+// CloudBenchmarks.tsx
 import React, { useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
@@ -8,23 +8,24 @@ import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
 import { calculateMB } from '../utils/stats';
 import { mapModelNames } from '../utils/modelMapping';
+import { Benchmark, CloudBenchmarksProps } from '../types/CloudData';
 
 
-const CloudBenchmarks = () => {
-    const [benchmarks, setBenchmarks] = useState([]);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true);
+const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
+    const [benchmarks, setBenchmarks] = useState<Benchmark[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
     const isMobile = useMediaQuery('(max-width:500px)');
 
     // Dark Mode
-    const [darkMode] = useState(false);
+    const [darkMode] = useState<boolean>(false);
     const theme = darkMode ? darkTheme : lightPurpleTheme;
 
     useEffect(() => {
         const fetchCloudBenchmarks = async () => {
             try {
                 const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
-                let data = await res.json();
+                let data: Benchmark[] = await res.json();
                 console.log(`cloud: size: ${calculateMB(data)} MB`);
 
                 const mappedData = mapModelNames(data);
@@ -57,6 +58,7 @@ const CloudBenchmarks = () => {
 
     return (
         <MainContainer isMobile={isMobile}>
+
             <DescriptionSection>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
@@ -86,7 +88,6 @@ const CloudBenchmarks = () => {
             </ChartContainer>
 
             <ChartContainer style={{ maxWidth: '100%', overflowX: 'auto' }}>
-
                 <h4>🦙 Some Comparisons! 🦙</h4>
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedCompareChart
@@ -117,6 +118,6 @@ const CloudBenchmarks = () => {
 
         </MainContainer>
     );
-}
+};
 
 export default CloudBenchmarks;

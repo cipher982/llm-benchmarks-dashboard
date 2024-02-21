@@ -1,9 +1,7 @@
-interface ModelItem {
-    model_name: string;
-    [key: string]: any;
-}
+import { Benchmark } from '../types/CloudData';
 
-export const mapModelNames = (data: ModelItem[]): ModelItem[] => {
+
+export const mapModelNames = (data: Benchmark[]): Benchmark[] => {
     const modelNameMapping: { [key: string]: string } = {
         // llama 7b
         "meta-llama/Llama-2-7b-chat-hf": "llama-2-7b",
@@ -77,7 +75,7 @@ export const mapModelNames = (data: ModelItem[]): ModelItem[] => {
         "togethercomputer/falcon-40b": "falcon-40b",
     };
 
-    return data.map((item: ModelItem) => {
+    return data.map((item: Benchmark) => {
         if (modelNameMapping[item.model_name]) {
             return { ...item, model_name: modelNameMapping[item.model_name] };
         }
