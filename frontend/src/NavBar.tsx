@@ -8,6 +8,24 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { Link as RouterLink } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 
+interface StyledButtonProps extends Omit<React.ComponentProps<typeof MuiButton>, 'darkMode'> {
+    darkMode: boolean;
+    component?: React.ElementType;
+    href?: string;
+    target?: string;
+    rel?: string;
+}
+
+interface StyledLinkProps {
+    darkMode: boolean;
+    to: string;
+    children?: React.ReactNode;
+}
+
+interface NavbarProps {
+    darkMode: boolean;
+    toggleDarkMode: () => void;
+}
 
 const NavBarContainer = styled('div')(({ theme }) => ({
     display: 'flex',
@@ -46,7 +64,9 @@ const ButtonsContainer = styled('div')(({ theme }) => ({
     },
 }));
 
-const StyledButton = styled(({ darkMode, ...otherProps }) => <MuiButton {...otherProps} />)(({ theme, darkMode }) => ({
+const StyledButton = styled(({ darkMode, component: Component = MuiButton, ...otherProps }: StyledButtonProps & { component?: React.ElementType }) => (
+    <Component {...otherProps} />
+))(({ theme, darkMode }) => ({
     color: theme.palette.background.default,
     backgroundColor: theme.palette.primary.main,
     marginRight: theme.spacing(2),
@@ -59,7 +79,7 @@ const StyledButton = styled(({ darkMode, ...otherProps }) => <MuiButton {...othe
     },
 }));
 
-const StyledLink = styled(({ darkMode, ...otherProps }) => <RouterLink {...otherProps} />)(({ theme, to, ...props }) => {
+const StyledLink = styled(({ darkMode, ...otherProps }: StyledLinkProps & Omit<React.ComponentProps<typeof RouterLink>, 'darkMode'>) => <RouterLink {...otherProps} />)(({ theme, to, ...props }) => {
     const location = useLocation();
     const isActive = location.pathname === to;
     const color = props.darkMode ? "white" : "black";
@@ -81,7 +101,7 @@ const StyledLink = styled(({ darkMode, ...otherProps }) => <RouterLink {...other
     };
 });
 
-const Navbar = ({ darkMode, toggleDarkMode }) => {
+const Navbar: React.FC<NavbarProps> = ({ darkMode, toggleDarkMode }) => {
     return (
         <NavBarContainer>
             <ButtonsContainer>
@@ -91,32 +111,33 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
                     size="small"
                     darkMode={darkMode}
                 >
-                    {darkMode ? <LightModeIcon style={{ color: "white" }} /> : <DarkModeIcon style={{ color: "black" }} />}
+                    {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
                 </StyledButton>
                 <StyledButton
                     variant="contained"
-                    onClick={() => window.open("https://github.com/cipher982/llm-benchmarks", "_blank")}
                     size="small"
                     darkMode={darkMode}
+                    component="a"
+                    href="https://github.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
                 >
-                    <GitHubIcon style={{ color: darkMode ? "white" : "black" }} />
-                </StyledButton>
-                <StyledButton
-                    variant="contained"
-                    onClick={() => window.open("https://drose.io", "_blank")}
-                    size="small"
-                    darkMode={darkMode}
-                >
-                    <PersonOutlineIcon style={{ color: darkMode ? "white" : "black", marginRight: "5px" }} />
-                    <span style={{ color: darkMode ? "white" : "black" }}>drose.io</span>
+                    <GitHubIcon />
                 </StyledButton>
             </ButtonsContainer>
             <LinksContainer>
-                <StyledLink to="/" darkMode={darkMode}>Local Benchmarks</StyledLink>
-                <StyledLink to="/cloud" darkMode={darkMode}>Cloud Benchmarks</StyledLink>
+                <StyledLink to="/" darkMode={darkMode}>
+                    Home
+                </StyledLink>
+                <StyledLink to="/about" darkMode={darkMode}>
+                    About
+                </StyledLink>
+                <StyledLink to="/profile" darkMode={darkMode}>
+                    <PersonOutlineIcon />
+                </StyledLink>
             </LinksContainer>
         </NavBarContainer>
     );
-}
+};
 
 export default Navbar;
