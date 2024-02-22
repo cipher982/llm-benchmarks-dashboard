@@ -121,7 +121,7 @@ const SpeedDistChart = ({ data }) => {
                 .attr("id", lineId)
                 .attr("fill", "none")
                 .attr("opacity", ".9")
-                .attr("stroke", colorScale(modelData.provider)) // Use provider to assign color
+                .attr("stroke", colorScale(modelData.provider))
                 .attr("stroke-width", NORMAL_STROKE_WIDTH)
                 .attr("d", d3.line()
                     .curve(d3.curveBasis)
