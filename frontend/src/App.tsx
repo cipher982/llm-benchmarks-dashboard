@@ -1,7 +1,7 @@
 // App.tsx
 // Libraries/Modules
-import React, { useState, FC } from 'react';
-import { ThemeProvider } from '@mui/material/styles';
+import { useState, FC } from 'react';
+import { ThemeProvider } from '@emotion/react';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppBar } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -21,7 +21,7 @@ import { MainContainer, lightPurpleTheme, darkTheme } from './theme';
 // Main App Component
 const App: FC = () => {
   // Dark Mode
-  const [darkMode, setDarkMode] = useState < boolean > (false);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
   const toggleDarkMode = () => {
     setDarkMode(prevDarkMode => !prevDarkMode);
   };

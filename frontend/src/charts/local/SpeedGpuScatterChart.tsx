@@ -1,25 +1,36 @@
 // BenchScatterChart.js
 import React from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
 
-const SpeedGpuScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi, data_vllm }) => {
+interface DataItem {
+    tokens_per_second: number;
+    gpu_mem_usage: number;
+    framework?: string;
+    model_name?: string;
+}
+
+interface SpeedGpuScatterChartProps {
+    theme: any; // Replace 'any' with your theme's type
+    isMobile: boolean;
+    data_tf: DataItem[];
+    data_gguf: DataItem[];
+    data_hftgi: DataItem[];
+    data_vllm: DataItem[];
+}
+
+const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ theme, isMobile, data_tf, data_gguf, data_hftgi, data_vllm }) => {
     const dataMin = 1;
     const dataMax = 25;
 
-    // Limit datasets for aesthetics
-    const data_tf_1 = data_tf.filter(item => item.tokens_per_second <= 450);
-    const data_gguf_1 = data_gguf.filter(item => item.tokens_per_second <= 450);
-    const data_hftgi_1 = data_hftgi.filter(item => item.tokens_per_second <= 450);
-    const data_vllm_1 = data_vllm.filter(item => item.tokens_per_second <= 450);
+    const filterData = (data: DataItem[]) => data.filter(item => item.tokens_per_second <= 450 && item.gpu_mem_usage <= 24);
 
-    const data_tf_2 = data_tf_1.filter(item => item.gpu_mem_usage <= 24);
-    const data_gguf_2 = data_gguf_1.filter(item => item.gpu_mem_usage <= 24);
-    const data_hftgi_2 = data_hftgi_1.filter(item => item.gpu_mem_usage <= 24);
-    const data_vllm_2 = data_vllm_1.filter(item => item.gpu_mem_usage <= 24);
+    const data_tf_2 = filterData(data_tf);
+    const data_gguf_2 = filterData(data_gguf);
+    const data_hftgi_2 = filterData(data_hftgi);
+    const data_vllm_2 = filterData(data_vllm);
 
-
-    const generateLogTicks = (min, max) => {
-        let ticks = [];
+    const generateLogTicks = (min: number, max: number): number[] => {
+        let ticks: number[] = [];
         let power = Math.floor(Math.log10(min));
 
         while (Math.pow(10, power) < max) {
@@ -37,7 +48,7 @@ const SpeedGpuScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi,
 
     const logTicks = generateLogTicks(dataMin, dataMax);
 
-    const CustomTooltip = ({ active, payload }) => {
+    const CustomTooltip: React.FC<TooltipProps<any, any>> = ({ active, payload }) => {
         if (active && payload && payload.length) {
             return (
                 <div className="custom-tooltip">
@@ -48,7 +59,6 @@ const SpeedGpuScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi,
                 </div>
             );
         }
-
         return null;
     };
 
@@ -108,9 +118,9 @@ const SpeedGpuScatterChart = ({ theme, isMobile, data_tf, data_gguf, data_hftgi,
                     verticalAlign={isMobile ? "bottom" : "top"}
                     align={isMobile ? "center" : "right"}
                     wrapperStyle={isMobile ? { bottom: 0 } : { right: 0 }}
-                />            </ScatterChart>
+                />
+            </ScatterChart>
         </ResponsiveContainer>
-
     );
 };
 

@@ -1,5 +1,5 @@
-// LocalBenchmarks.js
-import React, { useState, useEffect } from 'react';
+// LocalBenchmarks.tsx
+import React, { useState, useEffect, FC } from 'react';
 import SpeedGpuScatterChart from '../charts/local/SpeedGpuScatterChart';
 import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
@@ -9,17 +9,43 @@ import { getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
 import { calculateMB } from '../utils/stats';
 
-const LocalBenchmarks = () => {
-    const [benchmarks, setBenchmarks] = useState([]);
-    const [comparisonData, setComparisonData] = useState([]);
-    const [fastestFrameworks, setFastestFrameworks] = useState([]);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true);
+
+interface Benchmark {
+    id: number;
+    framework: string;
+    model_name: string;
+    model_size: number;
+    formatted_model_size: string;
+    tokens_per_second: number;
+    gpu_mem_usage: number;
+    quantization_method: string;
+    quantization_bits: string;
+    model_dtype: string;
+}
+
+interface FastestFrameworks {
+    [key: string]: string;
+}
+
+interface LocalBenchmarksState {
+    benchmarks: Benchmark[];
+    comparisonData: any[]; // consider adding a type
+    fastestFrameworks: FastestFrameworks;
+    error: string | null;
+    loading: boolean;
+}
+
+const LocalBenchmarks: FC = () => {
+    const [benchmarks, setBenchmarks] = useState<Benchmark[]>([]);
+    const [comparisonData, setComparisonData] = useState<any[]>([]); // Consider defining a more specific type
+    const [fastestFrameworks, setFastestFrameworks] = useState<FastestFrameworks>({});
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
     const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
     const isMobile = useMediaQuery('(max-width:500px)');
 
     // Dark Mode
-    const [darkMode] = useState(false);
+    const [darkMode] = useState<boolean>(false);
     const theme = darkMode ? darkTheme : lightPurpleTheme;
 
     useEffect(() => {
@@ -27,7 +53,7 @@ const LocalBenchmarks = () => {
         const fetchLocalBenchmarks = async () => {
             try {
                 const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/local");
-                const data = await res.json();
+                const data: Benchmark[] = await res.json(); // Adjust according to the actual data structure
                 console.log(`local: size: ${calculateMB(data)} MB`);
                 const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(data);
                 console.log(`local: comparison size: ${calculateMB(comparisonResults)} MB`);
@@ -36,7 +62,7 @@ const LocalBenchmarks = () => {
                 setComparisonData(comparisonResults);
                 setFastestFrameworks(fastestFrameworks);
                 setLoading(false);
-            } catch (err) {
+            } catch (err: any) {
                 setError(err.toString());
                 setLoading(false);
             }
@@ -63,7 +89,7 @@ const LocalBenchmarks = () => {
 
     // Render the local benchmarks page
     return (
-        <MainContainer isMobile={isMobile}>
+        <MainContainer theme={theme} isMobile={isMobile}>
             <DescriptionSection>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h1 style={{ textAlign: "center" }}>⚡️ LLM Benchmarks ⚡️</h1>
