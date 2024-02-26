@@ -1,38 +1,17 @@
 {
   "name": "frontend",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "@emotion/react": "^11.11.3",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.15.10",
-    "@mui/material": "^5.15.10",
-    "@mui/x-data-grid": "^6.19.4",
-    "@testing-library/jest-dom": "^6.4.2",
-    "@testing-library/react": "^14.2.1",
-    "@testing-library/user-event": "^14.5.2",
-    "@vercel/analytics": "^1.2.2",
-    "@vercel/edge-config": "^1.0.2",
-    "d3": "^7.8.5",
-    "font-awesome": "^4.7.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.1",
-    "react-scripts": "^5.0.1",
-    "recharts": "^2.12.1",
-    "web-vitals": "^3.5.2"
-  },
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "react-scripts start"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "create-react-app": "^5.0.1",
+    "react-scripts": "^5.0.1"
   },
   "browserslist": {
     "production": [
@@ -46,10 +25,16 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {
-    "@types/node": "^20.11.19",
-    "@types/react": "^18.2.57",
-    "@types/react-dom": "^18.2.19",
-    "typescript": "^5.3.3"
+  "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.11",
+    "@mui/material": "^5.15.11",
+    "@mui/x-data-grid": "^6.19.6",
+    "@vercel/analytics": "^1.2.2",
+    "d3": "^7.8.5",
+    "react-router-dom": "^6.22.2",
+    "recharts": "^2.12.2",
+    "web-vitals": "^3.5.2"
   }
 }
