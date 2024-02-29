@@ -1,5 +1,5 @@
 // LocalBenchmarks.tsx
-import React, { useState, useEffect, FC } from 'react';
+import { useState, useEffect, FC } from 'react';
 import SpeedGpuScatterChart from '../charts/local/SpeedGpuScatterChart';
 import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
