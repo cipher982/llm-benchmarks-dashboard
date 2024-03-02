@@ -11,6 +11,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "@types/react-dom": "^18.2.19",
     "create-react-app": "^5.0.1",
     "react-scripts": "^5.0.1"
   },

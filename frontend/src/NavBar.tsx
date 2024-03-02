@@ -105,19 +105,23 @@ const Navbar: React.FC = () => {
                 >
                     <GitHubIcon />
                 </StyledButton>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    component="a"
+                    href="https://drose.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <PersonOutlineIcon />
+                    drose.io
+                </StyledButton>
             </ButtonsContainer>
             <LinksContainer>
-                <StyledLink to="/">
-                    Home
-                </StyledLink>
-                <StyledLink to="/about">
-                    About
-                </StyledLink>
-                <StyledLink to="/profile">
-                    <PersonOutlineIcon />
-                </StyledLink>
+                <StyledLink to="/local">Local Benchmarks</StyledLink>
+                <StyledLink to="/cloud">Cloud Benchmarks</StyledLink>
             </LinksContainer>
-        </NavBarContainer>
+        </NavBarContainer >
     );
 };
 

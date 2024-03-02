@@ -8,10 +8,10 @@ import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
 import { calculateMB } from '../utils/stats';
 import { mapModelNames } from '../utils/modelMapping';
-import { Benchmark, CloudBenchmarksProps } from '../types/CloudData';
+import { CloudBenchmark } from '../types/CloudData';
 
-const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
-    const [benchmarks, setBenchmarks] = useState<Benchmark[]>([]);
+const CloudBenchmarks: React.FC = () => {
+    const [benchmarks, setBenchmarks] = useState<CloudBenchmark[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const isMobile = useMediaQuery('(max-width:500px)');
@@ -20,7 +20,7 @@ const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
         const fetchCloudBenchmarks = async () => {
             try {
                 const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
-                let data: Benchmark[] = await res.json();
+                let data: CloudBenchmark[] = await res.json();
                 console.log(`cloud: size: ${calculateMB(data)} MB`);
 
                 const mappedData = mapModelNames(data);
@@ -100,7 +100,7 @@ const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
                     paddingLeft: isMobile ? "0px" : "20px",
                     paddingRight: isMobile ? "0px" : "20px",
                 }}>
-                    <RawCloudTable data={benchmarks} />
+                    <RawCloudTable benchmarks={benchmarks} />
                 </div>
             </TableContainer>
 

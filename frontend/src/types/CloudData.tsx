@@ -13,5 +13,3 @@ export interface CloudBenchmark {
     time_to_first_token_max: number;
     time_to_first_token_quartiles: number[];
 }
-
-export interface CloudBenchmarksProps { }

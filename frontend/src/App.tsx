@@ -1,10 +1,9 @@
 // App.tsx
 // Libraries/Modules
-import { useState, FC } from 'react';
-import { ThemeProvider } from '@emotion/react';
+import React, { FC } from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppBar } from '@mui/material';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { useMediaQuery } from '@mui/material';
 
@@ -16,7 +15,6 @@ import CloudBenchmarks from './pages/CloudBenchmarks';
 // Styles
 import './App.css';
 import { MainContainer } from './styles';
-
 
 // Main App Component
 const App: FC = () => {
@@ -30,7 +28,8 @@ const App: FC = () => {
       </AppBar>
       <MainContainer className="MainContainer" isMobile={isMobile}>
         <Routes>
-          <Route path="/" element={<LocalBenchmarks />} />
+          <Route path="/" element={<Navigate to="/local" replace />} />
+          <Route path="/local" element={<LocalBenchmarks />} />
           <Route path="/cloud" element={<CloudBenchmarks />} />
         </Routes>
       </MainContainer>
