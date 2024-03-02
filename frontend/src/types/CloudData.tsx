@@ -1,4 +1,4 @@
-export interface Benchmark {
+export interface CloudBenchmark {
     _id: string;
     provider: string;
     model_name: string;
@@ -14,4 +14,4 @@ export interface Benchmark {
     time_to_first_token_quartiles: number[];
 }
 
-export interface CloudBenchmarksProps {}
+export interface CloudBenchmarksProps { }

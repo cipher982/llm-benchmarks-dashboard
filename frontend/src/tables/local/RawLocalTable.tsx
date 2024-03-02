@@ -1,16 +1,6 @@
 import React from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-
-interface Benchmark {
-    framework: string;
-    model_name: string;
-    model_size?: number;
-    formatted_model_size?: string;
-    tokens_per_second: number;
-    gpu_mem_usage: number;
-    quantization_method: string;
-    quantization_bits: number;
-}
+import { LocalBenchmark } from '../../types/LocalData';
 
 const columns = [
     { field: "framework", headerName: "Framework", width: 120 },
@@ -27,14 +17,14 @@ const columns = [
 ];
 
 interface RawLocalTableProps {
-    benchmarks: Benchmark[];
+    benchmarks: LocalBenchmark[];
 }
 
 const RawLocalTable: React.FC<RawLocalTableProps> = ({ benchmarks }) => (
     <DataGrid
         rows={benchmarks}
         columns={columns}
-        pageSize={100}
+        // pageSize={100}
         checkboxSelection
     />
 );

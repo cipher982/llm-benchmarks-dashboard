@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import { FC } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { scaleOrdinal, schemeCategory10 } from 'd3';
 
@@ -8,17 +8,8 @@ interface DataItem {
     tokens_per_second_mean: number;
 }
 
-interface Theme {
-    palette: {
-        text: {
-            primary: string;
-        };
-    };
-}
-
 interface Props {
     data: DataItem[];
-    theme: Theme;
 }
 
 interface CombinedDataItem {
@@ -30,7 +21,7 @@ interface CombinedDataItem {
 const providers = ["anyscale", "together", "openrouter", "fireworks"];
 const modelNames = ["llama-2-7b", "llama-2-13b", "llama-2-70b", "mistral-7b", "mistral-8x7b"];
 
-const SpeedCompareChart: FC<Props> = ({ data, theme }) => {
+const SpeedCompareChart: FC<Props> = ({ data }) => {
     const colorScale = scaleOrdinal(schemeCategory10);
 
     // Filter data more concisely using predefined constants.
@@ -66,8 +57,8 @@ const SpeedCompareChart: FC<Props> = ({ data, theme }) => {
             }}
         >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" stroke={theme.palette.text.primary} />
-            <YAxis dataKey="model_name" type="category" stroke={theme.palette.text.primary} />
+            <XAxis type="number" />
+            <YAxis dataKey="model_name" type="category" />
             <Tooltip />
             <Legend formatter={renderLegendText} />
             {providers.map(provider => (

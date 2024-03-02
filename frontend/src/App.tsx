@@ -15,33 +15,25 @@ import CloudBenchmarks from './pages/CloudBenchmarks';
 
 // Styles
 import './App.css';
+import { MainContainer } from './styles';
 
-import { MainContainer, lightPurpleTheme, darkTheme } from './theme';
 
 // Main App Component
 const App: FC = () => {
-  // Dark Mode
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-  const toggleDarkMode = () => {
-    setDarkMode(prevDarkMode => !prevDarkMode);
-  };
-  const theme = darkMode ? darkTheme : lightPurpleTheme;
   const isMobile = useMediaQuery('(max-width:500px)');
 
   return (
     <Router>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AppBar position="fixed" color="default">
-          <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-        </AppBar>
-        <MainContainer className="MainContainer" isMobile={isMobile}>
-          <Routes>
-            <Route path="/" element={<LocalBenchmarks />} />
-            <Route path="/cloud" element={<CloudBenchmarks />} />
-          </Routes>
-        </MainContainer>
-      </ThemeProvider>
+      <CssBaseline />
+      <AppBar position="fixed" color="default">
+        <Navbar />
+      </AppBar>
+      <MainContainer className="MainContainer" isMobile={isMobile}>
+        <Routes>
+          <Route path="/" element={<LocalBenchmarks />} />
+          <Route path="/cloud" element={<CloudBenchmarks />} />
+        </Routes>
+      </MainContainer>
       <Analytics />
     </Router>
   );

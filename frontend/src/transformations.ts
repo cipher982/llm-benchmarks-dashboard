@@ -1,22 +1,15 @@
-interface Benchmark {
-    model_name: string;
-    quantization_bits: number;
-    framework: string;
-    tokens_per_second: number;
-    model_size?: number; // Assuming optional since not all benchmarks might have this
-    formatted_model_size?: string; // Assuming optional for the same reason
-}
+import { LocalBenchmark } from './types/LocalData';
 
 interface ComparisonResult {
     model_name: string;
-    quantization_bits: number;
+    quantization_bits: string;
     model_size?: number;
     formatted_model_size?: string;
     comparison: { [framework: string]: number };
     fastest_framework: string;
 }
 
-interface FastestFrameworks {
+export interface FastestFrameworks {
     [framework: string]: number;
 }
 
@@ -25,7 +18,7 @@ interface FastestModel {
     mean_tokens_per_second: number;
 }
 
-const standardizeModelNames = (benchmarks: Benchmark[]): Benchmark[] => {
+const standardizeModelNames = (benchmarks: LocalBenchmark[]): LocalBenchmark[] => {
     const modelMapping: Record<string, string> = {
         "llama-7B/ggml-model-f16.gguf": "llama-7B",
     };
@@ -44,10 +37,9 @@ const roundTokensPerSecond = (comparison: Record<string, number>): Record<string
 };
 
 // Compare different frameworks based on their benchmarks.
-export const compareFrameworks = (benchmarks: Benchmark[]): ComparisonResult[] => {
-    const groupedBenchmarks = new Map<string, Benchmark[]>();
-
-    benchmarks.forEach((benchmark) => {
+export const compareFrameworks = (benchmarks: LocalBenchmark[]): ComparisonResult[] => {
+    const groupedBenchmarks = new Map<string, LocalBenchmark[]>();
+    benchmarks.forEach((benchmark: any) => {
         const key = `${benchmark.model_name}-${benchmark.quantization_bits}`;
         if (!groupedBenchmarks.has(key)) {
             groupedBenchmarks.set(key, []);
@@ -61,7 +53,7 @@ export const compareFrameworks = (benchmarks: Benchmark[]): ComparisonResult[] =
             let fastestFramework = "";
             const comparison: { [framework: string]: number } = {};
 
-            group.forEach(benchmark => {
+            group.forEach((benchmark: any) => {
                 comparison[benchmark.framework] = benchmark.tokens_per_second;
                 if (benchmark.tokens_per_second > maxTokensPerSecond) {
                     maxTokensPerSecond = benchmark.tokens_per_second;
@@ -83,7 +75,7 @@ export const compareFrameworks = (benchmarks: Benchmark[]): ComparisonResult[] =
     return comparisonResults;
 };
 
-export const getComparisonAndFastestFrameworks = (benchmarks: Benchmark[]): { comparisonResults: ComparisonResult[], fastestFrameworks: FastestFrameworks } => {
+export const getComparisonAndFastestFrameworks = (benchmarks: LocalBenchmark[]): { comparisonResults: ComparisonResult[], fastestFrameworks: FastestFrameworks } => {
     benchmarks = standardizeModelNames(benchmarks);
     let comparisonResults = compareFrameworks(benchmarks);
 
@@ -104,16 +96,19 @@ export const getComparisonAndFastestFrameworks = (benchmarks: Benchmark[]): { co
 
 
 
-export const compareFastest7BModels = (benchmarks: Benchmark[]): FastestModel => {
+export const compareFastest7BModels = (benchmarks: LocalBenchmark[]): FastestModel => {
     // Group benchmarks by model_name
-    const groupedBenchmarks: { [key: string]: Benchmark[] } = benchmarks.reduce((acc: { [key: string]: Benchmark[] }, curr: Benchmark) => {
-        const key = curr.model_name;
-        if (!acc[key]) {
-            acc[key] = [];
-        }
-        acc[key].push(curr);
-        return acc;
-    }, {});
+    const groupedBenchmarks: { [key: string]: LocalBenchmark[] } = benchmarks.reduce(
+        (acc: { [key: string]: LocalBenchmark[] }, curr: LocalBenchmark) => {
+            const key = curr.model_name;
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push(curr);
+            return acc;
+        },
+        {}
+    );
 
     // Filter for models with '7b' in the name and calculate mean tokens/second
     const meanBenchmarks: FastestModel[] = Object.entries(groupedBenchmarks)

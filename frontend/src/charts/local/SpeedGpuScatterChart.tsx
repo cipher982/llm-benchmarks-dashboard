@@ -10,7 +10,6 @@ interface DataItem {
 }
 
 interface SpeedGpuScatterChartProps {
-    theme: any; // Replace 'any' with your theme's type
     isMobile: boolean;
     data_tf: DataItem[];
     data_gguf: DataItem[];
@@ -18,7 +17,7 @@ interface SpeedGpuScatterChartProps {
     data_vllm: DataItem[];
 }
 
-const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ theme, isMobile, data_tf, data_gguf, data_hftgi, data_vllm }) => {
+const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, data_tf, data_gguf, data_hftgi, data_vllm }) => {
     const dataMin = 1;
     const dataMax = 25;
 
@@ -89,27 +88,24 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ theme, isMo
                     dy={10}
                     angle={0}
                     ticks={logTicks}
-                    stroke={theme.palette.text.primary}
                 >
                     <Label
                         value="GPU Memory Usage (GB)"
                         offset={-20}
                         position="insideBottom"
-                        style={{ fill: theme.palette.text.primary }}
                     />
                 </XAxis>
                 <YAxis
                     dataKey="tokens_per_second"
                     type="number"
                     domain={[0, 400]}
-                    stroke={theme.palette.text.primary}
                 >
                     <Label
                         value="Tokens/Second"
                         offset={0}
                         dy={50}
                         position="insideLeft"
-                        angle={-90} style={{ fill: theme.palette.text.primary }}
+                        angle={-90}
                     />
                 </YAxis>
                 <Tooltip content={<CustomTooltip />} />

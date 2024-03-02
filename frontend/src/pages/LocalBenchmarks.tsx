@@ -5,38 +5,23 @@ import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
-import { getComparisonAndFastestFrameworks } from '../transformations';
-import { MainContainer, DescriptionSection, ChartContainer, TableContainer, lightPurpleTheme, darkTheme } from '../theme';
+import { FastestFrameworks, getComparisonAndFastestFrameworks } from '../transformations';
+import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
 import { calculateMB } from '../utils/stats';
+import { LocalBenchmark } from '../types/LocalData';
 
 
-interface Benchmark {
-    id: number;
-    framework: string;
-    model_name: string;
-    model_size: number;
-    formatted_model_size: string;
-    tokens_per_second: number;
-    gpu_mem_usage: number;
-    quantization_method: string;
-    quantization_bits: string;
-    model_dtype: string;
-}
 
-interface FastestFrameworks {
-    [key: string]: string;
-}
-
-interface LocalBenchmarksState {
-    benchmarks: Benchmark[];
-    comparisonData: any[]; // consider adding a type
-    fastestFrameworks: FastestFrameworks;
-    error: string | null;
-    loading: boolean;
-}
+// interface LocalBenchmarksState {
+//     benchmarks: LocalBenchmark[];
+//     comparisonData: any[]; // consider adding a type
+//     fastestFrameworks: FastestFrameworks;
+//     error: string | null;
+//     loading: boolean;
+// }
 
 const LocalBenchmarks: FC = () => {
-    const [benchmarks, setBenchmarks] = useState<Benchmark[]>([]);
+    const [benchmarks, setBenchmarks] = useState<LocalBenchmark[]>([]);
     const [comparisonData, setComparisonData] = useState<any[]>([]); // Consider defining a more specific type
     const [fastestFrameworks, setFastestFrameworks] = useState<FastestFrameworks>({});
     const [error, setError] = useState<string | null>(null);
@@ -44,16 +29,12 @@ const LocalBenchmarks: FC = () => {
     const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
     const isMobile = useMediaQuery('(max-width:500px)');
 
-    // Dark Mode
-    const [darkMode] = useState<boolean>(false);
-    const theme = darkMode ? darkTheme : lightPurpleTheme;
-
     useEffect(() => {
         // Fetch local benchmarks
         const fetchLocalBenchmarks = async () => {
             try {
                 const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/local");
-                const data: Benchmark[] = await res.json(); // Adjust according to the actual data structure
+                const data: LocalBenchmark[] = await res.json(); // Adjust according to the actual data structure
                 console.log(`local: size: ${calculateMB(data)} MB`);
                 const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(data);
                 console.log(`local: comparison size: ${calculateMB(comparisonResults)} MB`);
@@ -89,8 +70,8 @@ const LocalBenchmarks: FC = () => {
 
     // Render the local benchmarks page
     return (
-        <MainContainer theme={theme} isMobile={isMobile}>
-            <DescriptionSection>
+        <MainContainer isMobile={isMobile}>
+            <DescriptionSection isMobile={isMobile}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h1 style={{ textAlign: "center" }}>⚡️ LLM Benchmarks ⚡️</h1>
                     <p>
@@ -112,7 +93,7 @@ const LocalBenchmarks: FC = () => {
                     <p>CPU: Intel Core i9-12900K</p>
                 </div>
             </DescriptionSection>
-            <TableContainer>
+            <TableContainer isMobile={isMobile}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
 
                     <h3>🏆 Comparisons 🏆</h3>
@@ -159,7 +140,7 @@ const LocalBenchmarks: FC = () => {
                 </div>
             </TableContainer>
 
-            <ChartContainer>
+            <ChartContainer isMobile={isMobile}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h3>📊 Charts 📊</h3>
                     <h4>GPU Usage vs Tokens/Second</h4>
@@ -174,7 +155,6 @@ const LocalBenchmarks: FC = () => {
                         margin: 'auto',
                     }}>
                         <SpeedGpuScatterChart
-                            theme={theme}
                             isMobile={isMobile}
                             data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
                             data_gguf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'gguf')}
@@ -185,7 +165,7 @@ const LocalBenchmarks: FC = () => {
                 )}
             </ChartContainer>
 
-            <TableContainer>
+            <TableContainer isMobile={isMobile}>
                 <h4>📚 Full Results 📚</h4>
                 <div style={{
                     height: '500px',
@@ -197,10 +177,7 @@ const LocalBenchmarks: FC = () => {
                     margin: 'auto',
                     overflowX: 'auto'
                 }}>
-                    <RawLocalTable
-                        benchmarks={benchmarks}
-                        darkMode={darkMode}
-                    />
+                    <RawLocalTable benchmarks={benchmarks} />
                 </div>
             </TableContainer>
         </MainContainer>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
-import { MainContainer, DescriptionSection, ChartContainer, lightPurpleTheme, darkTheme, TableContainer } from '../theme';
+import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
 import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
@@ -10,16 +10,11 @@ import { calculateMB } from '../utils/stats';
 import { mapModelNames } from '../utils/modelMapping';
 import { Benchmark, CloudBenchmarksProps } from '../types/CloudData';
 
-
 const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
     const [benchmarks, setBenchmarks] = useState<Benchmark[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const isMobile = useMediaQuery('(max-width:500px)');
-
-    // Dark Mode
-    const [darkMode] = useState<boolean>(false);
-    const theme = darkMode ? darkTheme : lightPurpleTheme;
 
     useEffect(() => {
         const fetchCloudBenchmarks = async () => {
@@ -33,8 +28,9 @@ const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
                 setBenchmarks(mappedData);
                 setLoading(false);
             } catch (err) {
-                console.error("Error fetching data:", err);
-                setError(err.toString());
+                const error = err as Error;
+                console.error("Error fetching data:", error);
+                setError(error.toString());
                 setLoading(false);
             }
         };
@@ -48,7 +44,7 @@ const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
                 justifyContent: "center",
                 alignItems: "center",
                 height: "100vh",
-                backgroundColor: "white" // Added background color
+                backgroundColor: "white"
             }}>
                 <CircularProgress style={{ color: "#663399" }} size={80} />
             </div>
@@ -59,7 +55,7 @@ const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
     return (
         <MainContainer isMobile={isMobile}>
 
-            <DescriptionSection>
+            <DescriptionSection isMobile={isMobile}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
                     <p>
@@ -76,43 +72,35 @@ const CloudBenchmarks: React.FC<CloudBenchmarksProps> = () => {
                 </div>
             </DescriptionSection>
 
-            <ChartContainer style={{ maxWidth: '100%', overflowX: 'auto' }}>
+            <ChartContainer isMobile={isMobile} style={{ maxWidth: "100%", overflowX: "auto" }}>
                 <h4>📊 Speed Distribution 📊</h4>
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedDistChart
                         data={benchmarks}
-                        theme={theme}
-                        isMobile={isMobile}
+                    // isMobile={isMobile} 
                     />
                 </div>
             </ChartContainer>
 
-            <ChartContainer style={{ maxWidth: '100%', overflowX: 'auto' }}>
+            <ChartContainer isMobile={isMobile} style={{ maxWidth: '100%', overflowX: 'auto' }}>
                 <h4>🦙 Some Comparisons! 🦙</h4>
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedCompareChart
                         data={benchmarks}
-                        theme={theme}
-                        isMobile={isMobile}
+                    // isMobile={isMobile}
                     />
                 </div>
             </ChartContainer>
 
-            <TableContainer>
+            <TableContainer isMobile={isMobile}>
                 <h4>📚 Full Results 📚</h4>
                 <div style={{
                     height: '800px',
                     overflow: 'auto',
                     paddingLeft: isMobile ? "0px" : "20px",
                     paddingRight: isMobile ? "0px" : "20px",
-                    maxWidth: isMobile ? '100%' : '850px',
-                    margin: 'auto',
-                    overflowX: 'auto'
                 }}>
-                    <RawCloudTable
-                        benchmarks={benchmarks}
-                        darkMode={darkMode}
-                    />
+                    <RawCloudTable data={benchmarks} />
                 </div>
             </TableContainer>
 
