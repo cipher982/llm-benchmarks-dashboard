@@ -23,7 +23,7 @@ const NavBarContainer = styled('div')(({ theme }) => ({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: theme.palette.secondary.main,
+    backgroundColor: theme.palette.primary.main,
     padding: '10px 20px',
     [`@media (max-width:700px)`]: {
         flexDirection: 'column',
@@ -59,10 +59,10 @@ const StyledButton = styled(({ component: Component = MuiButton, ...otherProps }
     <Component {...otherProps} />
 ))(({ theme }) => ({
     color: theme.palette.background.default,
-    backgroundColor: theme.palette.primary.main,
+    backgroundColor: theme.palette.secondary.main,
     marginRight: theme.spacing(2),
     "&:hover": {
-        backgroundColor: theme.palette.primary.light,
+        backgroundColor: theme.palette.secondary.main,
     },
     [`@media (max-width:700px)`]: {
         margin: theme.spacing(0.5),
@@ -80,7 +80,7 @@ const StyledLink = styled(({ ...otherProps }: StyledLinkProps & Omit<React.Compo
         marginRight: theme.spacing(2),
         padding: theme.spacing(1),
         color: "black",
-        backgroundColor: theme.palette.primary.main,
+        backgroundColor: theme.palette.secondary.main,
         borderRadius: '4px',
         boxShadow: isActive ? `0px 0px 5px 5px ${boxShadowColor}` : 'none',
         [`@media (max-width:700px)`]: {
@@ -98,23 +98,17 @@ const Navbar: React.FC = () => {
                 <StyledButton
                     variant="contained"
                     size="small"
-                    component="a"
-                    href="https://github.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={() => window.open("https://github.com/cipher982/llm-benchmarks", "_blank")}
                 >
-                    <GitHubIcon />
+                    <GitHubIcon style={{ color: "black" }} />
                 </StyledButton>
                 <StyledButton
                     variant="contained"
                     size="small"
-                    component="a"
-                    href="https://drose.io"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={() => window.open("https://drose.io", "_blank")}
                 >
-                    <PersonOutlineIcon />
-                    drose.io
+                    <PersonOutlineIcon style={{ color: "black", marginRight: "5px" }} />
+                    <span style={{ color: "black" }}>drose.io</span>
                 </StyledButton>
             </ButtonsContainer>
             <LinksContainer>
