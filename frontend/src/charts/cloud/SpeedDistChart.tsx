@@ -87,7 +87,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
 
     const setupScales = () => {
 
-        const getMaxDensity = (): number | undefined => {
+        const getMaxDensity = (): number => {
             const kde = kernelDensityEstimator(kernelEpanechnikov(6), x.ticks(40));
             const densities: number[] = data.flatMap(modelData => {
                 const tokens: number[] = modelData.tokens_per_second.filter((token): token is number => token !== undefined);
@@ -97,12 +97,12 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 const densityData = kde(tokens);
                 return densityData.map(d => d[1]);
             });
-            return d3.max(densities);
+            return d3.max(densities) || 0; // Provide 0 as a fallback value
         };
 
         x.domain([0, 140]);
-        // y.domain([0, getMaxDensity()]);
-        y.domain([0, 0.4]);
+        y.domain([0, getMaxDensity()]);
+        // y.domain([0, 0.4]);
     }
 
     const drawAxes = (svg: any) => {
