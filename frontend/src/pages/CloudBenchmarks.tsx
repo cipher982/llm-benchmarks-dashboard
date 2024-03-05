@@ -55,7 +55,7 @@ const CloudBenchmarks: React.FC = () => {
     return (
         <MainContainer isMobile={isMobile}>
 
-            <DescriptionSection isMobile={isMobile}>
+            <DescriptionSection isMobile={isMobile} style={{ borderRadius: "10px" }}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
                     <p>
@@ -72,7 +72,7 @@ const CloudBenchmarks: React.FC = () => {
                 </div>
             </DescriptionSection>
 
-            <ChartContainer isMobile={isMobile} style={{ maxWidth: "100%", overflowX: "auto" }}>
+            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px", maxWidth: "100%", overflowX: "auto" }}>
                 <h4>📊 Speed Distribution 📊</h4>
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedDistChart
@@ -82,7 +82,7 @@ const CloudBenchmarks: React.FC = () => {
                 </div>
             </ChartContainer>
 
-            <ChartContainer isMobile={isMobile} style={{ maxWidth: '100%', overflowX: 'auto' }}>
+            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px", maxWidth: '100%', overflowX: 'auto' }}>
                 <h4>🦙 Some Comparisons! 🦙</h4>
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedCompareChart
@@ -91,10 +91,10 @@ const CloudBenchmarks: React.FC = () => {
                 </div>
             </ChartContainer>
 
-            <TableContainer isMobile={isMobile} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <TableContainer isMobile={isMobile} style={{ borderRadius: "10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                 <h4 style={{ width: "100%", textAlign: "center" }}>📚 Full Results 📚</h4>
                 <div style={{
-                    height: "800px",
+                    height: "100%",
                     width: "100%",
                     maxWidth: "850px",
                     overflow: "auto",
@@ -102,7 +102,9 @@ const CloudBenchmarks: React.FC = () => {
                     paddingRight: isMobile ? "0px" : "20px",
                     margin: "auto"
                 }}>
-                    <RawCloudTable benchmarks={benchmarks} />
+                    <div style={{ paddingBottom: "50px" }}>
+                        <RawCloudTable benchmarks={benchmarks} />
+                    </div>
                 </div>
             </TableContainer>
         </MainContainer>

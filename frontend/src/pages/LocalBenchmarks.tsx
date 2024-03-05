@@ -174,6 +174,7 @@ const LocalBenchmarks: FC = () => {
                     // padding: '20px',
                     paddingLeft: isMobile ? "0px" : "20px",
                     paddingRight: isMobile ? "0px" : "20px",
+                    paddingBottom: "20px",
                     maxWidth: isMobile ? '100%' : '1100px',
                     margin: 'auto',
                     overflowX: 'auto'
