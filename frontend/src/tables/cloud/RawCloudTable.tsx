@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
+import { GridSortModel } from '@mui/x-data-grid';
+import { useTheme } from '@mui/material/styles';
+import Box from '@mui/material/Box';
 
 interface Benchmark {
     provider: string;
@@ -28,24 +31,33 @@ const columns = [
         field: "tokens_per_second_min",
         headerName: "Min",
         type: "number",
-        width: 60,
+        width: 80,
     },
     {
         field: "tokens_per_second_max",
         headerName: "Max",
         type: "number",
-        width: 60,
+        width: 80,
     },
     {
         field: "time_to_first_token_mean",
         headerName: "First Token",
         type: "number",
-        width: 100,
+        width: 120,
     },
 ];
 
 
 const RawCloudTable: React.FC<RawCloudTableProps> = ({ benchmarks }) => {
+    const theme = useTheme();
+
+    const [sortModel, setSortModel] = useState<GridSortModel>([
+        {
+            field: 'tokens_per_second_mean',
+            sort: 'desc',
+        },
+    ]);
+
     const rows = benchmarks.map((row, index) => ({
         id: index,
         provider: row.provider,
@@ -56,20 +68,25 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ benchmarks }) => {
         time_to_first_token_mean: row.time_to_first_token_mean,
     }));
     return (
-        <DataGrid
-            rows={rows}
-            columns={columns}
-            // pageSize={100}
-            sortModel={[
-                {
-                    field: 'tokens_per_second_mean',
-                    sort: 'desc',
-                }
-            ]}
-                // checkboxSelection
-                // disableSelectionOnClick
+        <Box sx={{ border: "1px solid white" }}>
+            <DataGrid
+                rows={rows}
+                columns={columns}
+                sortModel={sortModel}
+                onSortModelChange={(model) => setSortModel(model)}
+                sx={{
+                    "& .MuiDataGrid-columnHeaders": {
+                        color: "white",
+                        borderColor: "white",
+                    },
+                    "& .MuiDataGrid-cell": {
+                        color: "white",
+                        borderColor: "white",
+                    },
+                }}
             />
-        );
-    };
-    
-    export default RawCloudTable;
+        </Box>
+    );
+};
+
+export default RawCloudTable;

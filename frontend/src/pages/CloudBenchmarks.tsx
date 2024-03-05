@@ -87,23 +87,24 @@ const CloudBenchmarks: React.FC = () => {
                 <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedCompareChart
                         data={benchmarks}
-                    // isMobile={isMobile}
                     />
                 </div>
             </ChartContainer>
 
-            <TableContainer isMobile={isMobile}>
-                <h4>📚 Full Results 📚</h4>
+            <TableContainer isMobile={isMobile} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <h4 style={{ width: "100%", textAlign: "center" }}>📚 Full Results 📚</h4>
                 <div style={{
-                    height: '800px',
-                    overflow: 'auto',
+                    height: "800px",
+                    width: "100%",
+                    maxWidth: "850px",
+                    overflow: "auto",
                     paddingLeft: isMobile ? "0px" : "20px",
                     paddingRight: isMobile ? "0px" : "20px",
+                    margin: "auto"
                 }}>
                     <RawCloudTable benchmarks={benchmarks} />
                 </div>
             </TableContainer>
-
         </MainContainer>
     );
 };

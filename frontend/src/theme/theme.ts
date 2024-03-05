@@ -39,6 +39,40 @@ const theme = createTheme({
                 },
             },
         },
+        MuiTableCell: {
+            styleOverrides: {
+                head: {
+                    fontWeight: '700',
+                },
+                root: {
+                    color: '#f9f9f9',
+                },
+            },
+        },
+        MuiListItemIcon: {
+            styleOverrides: {
+                root: {
+                    color: '#f9f9f9',
+                },
+            },
+        },
+        MuiCssBaseline: {
+            styleOverrides: `
+                  .MuiDataGrid-root {
+                    color: '#ffffff';
+                    borderColor: '#ffffff';
+                    & .MuiDataGrid-columnHeaders {
+                      color: '#ffffff';
+                    }
+                    & .MuiDataGrid-cell {
+                      color: '#ffffff';
+                    }
+                    & .MuiDataGrid-columnSeparator {
+                      color: '#ffffff';
+                    }
+                  }
+                `,
+        },
     },
 });
 
