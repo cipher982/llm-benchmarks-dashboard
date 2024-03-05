@@ -1,5 +1,6 @@
 import React from 'react';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import Box from '@mui/material/Box';
 
 interface ComparisonDataRow {
     model_name: string;
@@ -15,7 +16,7 @@ interface ComparisonTableProps {
 
 const ComparisonTable: React.FC<ComparisonTableProps> = ({ comparisonData }) => {
     const columns: GridColDef[] = [
-        { field: 'model_name', headerName: 'Model Name', width: 250 },
+        { field: 'model_name', headerName: 'Model Name', width: 300 },
         {
             field: 'model_size',
             headerName: 'Params (M)',
@@ -24,7 +25,7 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ comparisonData }) => 
         },
         { field: 'quantization_bits', headerName: 'Quant Bits', width: 120 },
         { field: 'comparison', headerName: 'Tokens/Second', width: 320 },
-        { field: 'fastest_framework', headerName: 'Winner', width: 110 }
+        { field: 'fastest_framework', headerName: 'Winner', width: 120 }
     ];
 
     const rows = comparisonData.map((row, index) => ({
@@ -34,8 +35,24 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ comparisonData }) => 
     }));
 
     return (
-        <div style={{ height: 500, width: '100%' }}>
-            <DataGrid rows={rows} columns={columns} />
+        <div style={{ height: 550, width: '100%' }}>
+            <Box sx={{ height: 500, border: "1px solid white" }}>
+                <DataGrid rows={rows} columns={columns}
+                    sx={{
+                        "& .MuiDataGrid-columnHeaders": {
+                            color: "white",
+                            borderColor: "white",
+                            fontWeight: "bold",
+                        },
+                        "& .MuiDataGrid-columnHeaderTitle": {
+                            fontWeight: "bold !important",
+                        },
+                        "& .MuiDataGrid-cell": {
+                            color: "white",
+                            borderColor: "white",
+                        },
+                    }} />
+            </Box>
         </div>
     );
 };

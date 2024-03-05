@@ -111,10 +111,11 @@ const LocalBenchmarks: FC = () => {
                 </div>
                 <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between" }}>
                     <div style={{
-                        flex: 0.3,
+                        flex: 0.35,
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "center",
+                        alignItems: "center",
                     }}>
                         <h4>Leaderboard </h4>
                         {
@@ -130,7 +131,7 @@ const LocalBenchmarks: FC = () => {
                         flex: 0.8,
                         paddingLeft: isMobile ? "0px" : "20px",
                         paddingRight: isMobile ? "0px" : "20px", paddingBottom: "20px",
-                        maxWidth: isMobile ? '100%' : '950px',
+                        maxWidth: isMobile ? '100%' : '1050px',
                         margin: 'auto',
                         overflowX: 'auto'
                     }}>
