@@ -4,6 +4,7 @@ import { GridSortModel } from '@mui/x-data-grid';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 
+
 interface Benchmark {
     provider: string;
     model_name: string;

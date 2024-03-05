@@ -71,7 +71,7 @@ const LocalBenchmarks: FC = () => {
     // Render the local benchmarks page
     return (
         <MainContainer isMobile={isMobile}>
-            <DescriptionSection isMobile={isMobile}>
+            <DescriptionSection isMobile={isMobile} style={{ borderRadius: "10px" }}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h1 style={{ textAlign: "center" }}>⚡️ LLM Benchmarks ⚡️</h1>
                     <p>
@@ -93,7 +93,7 @@ const LocalBenchmarks: FC = () => {
                     <p>CPU: Intel Core i9-12900K</p>
                 </div>
             </DescriptionSection>
-            <TableContainer isMobile={isMobile}>
+            <TableContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
 
                     <h3>🏆 Comparisons 🏆</h3>
@@ -141,7 +141,7 @@ const LocalBenchmarks: FC = () => {
                 </div>
             </TableContainer>
 
-            <ChartContainer isMobile={isMobile}>
+            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h3>📊 Charts 📊</h3>
                     <h4>GPU Usage vs Tokens/Second</h4>
@@ -166,10 +166,10 @@ const LocalBenchmarks: FC = () => {
                 )}
             </ChartContainer>
 
-            <TableContainer isMobile={isMobile}>
+            <TableContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                 <h4>📚 Full Results 📚</h4>
                 <div style={{
-                    height: '500px',
+                    height: '100%',
                     overflow: 'auto',
                     // padding: '20px',
                     paddingLeft: isMobile ? "0px" : "20px",
@@ -179,7 +179,9 @@ const LocalBenchmarks: FC = () => {
                     margin: 'auto',
                     overflowX: 'auto'
                 }}>
-                    <RawLocalTable benchmarks={benchmarks} />
+                    <div style={{ paddingBottom: "50px" }}>
+                        <RawLocalTable benchmarks={benchmarks} />
+                    </div>
                 </div>
             </TableContainer>
         </MainContainer>

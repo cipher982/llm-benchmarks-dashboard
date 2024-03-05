@@ -88,17 +88,22 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
                     dy={10}
                     angle={0}
                     ticks={logTicks}
+                    stroke="white"
+                    tick={{ fill: 'white' }}
                 >
                     <Label
                         value="GPU Memory Usage (GB)"
                         offset={-20}
                         position="insideBottom"
+                        fill="white"
                     />
                 </XAxis>
                 <YAxis
                     dataKey="tokens_per_second"
                     type="number"
                     domain={[0, 400]}
+                    stroke="white"
+                    tick={{ fill: 'white' }}
                 >
                     <Label
                         value="Tokens/Second"
@@ -106,6 +111,7 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
                         dy={50}
                         position="insideLeft"
                         angle={-90}
+                        fill="white"
                     />
                 </YAxis>
                 <Tooltip content={<CustomTooltip />} />
