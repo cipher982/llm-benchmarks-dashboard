@@ -1,20 +1,34 @@
 import * as d3 from 'd3';
 import React, { useEffect, useRef } from 'react';
 
-const SpeedDistChart = ({ data }) => {
-    const d3Container = useRef(null);
-    const margin = { top: 30, right: 30, bottom: 70, left: 60 };
-    const width = 800 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
+interface DataItem {
+    provider: string;
+    model_name: string;
+    tokens_per_second: number[];
+    display_name?: string;
+}
+
+interface Margin {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+}
+
+interface SpeedDistChartProps {
+    data: DataItem[];
+}
+
+const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
+    const d3Container = useRef<HTMLDivElement | null>(null);
+    const margin: Margin = { top: 30, right: 30, bottom: 70, left: 60 };
+    const width: number = 800 - margin.left - margin.right;
+    const height: number = 400 - margin.top - margin.bottom;
 
     // Filter data first
-    data = data.filter(d =>
-        // d.provider !== 'openai' && 
-        !d.model_name.includes('amazon')
-        // d.model_name !== 'anthropic.claude-v1' && 
-        // !d.model_name.includes('2')
-    );
-    const providers = [...new Set(data.map(d => d.provider))];
+    data = data.filter(d => !d.model_name.includes('amazon'));
+
+    const providers: string[] = [...new Set(data.map(d => d.provider))];
 
     // Define scales
     const x = d3.scaleLinear().range([0, width]);
@@ -23,7 +37,6 @@ const SpeedDistChart = ({ data }) => {
     // Define color scale
     const colorScale = d3.scaleOrdinal()
         .domain(providers)
-        // .range(["#FF0000", "#7FFF00", "#00FFFF", "#fff"]);
         .range(d3.schemeCategory10);
 
     useEffect(() => {
@@ -37,19 +50,19 @@ const SpeedDistChart = ({ data }) => {
             }));
 
             // Group data by model_name
-            data = data.reduce((acc, d) => {
+            data = Object.values(data.reduce((acc: { [key: string]: DataItem }, d) => {
                 if (!acc[d.model_name]) {
                     acc[d.model_name] = { ...d, tokens_per_second: [] };
                 }
                 acc[d.model_name].tokens_per_second.push(...d.tokens_per_second);
                 return acc;
-            }, {});
+            }, {}));
 
             // Convert the grouped data back into an array
             data = Object.values(data);
 
             const svg = setupChart();
-            setupScales(svg);
+            setupScales();
             drawAxes(svg);
             drawDensityPaths(svg);
             drawLabels(svg);
@@ -71,21 +84,28 @@ const SpeedDistChart = ({ data }) => {
         return svg;
     };
 
-    const setupScales = (svg) => {
-        // x.domain(d3.extent(data.flatMap(d => d.tokens_per_second)));
+
+    const setupScales = () => {
+
+        const getMaxDensity = (): number => {
+            const kde = kernelDensityEstimator(kernelEpanechnikov(6), x.ticks(40));
+            const densities: number[] = data.flatMap(modelData => {
+                const tokens: number[] = modelData.tokens_per_second.filter((token): token is number => token !== undefined);
+                if (tokens.length === 0) {
+                    return [];
+                }
+                const densityData = kde(tokens);
+                return densityData.map(d => d[1]);
+            });
+            return d3.max(densities) || 0; // Provide 0 as a fallback value
+        };
+
         x.domain([0, 140]);
-        // x.domain([0, d3.max(data.flatMap(d => d.tokens_per_second))]);
         y.domain([0, getMaxDensity()]);
-    };
+        // y.domain([0, 0.4]);
+    }
 
-    const getMaxDensity = () => {
-        const kde = kernelDensityEstimator(kernelEpanechnikov(6), x.ticks(40));
-        return d3.max(data.flatMap(modelData => {
-            return kde(modelData.tokens_per_second).map(d => d[1]);
-        }));
-    };
-
-    const drawAxes = (svg) => {
+    const drawAxes = (svg: any) => {
         svg.append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x))
@@ -99,12 +119,12 @@ const SpeedDistChart = ({ data }) => {
     };
 
 
-    const drawDensityPaths = (svg) => {
+    const drawDensityPaths = (svg: any) => {
         const kde = kernelDensityEstimator(kernelEpanechnikov(6), x.ticks(40));
 
         data.forEach((modelData, index) => {
             const densityData = kde(modelData.tokens_per_second);
-            const maxDensityPoint = densityData.reduce((prev, current) => (prev[1] > current[1]) ? prev : current);
+            const maxDensityPoint = densityData.reduce((prev: any, current: any) => (prev[1] > current[1]) ? prev : current);
 
             // Assign a unique ID to each path and text element
             const lineId = `line-${index}`;
@@ -121,21 +141,21 @@ const SpeedDistChart = ({ data }) => {
                 .attr("id", lineId)
                 .attr("fill", "none")
                 .attr("opacity", ".9")
-                .attr("stroke", colorScale(modelData.provider)) // Use provider to assign color
+                .attr("stroke", colorScale(modelData.provider))
                 .attr("stroke-width", NORMAL_STROKE_WIDTH)
                 .attr("d", d3.line()
                     .curve(d3.curveBasis)
-                    .x(d => x(d[0]))
-                    .y(d => y(d[1])));
+                    .x((d: [number, number]) => x(d[0]))
+                    .y((d: [number, number]) => y(d[1]))
+                );
 
-            path.on("mouseover", function (event, d) {
-                d3.select(this).raise().attr("stroke-width", HOVER_STROKE_WIDTH);
+            path.on("mouseover", function (event: any) {
+                d3.select(event.currentTarget).raise().attr("stroke-width", HOVER_STROKE_WIDTH);
                 d3.select(`#${textId}`).raise().style("font-weight", "bold").style("font-size", HOVER_FONT_SIZE);
-            })
-                .on("mouseout", function (d) {
-                    d3.select(this).attr("stroke-width", NORMAL_STROKE_WIDTH);
-                    d3.select(`#${textId}`).style("font-weight", "normal").style("font-size", NORMAL_FONT_SIZE);
-                });
+            }).on("mouseout", function (event: any) {
+                d3.select(event.currentTarget).attr("stroke-width", NORMAL_STROKE_WIDTH);
+                d3.select(`#${textId}`).style("font-weight", "normal").style("font-size", NORMAL_FONT_SIZE);
+            });
 
             // Add label to the line at the peak of the distribution
             svg.append("text")
@@ -145,12 +165,12 @@ const SpeedDistChart = ({ data }) => {
                 .attr("text-anchor", "middle")
                 .style("fill", colorScale(modelData.provider))
                 .style("font-size", NORMAL_FONT_SIZE)
-                .text(modelData.display_name.split('/')[1] || modelData.display_name);
+                .text(modelData.display_name ? modelData.display_name.split('/')[1] || modelData.display_name : "");
         });
     };
 
 
-    const drawLabels = (svg) => {
+    const drawLabels = (svg: any) => {
         svg.append("text")
             .attr("text-anchor", "middle")
             .attr("x", width / 2)
@@ -167,12 +187,12 @@ const SpeedDistChart = ({ data }) => {
             .text("Density");
     };
 
-    const drawLegend = (svg) => {
+    const drawLegend = (svg: any) => {
         const legend = svg.selectAll(".legend")
             .data(colorScale.domain())
             .enter().append("g")
             .attr("class", "legend")
-            .attr("transform", (d, i) => `translate(0,${i * 20})`);
+            .attr("transform", (_: any, i: number) => `translate(0,${i * 20})`);
         // .attr("transform", (d, i) => `translate(0,${height / 2 + i * 20})`);
 
         legend.append("rect")
@@ -188,17 +208,20 @@ const SpeedDistChart = ({ data }) => {
             .style("text-anchor", "end")
             .style("fill", "white")
             .style("font-size", "15px")
-            .text(d => d);
+            .text((d: string) => d);
     };
 
-    function kernelDensityEstimator(kernel, X) {
-        return V => X.map(x => [x, d3.mean(V, v => kernel(x - v))]);
-    }
+    function kernelDensityEstimator(kernel: (v: number) => number, X: number[]) {
+        return (V: number[]) => X.map(x => [x, d3.mean(V, (v: number) => kernel(x - v)) || 0]);
+    };
 
 
-    function kernelEpanechnikov(k) {
-        return v => Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
-    }
+    function kernelEpanechnikov(k: number): (v: number) => number {
+        return (v: number): number => {
+            v /= k;
+            return Math.abs(v) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+        };
+    };
 
     return (
         <div ref={d3Container} />

@@ -1,13 +1,14 @@
-// App.js
+// App.tsx
 // Libraries/Modules
-import React, { useState } from 'react';
-import { ThemeProvider } from '@mui/material/styles';
+import React, { FC } from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AppBar } from '@mui/material';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AppBar, ThemeProvider } from '@mui/material';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { useMediaQuery } from '@mui/material';
 
+// Theme
+import theme from './theme/theme';
 
 // Components
 import Navbar from './NavBar';
@@ -16,36 +17,29 @@ import CloudBenchmarks from './pages/CloudBenchmarks';
 
 // Styles
 import './App.css';
-
-import { MainContainer, lightPurpleTheme, darkTheme } from './theme';
+import { MainContainer } from './styles';
 
 // Main App Component
-const App = () => {
-  // Dark Mode
-  const [darkMode, setDarkMode] = useState(false);
-  const toggleDarkMode = () => {
-    setDarkMode(prevDarkMode => !prevDarkMode);
-  };
-  const theme = darkMode ? darkTheme : lightPurpleTheme;
+const App: FC = () => {
   const isMobile = useMediaQuery('(max-width:500px)');
 
-
   return (
-    <Router>
-      <ThemeProvider theme={theme}>
+    <ThemeProvider theme={theme}>
+      <Router>
         <CssBaseline />
         <AppBar position="fixed" color="default">
-          <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+          <Navbar />
         </AppBar>
         <MainContainer className="MainContainer" isMobile={isMobile}>
           <Routes>
-            <Route path="/" element={<LocalBenchmarks />} />
+            <Route path="/" element={<Navigate to="/local" replace />} />
+            <Route path="/local" element={<LocalBenchmarks />} />
             <Route path="/cloud" element={<CloudBenchmarks />} />
           </Routes>
         </MainContainer>
-      </ThemeProvider>
-      <Analytics />
-    </Router>
+        <Analytics />
+      </Router>
+    </ThemeProvider>
   );
 }
 

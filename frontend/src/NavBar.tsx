@@ -1,20 +1,29 @@
 import React from 'react';
 import MuiButton from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import LightModeIcon from '@mui/icons-material/LightMode';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { Link as RouterLink } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 
+interface StyledButtonProps extends Omit<React.ComponentProps<typeof MuiButton>, 'component'> {
+    component?: React.ElementType;
+    href?: string;
+    target?: string;
+    rel?: string;
+}
+
+interface StyledLinkProps {
+    to: string;
+    children?: React.ReactNode;
+}
 
 const NavBarContainer = styled('div')(({ theme }) => ({
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: theme.palette.secondary.main,
+    backgroundColor: theme.palette.primary.main,
     padding: '10px 20px',
     [`@media (max-width:700px)`]: {
         flexDirection: 'column',
@@ -46,12 +55,14 @@ const ButtonsContainer = styled('div')(({ theme }) => ({
     },
 }));
 
-const StyledButton = styled(({ darkMode, ...otherProps }) => <MuiButton {...otherProps} />)(({ theme, darkMode }) => ({
+const StyledButton = styled(({ component: Component = MuiButton, ...otherProps }: StyledButtonProps & { component?: React.ElementType }) => (
+    <Component {...otherProps} />
+))(({ theme }) => ({
     color: theme.palette.background.default,
-    backgroundColor: theme.palette.primary.main,
+    backgroundColor: theme.palette.secondary.main,
     marginRight: theme.spacing(2),
     "&:hover": {
-        backgroundColor: darkMode ? theme.palette.secondary.dark : theme.palette.primary.light,
+        backgroundColor: theme.palette.secondary.main,
     },
     [`@media (max-width:700px)`]: {
         margin: theme.spacing(0.5),
@@ -59,18 +70,17 @@ const StyledButton = styled(({ darkMode, ...otherProps }) => <MuiButton {...othe
     },
 }));
 
-const StyledLink = styled(({ darkMode, ...otherProps }) => <RouterLink {...otherProps} />)(({ theme, to, ...props }) => {
+const StyledLink = styled(({ ...otherProps }: StyledLinkProps & Omit<React.ComponentProps<typeof RouterLink>, 'to'>) => <RouterLink {...otherProps} />)(({ theme, to }) => {
     const location = useLocation();
     const isActive = location.pathname === to;
-    const color = props.darkMode ? "white" : "black";
     const boxShadowColor = 'rgba(255,255,255,0.5)';
 
     return {
         textDecoration: 'none',
         marginRight: theme.spacing(2),
         padding: theme.spacing(1),
-        color: color,
-        backgroundColor: theme.palette.primary.main,
+        color: "black",
+        backgroundColor: theme.palette.secondary.main,
         borderRadius: '4px',
         boxShadow: isActive ? `0px 0px 5px 5px ${boxShadowColor}` : 'none',
         [`@media (max-width:700px)`]: {
@@ -81,42 +91,32 @@ const StyledLink = styled(({ darkMode, ...otherProps }) => <RouterLink {...other
     };
 });
 
-const Navbar = ({ darkMode, toggleDarkMode }) => {
+const Navbar: React.FC = () => {
     return (
         <NavBarContainer>
             <ButtonsContainer>
                 <StyledButton
                     variant="contained"
-                    onClick={toggleDarkMode}
                     size="small"
-                    darkMode={darkMode}
-                >
-                    {darkMode ? <LightModeIcon style={{ color: "white" }} /> : <DarkModeIcon style={{ color: "black" }} />}
-                </StyledButton>
-                <StyledButton
-                    variant="contained"
                     onClick={() => window.open("https://github.com/cipher982/llm-benchmarks", "_blank")}
-                    size="small"
-                    darkMode={darkMode}
                 >
-                    <GitHubIcon style={{ color: darkMode ? "white" : "black" }} />
+                    <GitHubIcon style={{ color: "black" }} />
                 </StyledButton>
                 <StyledButton
                     variant="contained"
-                    onClick={() => window.open("https://drose.io", "_blank")}
                     size="small"
-                    darkMode={darkMode}
+                    onClick={() => window.open("https://drose.io", "_blank")}
                 >
-                    <PersonOutlineIcon style={{ color: darkMode ? "white" : "black", marginRight: "5px" }} />
-                    <span style={{ color: darkMode ? "white" : "black" }}>drose.io</span>
+                    <PersonOutlineIcon style={{ color: "black", marginRight: "5px" }} />
+                    <span style={{ color: "black" }}>drose.io</span>
                 </StyledButton>
             </ButtonsContainer>
             <LinksContainer>
-                <StyledLink to="/" darkMode={darkMode}>Local Benchmarks</StyledLink>
-                <StyledLink to="/cloud" darkMode={darkMode}>Cloud Benchmarks</StyledLink>
+                <StyledLink to="/local">Local Benchmarks</StyledLink>
+                <StyledLink to="/cloud">Cloud Benchmarks</StyledLink>
             </LinksContainer>
-        </NavBarContainer>
+        </NavBarContainer >
     );
-}
+};
 
 export default Navbar;
