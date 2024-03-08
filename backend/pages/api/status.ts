@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import Redis from 'ioredis';
+import { corsMiddleware } from '../../utils/apiMiddleware';
 
 const redis = new Redis({
     host: process.env.REDIS_HOST,
@@ -8,7 +9,10 @@ const redis = new Redis({
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    console.log("Making redis connnection for /api/status:", redis.options);
+    corsMiddleware(req, res);
+    if (req.method === 'OPTIONS') return;
+
+    console.log("Making redis connection for /api/status:", redis.options);
     if (req.method === 'GET') {
         try {
             const statusData = await redis.get('cloud_log_status');
