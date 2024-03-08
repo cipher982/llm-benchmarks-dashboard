@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { handleCachedApiResponse } from './cacheUtils';
 
-export async function setupApiEndpoint(req: NextApiRequest, res: NextApiResponse, MetricsModel: any, transformFunction: any, cacheKey: any) {
-    console.log("CORS Debug: Setting CORS headers");
-
+function setupCORS(req: NextApiRequest, res: NextApiResponse) {
     const allowedOrigins = [
         'https://www.llm-benchmarks.com',
         'https://llm-benchmarks-backend.vercel.app',
@@ -11,16 +9,20 @@ export async function setupApiEndpoint(req: NextApiRequest, res: NextApiResponse
         'http://localhost:3001',
     ];
     const origin = req.headers.origin;
-    console.log("Request Origin:", origin); // Log the request origin
+    console.log("Request Origin:", origin);
     if (origin && allowedOrigins.includes(origin)) {
-        console.log("Setting Access-Control-Allow-Origin for:", origin); // Log when setting the header
+        console.log("Setting Access-Control-Allow-Origin for:", origin);
         res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     } else {
-        console.log("Origin not allowed or not present in the request:", origin); // Log if the origin is not allowed or not present
+        console.log("Origin not allowed or not present in the request:", origin);
     }
+}
 
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+export async function setupApiEndpoint(req: NextApiRequest, res: NextApiResponse, MetricsModel: any, transformFunction: any, cacheKey: any) {
+    console.log("CORS Debug: Setting CORS headers");
+    setupCORS(req, res);
 
     if (req.method === 'OPTIONS') {
         console.log("CORS Debug: Handling OPTIONS request");
@@ -28,5 +30,14 @@ export async function setupApiEndpoint(req: NextApiRequest, res: NextApiResponse
     }
     if (req.method !== 'OPTIONS') {
         await handleCachedApiResponse(req, res, MetricsModel, transformFunction, cacheKey);
+    }
+}
+
+export function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
+    setupCORS(req, res);
+
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
     }
 }
