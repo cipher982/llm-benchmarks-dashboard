@@ -1,6 +1,5 @@
-// App.tsx
 // Libraries/Modules
-import React, { FC } from 'react';
+import { FC } from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppBar, ThemeProvider } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
@@ -14,6 +13,7 @@ import theme from './theme/theme';
 import Navbar from './NavBar';
 import LocalBenchmarks from './pages/LocalBenchmarks';
 import CloudBenchmarks from './pages/CloudBenchmarks';
+import StatusPage from './pages/Status';
 
 // Styles
 import './App.css';
@@ -35,6 +35,7 @@ const App: FC = () => {
             <Route path="/" element={<Navigate to="/local" replace />} />
             <Route path="/local" element={<LocalBenchmarks />} />
             <Route path="/cloud" element={<CloudBenchmarks />} />
+            <Route path="/status" element={<StatusPage />} />
           </Routes>
         </MainContainer>
         <Analytics />
