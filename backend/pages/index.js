@@ -21,6 +21,9 @@ const HomePage = () => {
                 <li>
                     <Link href="/api/cloud">Cloud Benchmarks API</Link>
                 </li>
+                <li>
+                    <Link href="/api/status">Status API</Link>
+                </li>
             </ul>
         </div>
     );

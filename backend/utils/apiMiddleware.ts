@@ -11,8 +11,12 @@ export async function setupApiEndpoint(req: NextApiRequest, res: NextApiResponse
         'http://localhost:3001',
     ];
     const origin = req.headers.origin;
+    console.log("Request Origin:", origin); // Log the request origin
     if (origin && allowedOrigins.includes(origin)) {
+        console.log("Setting Access-Control-Allow-Origin for:", origin); // Log when setting the header
         res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        console.log("Origin not allowed or not present in the request:", origin); // Log if the origin is not allowed or not present
     }
 
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
