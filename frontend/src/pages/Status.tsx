@@ -74,10 +74,12 @@ const StatusPage: React.FC = () => {
     };
 
     const groupedData = Object.entries(data).reduce((acc, [key, model]) => {
-        if (!acc[model.provider]) {
+        if (!acc[model.provider] && !model.provider.includes('_todo')) {
             acc[model.provider] = [];
         }
-        acc[model.provider].push({ key, ...model });
+        if (!model.provider.includes('_todo')) {
+            acc[model.provider].push({ key, ...model });
+        }
         return acc;
     }, {} as Record<string, Array<{ key: string } & ModelData>>);
 
