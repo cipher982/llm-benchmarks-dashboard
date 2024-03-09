@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CSSObject, styled, useTheme } from '@mui/system';
+import { styled, useTheme } from '@mui/system';
 import { MainContainer } from '../styles';
 interface ModelData {
     runs: string[];
@@ -48,7 +48,6 @@ const StatusPage: React.FC = () => {
     const [isMobile, setIsMobile] = useState<boolean>(false);
 
     useEffect(() => {
-        // Example logic to determine if the device is mobile
         const handleResize = () => {
             setIsMobile(window.innerWidth < 768);
         };
@@ -82,6 +81,11 @@ const StatusPage: React.FC = () => {
         return acc;
     }, {} as Record<string, Array<{ key: string } & ModelData>>);
 
+    const getRecentNonDidNotRunStatuses = (runs: string[]) => {
+        const filteredRuns = runs.filter((status) => status !== 'did-not-run');
+        return filteredRuns.slice(-10);
+    };
+
     return (
         <MainContainer isMobile={isMobile}>
             <StatusPageContainer style={{ borderRadius: "10px" }}>
@@ -89,18 +93,22 @@ const StatusPage: React.FC = () => {
                 {Object.entries(groupedData).map(([provider, models]) => (
                     <ProviderGroup key={provider}>
                         <h2>{provider}</h2>
-                        {models.map((model) => (
-                            <ModelItem key={model.key}>
-                                <span>{model.model}</span>
-                                <span> - Last Run: {new Date(model.last_run_timestamp).toLocaleString()}</span>
-                                <span> - Status: </span>
-                                {model.runs.map((status, index) => (
-                                    <StatusIndicator key={index} status={status}>
-                                        {status === 'success' ? '✓' : '✗'}
-                                    </StatusIndicator>
-                                ))}
-                            </ModelItem>
-                        ))}
+                        {models.map((model) => {
+                            const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
+
+                            return (
+                                <ModelItem key={model.key}>
+                                    <span>{model.model}</span>
+                                    <span> - Last Run: {new Date(model.last_run_timestamp).toLocaleString()}</span>
+                                    <span> - Status: </span>
+                                    {recentStatuses.map((status, index) => (
+                                        <StatusIndicator key={index} status={status}>
+                                            {status === 'success' ? '✓' : '✗'}
+                                        </StatusIndicator>
+                                    ))}
+                                </ModelItem>
+                            );
+                        })}
                     </ProviderGroup>
                 ))}
             </StatusPageContainer>
