@@ -3,6 +3,7 @@ import MuiButton from '@mui/material/Button';
 import { styled } from '@mui/material/styles';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 
@@ -44,25 +45,37 @@ const LinksContainer = styled('div')(({ theme }) => ({
     },
 }));
 
+// const ButtonsContainer = styled('div')(({ theme }) => ({
+//     order: 2,
+//     [`@media (max-width:700px)`]: {
+//         marginBottom: theme.spacing(2),
+//         width: '100%',
+//         display: 'flex',
+//         justifyContent: 'flex-end',
+//         order: 1,
+//     },
+// }));
+
 const ButtonsContainer = styled('div')(({ theme }) => ({
     order: 2,
+    display: 'flex',
+    alignItems: 'center',
     [`@media (max-width:700px)`]: {
         marginBottom: theme.spacing(2),
         width: '100%',
-        display: 'flex',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
         order: 1,
     },
 }));
 
-const StyledButton = styled(({ component: Component = MuiButton, ...otherProps }: StyledButtonProps & { component?: React.ElementType }) => (
-    <Component {...otherProps} />
+const StyledButton = styled(({ component: Component = MuiButton, to, ...otherProps }: StyledButtonProps & { component?: React.ElementType, to?: string }) => (
+    <Component {...otherProps} component={to ? RouterLink : undefined} to={to} />
 ))(({ theme }) => ({
     color: theme.palette.background.default,
     backgroundColor: theme.palette.secondary.main,
-    marginRight: theme.spacing(2),
+    marginLeft: theme.spacing(2),
     "&:hover": {
-        backgroundColor: theme.palette.secondary.main,
+        backgroundColor: theme.palette.secondary.dark,
     },
     [`@media (max-width:700px)`]: {
         margin: theme.spacing(0.5),
@@ -94,6 +107,10 @@ const StyledLink = styled(({ ...otherProps }: StyledLinkProps & Omit<React.Compo
 const Navbar: React.FC = () => {
     return (
         <NavBarContainer>
+            <LinksContainer>
+                <StyledLink to="/local">Local Benchmarks</StyledLink>
+                <StyledLink to="/cloud">Cloud Benchmarks</StyledLink>
+            </LinksContainer>
             <ButtonsContainer>
                 <StyledButton
                     variant="contained"
@@ -110,11 +127,16 @@ const Navbar: React.FC = () => {
                     <PersonOutlineIcon style={{ color: "black", marginRight: "5px" }} />
                     <span style={{ color: "black" }}>drose.io</span>
                 </StyledButton>
+                <StyledButton
+                    variant="contained"
+                    size="small"
+                    to="/status"
+                >
+                    <CheckCircleOutlineIcon style={{ color: "black", marginRight: "5px" }} />
+                    <span style={{ color: "black" }}>API Status</span>
+                </StyledButton>
             </ButtonsContainer>
-            <LinksContainer>
-                <StyledLink to="/local">Local Benchmarks</StyledLink>
-                <StyledLink to="/cloud">Cloud Benchmarks</StyledLink>
-            </LinksContainer>
+
         </NavBarContainer >
     );
 };
