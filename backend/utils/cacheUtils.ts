@@ -5,17 +5,13 @@ import redisClient from './redisClient';
 
 export const CACHE_KEYS = {
     CLOUD_METRICS: 'cloudMetrics:365days',
-    CLOUD_METRICS_LAST_UPDATE: 'cloudMetrics:365days_lastUpdate',
+    CLOUD_METRICS_LAST_UPDATE: 'cloudMetrics:365days:lastUpdate',
     LOCAL_METRICS: 'localMetrics:365days',
-    LOCAL_METRICS_LAST_UPDATE: 'localMetrics:365days_lastUpdate',
+    LOCAL_METRICS_LAST_UPDATE: 'localMetrics:365days:lastUpdate',
 };
 
 async function shouldRefreshCache(cacheKey: string): Promise<boolean> {
-    const cacheKeyWithSuffix = `${cacheKey}_LAST_UPDATE` as keyof typeof CACHE_KEYS;
-    if (!(cacheKeyWithSuffix in CACHE_KEYS)) {
-        throw new Error(`Invalid cache key: ${cacheKeyWithSuffix}`);
-    }
-    const lastUpdate = await redisClient.get(CACHE_KEYS[cacheKeyWithSuffix]);
+    const lastUpdate = await redisClient.get(cacheKey);
     return !lastUpdate || Date.now() - parseInt(lastUpdate) > 3600000; // 1 hour
 }
 
