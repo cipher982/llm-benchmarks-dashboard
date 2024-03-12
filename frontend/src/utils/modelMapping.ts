@@ -88,6 +88,28 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // falcon
         "togethercomputer/falcon-7b": "falcon-7b",
         "togethercomputer/falcon-40b": "falcon-40b",
+
+        // gemma 2b
+        "google/gemma-2b-it": "gemma-2b",
+
+        // gemma 7b
+        "google/gemma-7b-it": "gemma-7b",
+
+        // phi-2
+        "microsoft/phi-2": "phi-2",
+
+        // qwen 1.5 7b
+        "Qwen/Qwen1.5-7B-Chat": "qwen-1.5-7b",
+
+        // qwen 1.5 14b
+        "Qwen/Qwen1.5-14B-Chat": "qwen-1.5-14b",
+
+        // qwen 1.5 72b
+        "Qwen/Qwen1.5-72B-Chat": "qwen-1.5-72b",
+
+        // yi 34b
+        "01-ai/yi-34b-chat": "yi-34b",
+        "zero-one-ai/Yi-34B-Chat": "yi-34b",
     };
 
     return data.map((item: CloudBenchmark) => {
