@@ -74,7 +74,7 @@ const CloudBenchmarks: React.FC = () => {
 
             <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px", maxWidth: "100%", overflowX: "auto" }}>
                 <h4>📊 Speed Distribution 📊</h4>
-                <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
+                <div style={{ maxWidth: '1100px', maxHeight: '600px', width: '100%', height: '100%', margin: 'auto', paddingBottom: '0px' }}>
                     <SpeedDistChart
                         data={benchmarks}
                     // isMobile={isMobile} 

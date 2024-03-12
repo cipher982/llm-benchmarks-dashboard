@@ -22,8 +22,8 @@ interface SpeedDistChartProps {
 const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
     const d3Container = useRef<HTMLDivElement | null>(null);
     const margin: Margin = { top: 30, right: 30, bottom: 70, left: 60 };
-    const width: number = 800 - margin.left - margin.right;
-    const height: number = 400 - margin.top - margin.bottom;
+    const width: number = 1100 - margin.left - margin.right;
+    const height: number = 600 - margin.top - margin.bottom;
 
     // Filter data first
     data = data.filter(d => !d.model_name.includes('amazon'));
@@ -61,10 +61,23 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             // Convert the grouped data back into an array
             data = Object.values(data);
 
+            const tooltip = d3.select("body")
+                .append("div")
+                .attr("class", "tooltip")
+                .style("position", "absolute")
+                .style("visibility", "hidden")
+                .style("background-color", "white")
+                .style("color", "black")
+                .style("border-radius", "5px")
+                .style("padding", "5px")
+                .style("font-size", "12px")
+                .style("pointer-events", "none")
+                .style("font-weight", "bold");
+
             const svg = setupChart();
             setupScales();
             drawAxes(svg);
-            drawDensityPaths(svg);
+            drawDensityPaths(svg, tooltip);
             drawLabels(svg);
             drawLegend(svg);
         }
@@ -119,7 +132,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
     };
 
 
-    const drawDensityPaths = (svg: any) => {
+    const drawDensityPaths = (svg: any, tooltip: any) => {
         const kde = kernelDensityEstimator(kernelEpanechnikov(6), x.ticks(40));
 
         data.forEach((modelData, index) => {
@@ -152,9 +165,15 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             path.on("mouseover", function (event: any) {
                 d3.select(event.currentTarget).raise().attr("stroke-width", HOVER_STROKE_WIDTH);
                 d3.select(`#${textId}`).raise().style("font-weight", "bold").style("font-size", HOVER_FONT_SIZE);
+                tooltip.style("visibility", "visible")
+                    .html(`${modelData.provider}<br>${modelData.display_name}`);
+            }).on("mousemove", function (event: any) {
+                tooltip.style("top", (event.pageY + 10) + "px")
+                    .style("left", (event.pageX + 10) + "px");
             }).on("mouseout", function (event: any) {
                 d3.select(event.currentTarget).attr("stroke-width", NORMAL_STROKE_WIDTH);
                 d3.select(`#${textId}`).style("font-weight", "normal").style("font-size", NORMAL_FONT_SIZE);
+                tooltip.style("visibility", "hidden");
             });
 
             // Add label to the line at the peak of the distribution
