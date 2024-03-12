@@ -34,6 +34,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/llama-v2-70b": "llama-2-70b",
         "accounts/fireworks/models/llama-v2-70b-chat": "llama-2-70b",
         "meta.llama2-70b-chat-v1": "llama-2-70b",
+        "llama2-70b-4096": "llama-2-70b",
 
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
@@ -48,6 +49,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/mixtral-8x7b": "mistral-8x7b",
         "accounts/fireworks/models/mixtral-8x7b-instruct": "mistral-8x7b",
         "mistral.mixtral-8x7b-instruct-v0:1": "mistral-8x7b",
+        "mixtral-8x7b-32768": "mistral-8x7b",
 
         // mistral large
         "mistral-large": "mistral-large",
@@ -94,6 +96,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // gemma 7b
         "google/gemma-7b-it": "gemma-7b",
+        "gemma-7b-it": "gemma-7b",
 
         // phi-2
         "microsoft/phi-2": "phi-2",
