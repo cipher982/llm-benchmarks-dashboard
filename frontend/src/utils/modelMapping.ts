@@ -1,6 +1,11 @@
 import { CloudBenchmark } from '../types/CloudData';
 
 
+// gpt-3.5-turbo-0613 - yes (mapped to gpt-3.5-turbo)
+// gpt-3.5-turbo-16k-0613 - yes (mapped to gpt-3.5-turbo)
+// gpt-3.5-turbo-0125 - no
+
+
 export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
     const modelNameMapping: { [key: string]: string } = {
         // llama 7b
@@ -78,6 +83,10 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // gpt-3.5
         "gpt-3.5-turbo-0613": "gpt-3.5-turbo",
         "gpt-3.5-turbo-16k-0613": "gpt-3.5-turbo",
+        "gpt-3.5-turbo-16k": "gpt-3.5-turbo",
+        "gpt-3.5-turbo": "gpt-3.5-turbo",
+        "gpt-3.5-turbo-1106": "gpt-3.5-turbo",
+        "gpt-3.5-turbo-0125": "gpt-3.5-turbo",
 
         // gpt-4
         "gpt-4-0613": "gpt-4",
@@ -86,6 +95,10 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // gpt-4-turbo
         "gpt-4-1106-preview": "gpt-4-turbo",
         "gpt-4-0125-preview": "gpt-4-turbo",
+        "gpt-4-turbo-preview": "gpt-4-turbo",
+
+        // gpt-4-vision
+        "gpt-4-vision-preview": "gpt-4-vision",
 
         // falcon
         "togethercomputer/falcon-7b": "falcon-7b",
