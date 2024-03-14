@@ -1,11 +1,6 @@
 import { CloudBenchmark } from '../types/CloudData';
 
 
-// gpt-3.5-turbo-0613 - yes (mapped to gpt-3.5-turbo)
-// gpt-3.5-turbo-16k-0613 - yes (mapped to gpt-3.5-turbo)
-// gpt-3.5-turbo-0125 - no
-
-
 export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
     const modelNameMapping: { [key: string]: string } = {
         // llama 7b
@@ -73,6 +68,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "anthropic.claude-v2": "claude-2",
         "anthropic.claude-v2:1": "claude-2",
 
+        // claude-3 haiku
+        "claude-3-haiku-20240307": "claude-3-haiku",
+
         // claude-3 sonnet
         "claude-3-sonnet-20240229": "claude-3-sonnet",
         "anthropic.claude-3-sonnet-20240229-v1:0": "claude-3-sonnet",
@@ -128,10 +126,51 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "zero-one-ai/Yi-34B-Chat": "yi-34b",
     };
 
-    return data.map((item: CloudBenchmark) => {
-        if (modelNameMapping[item.model_name]) {
-            return { ...item, model_name: modelNameMapping[item.model_name] };
+    const groupedData: { [key: string]: CloudBenchmark[] } = {};
+
+    data.forEach((item: CloudBenchmark) => {
+        const mappedName = modelNameMapping[item.model_name] || item.model_name;
+        const groupKey = `${item.provider}_${mappedName}`;
+        if (!groupedData[groupKey]) {
+            groupedData[groupKey] = [];
         }
-        return item;
+        groupedData[groupKey].push(item);
     });
+
+    const mergedData: CloudBenchmark[] = Object.entries(groupedData).map(([groupKey, items]) => {
+        const [provider, modelName] = groupKey.split('_');
+        const mergedItem: CloudBenchmark = {
+            _id: items[0]._id,
+            provider: provider,
+            model_name: modelName,
+            tokens_per_second: [],
+            time_to_first_token: [],
+            tokens_per_second_mean: 0,
+            tokens_per_second_min: Infinity,
+            tokens_per_second_max: -Infinity,
+            tokens_per_second_quartiles: [0, 0, 0],
+            time_to_first_token_mean: 0,
+            time_to_first_token_min: Infinity,
+            time_to_first_token_max: -Infinity,
+            time_to_first_token_quartiles: [0, 0, 0],
+        };
+
+        items.forEach((item) => {
+            mergedItem.tokens_per_second.push(...item.tokens_per_second);
+            mergedItem.time_to_first_token.push(...item.time_to_first_token);
+            mergedItem.tokens_per_second_mean += item.tokens_per_second_mean;
+            mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
+            mergedItem.tokens_per_second_max = Math.max(mergedItem.tokens_per_second_max, item.tokens_per_second_max);
+            mergedItem.time_to_first_token_mean += item.time_to_first_token_mean;
+            mergedItem.time_to_first_token_min = Math.min(mergedItem.time_to_first_token_min, item.time_to_first_token_min);
+            mergedItem.time_to_first_token_max = Math.max(mergedItem.time_to_first_token_max, item.time_to_first_token_max);
+        });
+
+        mergedItem.tokens_per_second_mean /= items.length;
+        mergedItem.time_to_first_token_mean /= items.length;
+
+        return mergedItem;
+    });
+
+    return mergedData;
 };
