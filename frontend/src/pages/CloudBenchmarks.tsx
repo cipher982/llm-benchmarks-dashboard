@@ -6,6 +6,7 @@ import { MainContainer, DescriptionSection, ChartContainer, TableContainer } fro
 import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
+import TimeSeriesChart from '../charts/cloud/TimeSeries';
 import { calculateMB } from '../utils/stats';
 import { mapModelNames } from '../utils/modelMapping';
 import { CloudBenchmark } from '../types/CloudData';
@@ -89,6 +90,11 @@ const CloudBenchmarks: React.FC = () => {
                         data={benchmarks}
                     />
                 </div>
+            </ChartContainer>
+
+            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
+                <h4>📈 Time Series 📈</h4>
+                <TimeSeriesChart data={benchmarks} />
             </ChartContainer>
 
             <TableContainer isMobile={isMobile} style={{ borderRadius: "10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
