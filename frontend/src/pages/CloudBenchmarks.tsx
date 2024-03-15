@@ -83,15 +83,6 @@ const CloudBenchmarks: React.FC = () => {
                 </div>
             </ChartContainer>
 
-            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px", maxWidth: '100%', overflowX: 'auto' }}>
-                <h4>🦙 Some Comparisons! 🦙</h4>
-                <div style={{ maxWidth: '850px', width: '100%', margin: 'auto', paddingBottom: '0px' }}>
-                    <SpeedCompareChart
-                        data={benchmarks}
-                    />
-                </div>
-            </ChartContainer>
-
             <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                 <h4>📈 Time Series 📈</h4>
                 <TimeSeriesChart data={benchmarks} />
