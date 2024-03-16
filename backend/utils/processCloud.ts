@@ -47,10 +47,7 @@ const fields: Fields[] = ["tokens_per_second", "time_to_first_token"];
 
 // Clean up and transform the cloud benchmarks data
 export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
-    function isNumericField(field: Fields): field is "tokens_per_second" | "time_to_first_token" {
-        return ["tokens_per_second", "time_to_first_token"].includes(field);
-    }
-    const aggregatedBenchmarks = data.reduce<Record<string, { _id: string; provider: string; model_name: string; tokens_per_second: number[]; time_to_first_token: number[] }>>((acc, benchmark, index) => {
+    const aggregatedBenchmarks = data.reduce<Record<string, AggregatedData>>((acc, benchmark, index) => {
         // First, filter out samples where tokens_per_second is less than 1
         if (benchmark.tokens_per_second < 1) {
             return acc;
@@ -83,12 +80,12 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             _id: benchmark._id,
             provider: benchmark.provider,
             model_name: benchmark.model_name,
-            tokens_per_second: benchmark.tokens_per_second.sort((a, b) => a - b),
+            tokens_per_second: benchmark.tokens_per_second,
             tokens_per_second_mean: 0,
             tokens_per_second_min: 0,
             tokens_per_second_max: 0,
             tokens_per_second_quartiles: [],
-            time_to_first_token: benchmark.time_to_first_token.sort((a, b) => a - b),
+            time_to_first_token: benchmark.time_to_first_token,
             time_to_first_token_mean: 0,
             time_to_first_token_min: 0,
             time_to_first_token_max: 0,
@@ -96,14 +93,14 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         };
 
         // Process tokens_per_second
-        const tokensPerSecondValues = benchmark.tokens_per_second.sort((a, b) => a - b);
+        const tokensPerSecondValues = [...benchmark.tokens_per_second];
         processedData.tokens_per_second_mean = parseFloat(calculateMean(tokensPerSecondValues).toFixed(2));
         processedData.tokens_per_second_min = parseFloat(calculateMin(tokensPerSecondValues).toFixed(2));
         processedData.tokens_per_second_max = parseFloat(calculateMax(tokensPerSecondValues).toFixed(2));
         processedData.tokens_per_second_quartiles = calculateQuartiles(tokensPerSecondValues).map(val => val !== null ? parseFloat(val.toFixed(2)) : 0);
 
         // Process time_to_first_token
-        const timeToFirstTokenValues = benchmark.time_to_first_token.sort((a, b) => a - b);
+        const timeToFirstTokenValues = [...benchmark.time_to_first_token];
         processedData.time_to_first_token_mean = parseFloat(calculateMean(timeToFirstTokenValues).toFixed(2));
         processedData.time_to_first_token_min = parseFloat(calculateMin(timeToFirstTokenValues).toFixed(2));
         processedData.time_to_first_token_max = parseFloat(calculateMax(timeToFirstTokenValues).toFixed(2));
