@@ -1,9 +1,45 @@
 import { createTheme } from '@mui/material/styles';
 
+export enum Provider {
+    Anthropic = "anthropic",
+    Azure = "azure",
+    Anyscale = "anyscale",
+    OpenAI = "openai",
+    Bedrock = "bedrock",
+    Mistral = "mistral",
+    Groq = "groq",
+    Together = "together",
+    Perplexity = "perplexity",
+    Fireworks = "fireworks",
+    Lepton = "lepton",
+    Deepinfra = "deepinfra",
+    Nvidia = "nvidia",
+    Runpod = "runpod",
+    Google = "google",
+}
+
+export const providerColors: Record<Provider, string> = {
+    [Provider.Anthropic]: "#C07C62",
+    [Provider.Azure]: "#0078D4",
+    [Provider.Anyscale]: "#143566",
+    [Provider.OpenAI]: "#1F1F1F",
+    [Provider.Bedrock]: "#FF9900",
+    [Provider.Mistral]: "#FD6F00",
+    [Provider.Groq]: "#D46645",
+    [Provider.Together]: "#0E6EFF",
+    [Provider.Perplexity]: "#1B818E",
+    [Provider.Fireworks]: "#C02390",
+    [Provider.Lepton]: "#467EE5",
+    [Provider.Deepinfra]: "#5798DC",
+    [Provider.Nvidia]: "#85B737",
+    [Provider.Runpod]: "#673AB7",
+    [Provider.Google]: "#4285F4",
+};
+
 
 const theme = createTheme({
     palette: {
-        mode: 'dark', // Set theme mode to dark
+        mode: 'dark',
         primary: {
             main: '#663399',
             contrastText: '#ffffff',
@@ -12,7 +48,7 @@ const theme = createTheme({
             main: "#ffffff",
             contrastText: '#000000',
         },
-        error: { // Repurposing 'error' as 'accent'
+        error: {
             main: '#e91e63',
         },
         background: {
@@ -27,15 +63,14 @@ const theme = createTheme({
         MuiButton: {
             styleOverrides: {
                 root: {
-                    borderRadius: '8px', // Rounded corners for buttons
+                    borderRadius: '8px',
                 },
             },
         },
         MuiTable: {
             styleOverrides: {
                 root: {
-                    borderColor: '#ffffff', // Adjusting table border color
-                    // Add other styling as needed
+                    borderColor: '#ffffff',
                 },
             },
         },
@@ -77,3 +112,4 @@ const theme = createTheme({
 });
 
 export default theme;
+

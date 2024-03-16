@@ -60,12 +60,12 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "claude-instant-1": "claude-instant-1",
 
         // claude-1
-        "anthropic.claude-v1": "claude-1",
+        // "anthropic.claude-v1": "claude-1",
 
         // claude-2
         "claude-2": "claude-2",
         "claude-2.1": "claude-2",
-        "anthropic.claude-v2": "claude-2",
+        // "anthropic.claude-v2": "claude-2",
         "anthropic.claude-v2:1": "claude-2",
 
         // claude-3 haiku
@@ -125,6 +125,16 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "01-ai/yi-34b-chat": "yi-34b",
         "zero-one-ai/Yi-34B-Chat": "yi-34b",
     };
+
+    data = data.filter(item => item.provider !== "openrouter");
+    data = data.filter(item => item.model_name !== "anthropic.claude-v1" && item.model_name !== "anthropic.claude-v2");
+
+
+    data.forEach(item => {
+        if (item.provider === "vertex") {
+            item.provider = "google";
+        }
+    });
 
     const groupedData: { [key: string]: CloudBenchmark[] } = {};
 

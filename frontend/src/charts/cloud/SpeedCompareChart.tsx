@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { scaleOrdinal, schemeCategory10 } from 'd3';
 import { useTheme } from '@mui/material/styles';
+import { Provider, providerColors } from '../../theme/theme';
 
 interface DataItem {
     provider: string;
@@ -18,17 +18,17 @@ interface CombinedDataItem {
     [key: string]: number | string;
 }
 
+
 // Declare providers and models to use
-const providers = ["anyscale", "together", "openrouter", "fireworks"];
+const providers: Provider[] = [Provider.Anyscale, Provider.Together, Provider.Fireworks];
 const modelNames = ["llama-2-7b", "llama-2-13b", "llama-2-70b", "mistral-7b", "mistral-8x7b"];
 
 const SpeedCompareChart: FC<Props> = ({ data }) => {
     const theme = useTheme();
-    const colorScale = scaleOrdinal(schemeCategory10);
 
     // Filter data more concisely using predefined constants
     const filteredData = data.filter(item =>
-        providers.includes(item.provider) && modelNames.includes(item.model_name)
+        providers.includes(item.provider as Provider) && modelNames.includes(item.model_name)
     );
 
     // Simplify data combination logic
@@ -64,7 +64,7 @@ const SpeedCompareChart: FC<Props> = ({ data }) => {
             <Tooltip />
             <Legend formatter={renderLegendText} />
             {providers.map(provider => (
-                <Bar key={provider} dataKey={provider} fill={colorScale(provider)} />
+                <Bar key={provider} dataKey={provider} fill={providerColors[provider]} />
             ))}
         </BarChart>
     );

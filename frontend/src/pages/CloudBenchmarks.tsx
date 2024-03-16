@@ -5,7 +5,6 @@ import { useMediaQuery } from '@mui/material';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
 import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
-import SpeedCompareChart from '../charts/cloud/SpeedCompareChart';
 import TimeSeriesChart from '../charts/cloud/TimeSeries';
 import { calculateMB } from '../utils/stats';
 import { mapModelNames } from '../utils/modelMapping';
@@ -83,11 +82,6 @@ const CloudBenchmarks: React.FC = () => {
                 </div>
             </ChartContainer>
 
-            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
-                <h4>📈 Time Series 📈</h4>
-                <TimeSeriesChart data={benchmarks} />
-            </ChartContainer>
-
             <TableContainer isMobile={isMobile} style={{ borderRadius: "10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                 <h4 style={{ width: "100%", textAlign: "center" }}>📚 Full Results 📚</h4>
                 <div style={{
@@ -104,6 +98,11 @@ const CloudBenchmarks: React.FC = () => {
                     </div>
                 </div>
             </TableContainer>
+
+            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
+                <h4>📈 Time Series 📈</h4>
+                <TimeSeriesChart data={benchmarks} />
+            </ChartContainer>
         </MainContainer>
     );
 };

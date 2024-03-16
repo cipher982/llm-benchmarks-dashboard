@@ -2,95 +2,91 @@ import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { CloudBenchmark } from '../../types/CloudData';
 import { useTheme } from '@mui/material/styles';
+import { Provider, providerColors } from '../../theme/theme';
 
+const N_RUNS = 100;
 
-const N_RUNS = 10;
-
-interface CloudBenchmarkChartProps {
-    data: CloudBenchmark[];
-}
-
-interface TSData {
-    provider: string;
+type BenchmarkData = {
+    provider: Provider;
     model_name: string;
     tokens_per_second: number[];
-}
+};
 
-const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
-    const theme = useTheme();
+type CloudBenchmarkChartProps = {
+    data: CloudBenchmark[];
+};
 
-    const filteredData: TSData[] = data.map(({ provider, model_name, tokens_per_second }) => ({
-        provider,
+const filterBenchmarks = (data: CloudBenchmark[]): BenchmarkData[] => {
+    return data.map(({ provider, model_name, tokens_per_second }) => ({
+        provider: provider as Provider,
         model_name,
         tokens_per_second: tokens_per_second.slice(-N_RUNS),
     }));
+};
 
-    const debug = false;
-
-    // Group the data by provider
-    const groupedData: { [provider: string]: TSData[] } = {};
-    filteredData.forEach((benchmark) => {
-        if (groupedData[benchmark.provider]) {
-            groupedData[benchmark.provider].push(benchmark);
+const groupBenchmarksByModel = (benchmarks: BenchmarkData[]): { [model_name: string]: BenchmarkData[] } => {
+    const benchmarksByModel: { [model_name: string]: BenchmarkData[] } = {};
+    benchmarks.forEach((benchmark) => {
+        if (benchmarksByModel[benchmark.model_name]) {
+            benchmarksByModel[benchmark.model_name].push(benchmark);
         } else {
-            groupedData[benchmark.provider] = [benchmark];
+            benchmarksByModel[benchmark.model_name] = [benchmark];
         }
     });
+    return benchmarksByModel;
+};
+
+const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
+    const theme = useTheme();
+    const filteredBenchmarks = filterBenchmarks(data);
+    const benchmarksByModel = groupBenchmarksByModel(filteredBenchmarks);
 
     return (
         <div>
-            {Object.entries(groupedData).map(([provider, benchmarks]) => (
-                <div key={provider}>
-                    <h3>{provider}</h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart
-                            data={Array.from({ length: N_RUNS }, (_, i) => ({ name: i + 1 }))}
-                            margin={{ left: 20, right: 20 }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis
-                                dataKey="name"
-                                interval={0}
-                                tick={{ fontSize: 12, fill: theme.palette.common.white }}
-                                tickFormatter={(value) => `Run ${value}`}
-                            />
-                            <YAxis stroke={theme.palette.common.white} />
-                            <Tooltip />
-                            <Legend />
-                            {benchmarks.map((benchmark) => (
-                                <Line
-                                    key={benchmark.model_name}
-                                    type="monotone"
-                                    dataKey={(entry) =>
-                                        benchmark.tokens_per_second[entry.name - 1]
-                                    }
-                                    name={benchmark.model_name}
-                                    stroke={getRandomColor()}
-                                    strokeWidth={2}
+            {Object.entries(benchmarksByModel)
+                .sort((a, b) => b[1].length - a[1].length)
+                .map(([model_name, benchmarks]) => (
+                    <div key={model_name}>
+                        <h3>{model_name}</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart
+                                data={Array.from({ length: N_RUNS }, (_, i) => ({ name: i + 1 }))}
+                                margin={{ left: 20, right: 20 }}
+                            >
+                                <CartesianGrid strokeDasharray="1 1" />
+                                <XAxis
+                                    dataKey="name"
+                                    interval={0}
+                                    tick={{ fontSize: 12, fill: theme.palette.common.white }}
+                                    tickFormatter={(value) => `Run ${N_RUNS - value + 1}`}
+                                    ticks={[1, Math.ceil(N_RUNS / 4), Math.ceil(N_RUNS / 2), Math.ceil(3 * N_RUNS / 4), N_RUNS]}
                                 />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
-                    {debug && (
-                        <div>
-                            <h5>Debug Data:</h5>
-                            <pre>{JSON.stringify(benchmarks, null, 2)}</pre>
-                        </div>
-                    )}
-                </div>
-            ))}
+                                <YAxis
+                                    stroke={theme.palette.common.white}
+                                    domain={['auto', 'auto']}
+                                />
+                                <Tooltip />
+                                <Legend />
+                                {benchmarks.map((benchmark) => (
+                                    <Line
+                                        key={benchmark.provider}
+                                        type="monotone"
+                                        dataKey={(entry) => {
+                                            const index = entry.name - 1;
+                                            return index < benchmark.tokens_per_second.length ? benchmark.tokens_per_second[index] : null;
+                                        }}
+                                        name={benchmark.provider}
+                                        stroke={providerColors[benchmark.provider]}
+                                        strokeWidth={2}
+                                        dot={{ stroke: providerColors[benchmark.provider], strokeWidth: 0, fill: providerColors[benchmark.provider] }}
+                                    />
+                                ))}
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                ))}
         </div>
     );
-};
-
-// Helper function to generate random colors for the lines
-const getRandomColor = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
 };
 
 export default TimeSeriesChart;
