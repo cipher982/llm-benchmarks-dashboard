@@ -69,7 +69,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ benchmarks }) => {
         time_to_first_token_mean: row.time_to_first_token_mean,
     }));
     return (
-        <Box sx={{ height: 800, width: '100%', border: "1px solid white" }}>
+        <Box sx={{ height: 500, width: '100%', border: "1px solid white" }}>
             <DataGrid
                 rows={rows}
                 columns={columns}
