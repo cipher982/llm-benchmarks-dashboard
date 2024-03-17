@@ -70,6 +70,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // claude-3 haiku
         "claude-3-haiku-20240307": "claude-3-haiku",
+        "anthropic.claude-3-haiku-20240307-v1:0": "claude-3-haiku",
 
         // claude-3 sonnet
         "claude-3-sonnet-20240229": "claude-3-sonnet",
