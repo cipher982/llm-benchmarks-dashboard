@@ -4,24 +4,38 @@ import { CloudBenchmark } from '../../types/CloudData';
 import { useTheme } from '@mui/material/styles';
 import { Provider, providerColors } from '../../theme/theme';
 
-const N_RUNS = 100;
+const N_RUNS = 144; // 3 days of 30 minute intervals
+const debug = false;
+
 
 type BenchmarkData = {
     provider: Provider;
     model_name: string;
-    tokens_per_second: number[];
+    tokens_per_second: (number | null)[];
+    timestamps: number[];
 };
 
 type CloudBenchmarkChartProps = {
     data: CloudBenchmark[];
 };
 
+interface BenchmarksByModel {
+    [modelName: string]: BenchmarkData[];
+}
+
 const filterBenchmarks = (data: CloudBenchmark[]): BenchmarkData[] => {
-    return data.map(({ provider, model_name, tokens_per_second }) => ({
-        provider: provider as Provider,
-        model_name,
-        tokens_per_second: tokens_per_second.slice(-N_RUNS),
-    }));
+    const latestTimestamps = generateTimestampRange();
+    return data.map(({ provider, model_name, tokens_per_second }) => {
+        const startIndex = Math.max(tokens_per_second.length - N_RUNS, 0);
+        const slicedTokensPerSecond = tokens_per_second.slice(startIndex);
+        const alignedTimestamps = latestTimestamps.slice(-slicedTokensPerSecond.length);
+        return {
+            provider: provider as Provider,
+            model_name,
+            tokens_per_second: slicedTokensPerSecond,
+            timestamps: alignedTimestamps,
+        };
+    });
 };
 
 const groupBenchmarksByModel = (benchmarks: BenchmarkData[]): { [model_name: string]: BenchmarkData[] } => {
@@ -36,10 +50,71 @@ const groupBenchmarksByModel = (benchmarks: BenchmarkData[]): { [model_name: str
     return benchmarksByModel;
 };
 
+const generateTimestampRange = () => {
+    const now = new Date();
+    const endTimestamp = now.getTime();
+    const startTimestamp = endTimestamp - (N_RUNS - 1) * 30 * 60 * 1000;
+    const timestamps = [];
+    for (let i = 0; i < N_RUNS; i++) {
+        const timestamp = startTimestamp + i * 30 * 60 * 1000;
+        timestamps.push(timestamp);
+    }
+    return timestamps;
+};
+
+const normalizeDataLengths = (benchmarks: BenchmarkData[], timestamps: number[]): BenchmarkData[] => {
+    return benchmarks.map(benchmark => {
+        const normalizedTokensPerSecond = timestamps.map(timestamp => {
+            const index = benchmark.timestamps.findIndex(t => t === timestamp);
+            return index !== -1 ? benchmark.tokens_per_second[index] : null;
+        });
+        return { ...benchmark, tokens_per_second: normalizedTokensPerSecond, timestamps };
+    });
+};
+
+const formatDateTick = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleString('default', { month: 'numeric', day: 'numeric' });
+};
+
+const getMidnightTimestamps = (startTimestamp: number, endTimestamp: number): number[] => {
+    const midnightTimestamps = [];
+    let currentTimestamp = startTimestamp;
+    while (currentTimestamp <= endTimestamp) {
+        const date = new Date(currentTimestamp);
+        const midnightTimestamp = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+        if (midnightTimestamp > startTimestamp && midnightTimestamp <= endTimestamp) {
+            midnightTimestamps.push(midnightTimestamp);
+        }
+        currentTimestamp = midnightTimestamp + 24 * 60 * 60 * 1000;
+    }
+    return midnightTimestamps;
+};
+
+
 const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
     const theme = useTheme();
     const filteredBenchmarks = filterBenchmarks(data);
     const benchmarksByModel = groupBenchmarksByModel(filteredBenchmarks);
+    const timestampRange = generateTimestampRange();
+    const startTimestamp = timestampRange[0];
+    const endTimestamp = timestampRange[timestampRange.length - 1];
+    const midnightTimestamps = getMidnightTimestamps(startTimestamp, endTimestamp);
+
+    const normalizedBenchmarksByModel = Object.entries(benchmarksByModel).reduce<BenchmarksByModel>((acc, [modelName, benchmarks]) => {
+        const normalizedBenchmarks = normalizeDataLengths(benchmarks, timestampRange);
+        acc[modelName] = normalizedBenchmarks;
+        return acc;
+    }, {});
+
+    const lineChartData = timestampRange.map((timestamp) => {
+        const dataPoint: { [key: string]: number | null } = { timestamp };
+        Object.values(normalizedBenchmarksByModel).flat().forEach((benchmark) => {
+            const index = benchmark.timestamps.indexOf(timestamp);
+            dataPoint[benchmark.provider] = index !== -1 ? benchmark.tokens_per_second[index] : null;
+        });
+        return dataPoint;
+    });
 
     return (
         <div>
@@ -48,33 +123,25 @@ const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
                 .map(([model_name, benchmarks]) => (
                     <div key={model_name}>
                         <h3>{model_name}</h3>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart
-                                data={Array.from({ length: N_RUNS }, (_, i) => ({ name: i + 1 }))}
-                                margin={{ left: 20, right: 20 }}
-                            >
+                        <ResponsiveContainer width="100%" height={250}>
+                            <LineChart data={lineChartData} margin={{ left: 20, right: 20 }}>
                                 <CartesianGrid strokeDasharray="1 1" />
                                 <XAxis
-                                    dataKey="name"
-                                    interval={0}
+                                    dataKey="timestamp"
+                                    type="number"
+                                    domain={[startTimestamp, endTimestamp]}
+                                    ticks={midnightTimestamps}
+                                    tickFormatter={formatDateTick}
                                     tick={{ fontSize: 12, fill: theme.palette.common.white }}
-                                    tickFormatter={(value) => `Run ${N_RUNS - value + 1}`}
-                                    ticks={[1, Math.ceil(N_RUNS / 4), Math.ceil(N_RUNS / 2), Math.ceil(3 * N_RUNS / 4), N_RUNS]}
                                 />
-                                <YAxis
-                                    stroke={theme.palette.common.white}
-                                    domain={['auto', 'auto']}
-                                />
+                                <YAxis stroke={theme.palette.common.white} domain={['auto', 'auto']} />
                                 <Tooltip />
                                 <Legend />
                                 {benchmarks.map((benchmark) => (
                                     <Line
                                         key={benchmark.provider}
                                         type="monotone"
-                                        dataKey={(entry) => {
-                                            const index = entry.name - 1;
-                                            return index < benchmark.tokens_per_second.length ? benchmark.tokens_per_second[index] : null;
-                                        }}
+                                        dataKey={benchmark.provider}
                                         name={benchmark.provider}
                                         stroke={providerColors[benchmark.provider]}
                                         strokeWidth={2}
@@ -85,6 +152,12 @@ const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
                         </ResponsiveContainer>
                     </div>
                 ))}
+            {debug && (
+                <div>
+                    <h4>Debug Information</h4>
+                    <pre>{JSON.stringify({ lineChartData, timestampRange }, null, 2)}</pre>
+                </div>
+            )}
         </div>
     );
 };
