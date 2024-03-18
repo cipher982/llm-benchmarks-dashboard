@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { fetchAndProcessMetrics } from './apiMiddleware';
 import logger from './logger';
-import connectToMongoDB from './connectToMongoDB';
 import redisClient from './redisClient';
 
 export const CACHE_KEYS = {
@@ -23,22 +23,13 @@ async function serveCachedData(res: NextApiResponse, cacheKey: string) {
     return true;
 }
 
-async function fetchAndProcessMetrics(model: { find: (query?: any) => any }, daysAgo: number, cleanTransform: (rawData: any[]) => any[]) {
-    await connectToMongoDB();
-    const dateFilter = new Date();
-    dateFilter.setDate(dateFilter.getDate() - daysAgo);
-    const metrics = await model.find({ run_ts: { $gte: dateFilter } }).select('-times_between_tokens');
-    const rawMetrics = metrics.map((metric: any) => metric.toObject());
-    return rawMetrics.length === 0 ? null : cleanTransform(rawMetrics);
-}
-
 async function updateCache(cacheKey: string, processedMetrics: any) {
     await redisClient.set(cacheKey, JSON.stringify(processedMetrics));
     await redisClient.set(`${cacheKey}_lastUpdate`, Date.now().toString());
     logger.info('Cache updated successfully');
 }
 
-export async function refreshCache(req: NextApiRequest, res: NextApiResponse, model: { find: (query?: any) => any }, cleanTransform: (rawData: any[]) => any[], cacheKey: string, daysAgo: number = 365) {
+export async function refreshCache(req: NextApiRequest, res: NextApiResponse, model: { find: (query?: any) => any }, cleanTransform: (rawData: any[]) => any[], cacheKey: string, daysAgo: number) {
     const { method } = req;
     if (method !== 'GET') {
         res.setHeader('Allow', ['GET']);
@@ -51,6 +42,7 @@ export async function refreshCache(req: NextApiRequest, res: NextApiResponse, mo
             logger.info('No new metrics found for cache update');
             return res.status(404).json({ message: 'No metrics found' });
         }
+        logger.info(`Updating cache with ${processedMetrics.length} metrics`);
 
         await updateCache(cacheKey, processedMetrics);
 
@@ -68,35 +60,34 @@ export async function refreshCache(req: NextApiRequest, res: NextApiResponse, mo
     }
 }
 
-export async function handleCachedApiResponse(req: NextApiRequest, res: NextApiResponse, model: { find: (query?: any) => any }, cleanTransform: (rawData: any[]) => any[], cacheKey: string, daysAgo: number = 365) {
-    const { method } = req;
-    if (method !== 'GET') {
-        logger.warn(`Method ${method} not allowed`);
-        res.setHeader('Allow', ['GET']);
-        return res.status(405).end(`Method ${method} Not Allowed`);
+export async function handleCachedApiResponse(
+    req: NextApiRequest,
+    res: NextApiResponse,
+    model: { find: (query?: any) => any },
+    cleanTransform: (rawData: any[]) => any[],
+    cacheKey: string,
+    daysAgo: number
+) {
+    const cached = await serveCachedData(res, cacheKey);
+    if (!cached) {
+        logger.info('Cache miss, fetching data and updating cache');
+        await fetchAndUpdateCache(model, daysAgo, cleanTransform, cacheKey);
+        await serveCachedData(res, cacheKey);
+    } else if (await shouldRefreshCache(cacheKey)) {
+        fetchAndUpdateCache(model, daysAgo, cleanTransform, cacheKey).catch((error) =>
+            logger.error(`Async cache update error: ${error}`)
+        );
     }
+}
 
-    try {
-        const cached = await serveCachedData(res, cacheKey);
-        if (!cached) {
-            logger.info('Cache miss, fetching data and updating cache');
-            const processedMetrics = await fetchAndProcessMetrics(model, daysAgo, cleanTransform);
-            if (!processedMetrics) {
-                return res.status(404).json({ message: 'No metrics found' });
-            }
-            await updateCache(cacheKey, processedMetrics);
-            await serveCachedData(res, cacheKey);
-        } else if (await shouldRefreshCache(cacheKey)) {
-            fetchAndProcessMetrics(model, daysAgo, cleanTransform)
-                .then((processedMetrics) => {
-                    if (processedMetrics) {
-                        updateCache(cacheKey, processedMetrics);
-                    }
-                })
-                .catch((error) => logger.error(`Async cache update error: ${error}`));
-        }
-    } catch (error) {
-        logger.error(`Error handling request: ${error}`);
-        res.status(500).end('Internal Server Error');
+async function fetchAndUpdateCache(
+    model: { find: (query?: any) => any },
+    daysAgo: number,
+    cleanTransform: (rawData: any[]) => any[],
+    cacheKey: string
+) {
+    const processedMetrics = await fetchAndProcessMetrics(model, daysAgo, cleanTransform);
+    if (processedMetrics) {
+        await updateCache(cacheKey, processedMetrics);
     }
 }

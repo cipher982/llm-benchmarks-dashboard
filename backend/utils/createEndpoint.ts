@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import extractModelSize from './extractModelSize';
 import { shuffleArray } from './dataUtils';
+import logger from './logger';
 
 interface Metric {
     model_name: string;
@@ -40,7 +41,7 @@ async function createEndpoint(
 
         res.status(200).json(metricsToSend);
     } catch (err) {
-        console.error(err);
+        logger.error(`Error handling request: ${err}`);
         res.status(500).json({ message: "Internal server error" });
     }
 }

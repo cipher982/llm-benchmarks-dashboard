@@ -4,6 +4,10 @@ import { cleanTransformCloud } from '../../utils/processCloud';
 import { setupApiEndpoint } from '../../utils/apiMiddleware';
 import { CACHE_KEYS } from '../../utils/cacheUtils';
 
+export const daysAgo = 5;
+const debug = false;
+const useCache = !debug;
+
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-  await setupApiEndpoint(req, res, CloudMetrics, cleanTransformCloud, CACHE_KEYS.CLOUD_METRICS);
+  await setupApiEndpoint(req, res, CloudMetrics, cleanTransformCloud, CACHE_KEYS.CLOUD_METRICS, daysAgo, useCache);
 };
