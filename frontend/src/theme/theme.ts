@@ -33,7 +33,7 @@ export const providerColors: Record<Provider, string> = {
     [Provider.Deepinfra]: "#5798DC",
     [Provider.Nvidia]: "#85B737",
     [Provider.Runpod]: "#673AB7",
-    [Provider.Google]: "#4285F4",
+    [Provider.Google]: "#33a852",
 };
 
 
