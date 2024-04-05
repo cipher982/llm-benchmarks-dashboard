@@ -71,10 +71,12 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // claude-3 haiku
         "claude-3-haiku-20240307": "claude-3-haiku",
         "anthropic.claude-3-haiku-20240307-v1:0": "claude-3-haiku",
+        "claude-3-haiku@20240307": "claude-3-haiku",
 
         // claude-3 sonnet
         "claude-3-sonnet-20240229": "claude-3-sonnet",
         "anthropic.claude-3-sonnet-20240229-v1:0": "claude-3-sonnet",
+        "claude-3-sonnet@20240229": "claude-3-sonnet",
 
         // claude-3 opus
         "claude-3-opus-20240229": "claude-3-opus",
@@ -109,6 +111,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // gemma 7b
         "google/gemma-7b-it": "gemma-7b",
         "gemma-7b-it": "gemma-7b",
+        "accounts/fireworks/models/gemma-7b-it": "gemma-7b",
 
         // phi-2
         "microsoft/phi-2": "phi-2",
@@ -118,13 +121,22 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // qwen 1.5 14b
         "Qwen/Qwen1.5-14B-Chat": "qwen-1.5-14b",
+        "accounts/fireworks/models/qwen-14b-chat": "qwen-1.5-14b",
 
         // qwen 1.5 72b
         "Qwen/Qwen1.5-72B-Chat": "qwen-1.5-72b",
+        "accounts/fireworks/models/qwen-72b-chat": "qwen-1.5-72b",
 
         // yi 34b
         "01-ai/yi-34b-chat": "yi-34b",
         "zero-one-ai/Yi-34B-Chat": "yi-34b",
+        "accounts/fireworks/models/yi-34b-chat": "yi-34b",
+
+        // dbrx
+        "accounts/fireworks/models/dbrx-instruct": "dbrx",
+
+        // cohere command r plus
+        "cohere-cmd-r-plus": "cohere-cmd-r-plus",
     };
 
     data = data.filter(item => item.provider !== "openrouter");
