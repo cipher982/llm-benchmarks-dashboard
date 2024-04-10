@@ -138,6 +138,13 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // cohere command r plus
         "cohere-cmd-r-plus": "cohere-cmd-r-plus",
+
+        // gemini 1.0 pro
+        // "gemini-pro",
+        "gemini-1.0-pro": "gemini-1.0-pro",
+
+        // gemini 1.5 pro
+        "gemini-1.5-pro-preview-0409": "gemini-1.5-pro",
     };
 
     data = data.filter(item => item.provider !== "openrouter");
