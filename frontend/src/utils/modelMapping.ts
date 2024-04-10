@@ -134,6 +134,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // dbrx
         "accounts/fireworks/models/dbrx-instruct": "dbrx",
+        "databricks/dbrx-instruct": "dbrx",
 
         // cohere command r plus
         "cohere-cmd-r-plus": "cohere-cmd-r-plus",
