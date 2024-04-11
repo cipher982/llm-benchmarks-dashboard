@@ -54,6 +54,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // mistral large
         "mistral-large": "mistral-large",
 
+        // mistral 8x22b
+        "mistralai/Mixtral-8x22B": "mistral-8x22b",
+
         // claude-instant
         "anthropic.claude-instant-v1": "claude-instant-1",
         "claude-instant-1.2": "claude-instant-1",
@@ -150,6 +153,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
     data = data.filter(item => item.provider !== "openrouter");
     data = data.filter(item => item.model_name !== "anthropic.claude-v1" && item.model_name !== "anthropic.claude-v2");
 
+    // Print unique model names
+    const uniqueModelNames = [...new Set(data.map(item => item.model_name))];
+    console.log("Unique model names:", uniqueModelNames);
 
     data.forEach(item => {
         if (item.provider === "vertex") {
