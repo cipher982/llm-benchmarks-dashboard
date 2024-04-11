@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { styled, useTheme } from '@mui/system';
 import { MainContainer } from '../styles';
+
 interface ModelData {
     runs: string[];
     provider: string;
@@ -43,9 +44,20 @@ const StatusIndicator = styled('span')<{ status: string }>(({ status }) => {
     };
 });
 
+const LastRunInfo = styled('div')(() => {
+    const theme = useTheme();
+    return {
+        marginBottom: '20px',
+        fontSize: '18px',
+        fontWeight: 'bold',
+        color: theme.palette.text.primary,
+    };
+});
+
 const StatusPage: React.FC = () => {
     const [data, setData] = useState<Record<string, ModelData>>({});
     const [isMobile, setIsMobile] = useState<boolean>(false);
+    const [lastRunInfo, setLastRunInfo] = useState<string>('');
 
     useEffect(() => {
         const handleResize = () => {
@@ -68,9 +80,22 @@ const StatusPage: React.FC = () => {
             const response = await fetch('https://llm-benchmarks-backend.vercel.app/api/status');
             const data = await response.json();
             setData(data);
+            updateLastRunInfo(data);
         } catch (error) {
             console.error('Error fetching model status data:', error);
         }
+    };
+
+    const updateLastRunInfo = (data: Record<string, ModelData>) => {
+        const mostRecentRunTimestamp = Math.max(...Object.values(data).map((model) => {
+            return new Date(model.last_run_timestamp + 'Z').getTime();
+        }));
+        const currentTime = new Date().getTime();
+        const timeDifference = currentTime - mostRecentRunTimestamp;
+        const hours = Math.floor(timeDifference / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+
+        setLastRunInfo(`⏰ Last model run: ${hours}h ${minutes}m ago`);
     };
 
     const groupedData = Object.entries(data).reduce((acc, [key, model]) => {
@@ -88,20 +113,27 @@ const StatusPage: React.FC = () => {
         return filteredRuns.slice(-10);
     };
 
+    const formatTimestamp = (timestamp: string) => {
+        const localTimestamp = new Date(timestamp);
+        return localTimestamp.toUTCString();
+    };
+
     return (
         <MainContainer isMobile={isMobile}>
             <StatusPageContainer style={{ borderRadius: "10px" }}>
                 <h1>Model Benchmarking Status</h1>
+                <LastRunInfo>{lastRunInfo}</LastRunInfo>
                 {Object.entries(groupedData).map(([provider, models]) => (
                     <ProviderGroup key={provider}>
                         <h2>{provider}</h2>
                         {models.map((model) => {
                             const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
+                            const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
 
                             return (
                                 <ModelItem key={model.key}>
                                     <span>{model.model}</span>
-                                    <span> - Last Run: {new Date(model.last_run_timestamp).toLocaleString()}</span>
+                                    <span> - Last Run: {localLastRunTimestamp}</span>
                                     <span> - Status: </span>
                                     {recentStatuses.map((status, index) => (
                                         <StatusIndicator key={index} status={status}>
