@@ -10,6 +10,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "llama2-7b-chat": "llama-2-7b",
         "accounts/fireworks/models/llama-v2-7b": "llama-2-7b",
         "accounts/fireworks/models/llama-v2-7b-chat": "llama-2-7b",
+        "meta-llama/Llama-2-7b-hf": "llama-2-7b",
 
         // llama 2 13b
         "meta-llama/Llama-2-13b-chat-hf": "llama-2-13b",
@@ -20,6 +21,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/llama-v2-13b": "llama-2-13b",
         "accounts/fireworks/models/llama-v2-13b-chat": "llama-2-13b",
         "meta.llama2-13b-chat-v1": "llama-2-13b",
+        "meta-llama/Llama-2-13b-hf": "llama-2-13b",
 
         // llama 2 34b - code
         "accounts/fireworks/models/llama-v2-34b-code": "llama-2-34b",
@@ -35,12 +37,16 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/llama-v2-70b-chat": "llama-2-70b",
         "meta.llama2-70b-chat-v1": "llama-2-70b",
         "llama2-70b-4096": "llama-2-70b",
+        "meta-llama/Llama-2-70b-hf": "llama-2-70b",
 
         // llama 3 8b
         "meta-llama/Meta-Llama-3-8B": "llama-3-8b",
+        "accounts/fireworks/models/llama-v3-8b-instruct": "llama-3-8b",
 
         // llama 3 70b
         "meta-llama/Meta-Llama-3-70B-Instruct": "llama-3-70b",
+        "meta-llama/Meta-Llama-3-70B": "llama-3-70b",
+        "accounts/fireworks/models/llama-v3-70b-instruct": "llama-3-70b",
 
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
@@ -125,6 +131,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // phi-2
         "microsoft/phi-2": "phi-2",
+
+        // qwen 1.5 4b
+        "Qwen/Qwen1.5-4B-Chat": "qwen-1.5-4b",
 
         // qwen 1.5 7b
         "Qwen/Qwen1.5-7B-Chat": "qwen-1.5-7b",
