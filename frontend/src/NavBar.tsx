@@ -108,8 +108,8 @@ const Navbar: React.FC = () => {
     return (
         <NavBarContainer>
             <LinksContainer>
-                <StyledLink to="/local">Local Benchmarks</StyledLink>
                 <StyledLink to="/cloud">Cloud Benchmarks</StyledLink>
+                <StyledLink to="/local">Local Benchmarks</StyledLink>
             </LinksContainer>
             <ButtonsContainer>
                 <StyledButton

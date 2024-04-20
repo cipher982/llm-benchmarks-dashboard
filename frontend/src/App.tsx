@@ -11,8 +11,8 @@ import theme from './theme/theme';
 
 // Components
 import Navbar from './NavBar';
-import LocalBenchmarks from './pages/LocalBenchmarks';
 import CloudBenchmarks from './pages/CloudBenchmarks';
+import LocalBenchmarks from './pages/LocalBenchmarks';
 import StatusPage from './pages/Status';
 
 // Styles
@@ -32,7 +32,7 @@ const App: FC = () => {
         </AppBar>
         <MainContainer className="MainContainer" isMobile={isMobile}>
           <Routes>
-            <Route path="/" element={<Navigate to="/local" replace />} />
+            <Route path="/" element={<Navigate to="/cloud" replace />} />
             <Route path="/local" element={<LocalBenchmarks />} />
             <Route path="/cloud" element={<CloudBenchmarks />} />
             <Route path="/status" element={<StatusPage />} />
