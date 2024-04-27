@@ -42,11 +42,13 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // llama 3 8b
         "meta-llama/Meta-Llama-3-8B": "llama-3-8b",
         "accounts/fireworks/models/llama-v3-8b-instruct": "llama-3-8b",
+        "meta.llama3-8b-instruct-v1:0": "llama-3-8b",
 
         // llama 3 70b
         "meta-llama/Meta-Llama-3-70B-Instruct": "llama-3-70b",
         "meta-llama/Meta-Llama-3-70B": "llama-3-70b",
         "accounts/fireworks/models/llama-v3-70b-instruct": "llama-3-70b",
+        "meta.llama3-70b-instruct-v1:0": "llama-3-70b",
 
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
@@ -155,8 +157,12 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/dbrx-instruct": "dbrx",
         "databricks/dbrx-instruct": "dbrx",
 
+        // cohere command r
+        "cohere.command-r-v1:0": "cohere-cmd-r",
+
         // cohere command r plus
         "cohere-cmd-r-plus": "cohere-cmd-r-plus",
+        "cohere.command-r-plus-v1:0": "cohere-cmd-r-plus",
 
         // gemini 1.0 pro
         // "gemini-pro",
