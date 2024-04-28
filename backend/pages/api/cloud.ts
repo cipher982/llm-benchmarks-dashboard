@@ -4,7 +4,7 @@ import { cleanTransformCloud } from '../../utils/processCloud';
 import { setupApiEndpoint } from '../../utils/apiMiddleware';
 import { CACHE_KEYS } from '../../utils/cacheUtils';
 
-export const daysAgo = 20;
+export const daysAgo = 14;
 const debug = false;
 const useCache = !debug;
 
