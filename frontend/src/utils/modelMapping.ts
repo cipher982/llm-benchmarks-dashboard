@@ -43,12 +43,14 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "meta-llama/Meta-Llama-3-8B": "llama-3-8b",
         "accounts/fireworks/models/llama-v3-8b-instruct": "llama-3-8b",
         "meta.llama3-8b-instruct-v1:0": "llama-3-8b",
+        "llama3-8b-8192": "llama-3-8b",
 
         // llama 3 70b
         "meta-llama/Meta-Llama-3-70B-Instruct": "llama-3-70b",
         "meta-llama/Meta-Llama-3-70B": "llama-3-70b",
         "accounts/fireworks/models/llama-v3-70b-instruct": "llama-3-70b",
         "meta.llama3-70b-instruct-v1:0": "llama-3-70b",
+        "llama3-70b-8192": "llama-3-70b",
 
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
