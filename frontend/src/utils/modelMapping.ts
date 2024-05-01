@@ -42,6 +42,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // llama 3 8b
         "meta-llama/Meta-Llama-3-8B": "llama-3-8b",
         "accounts/fireworks/models/llama-v3-8b-instruct": "llama-3-8b",
+        "accounts/fireworks/models/llama-v3-8b-instruct-hf": "llama-3-8b",
         "meta.llama3-8b-instruct-v1:0": "llama-3-8b",
         "llama3-8b-8192": "llama-3-8b",
         "meta-llama/Meta-Llama-3-8B-Instruct": "llama-3-8b",
@@ -50,6 +51,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "meta-llama/Meta-Llama-3-70B-Instruct": "llama-3-70b",
         "meta-llama/Meta-Llama-3-70B": "llama-3-70b",
         "accounts/fireworks/models/llama-v3-70b-instruct": "llama-3-70b",
+        "accounts/fireworks/models/llama-v3-70b-instruct-hf": "llama-3-70b",
         "meta.llama3-70b-instruct-v1:0": "llama-3-70b",
         "llama3-70b-8192": "llama-3-70b",
 
@@ -180,6 +182,11 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // Starcoder 2 15b
         "bigcode/starcoder2-15b": "starcoder-2-15b",
+
+        // Amazon models
+        "amazon.titan-tg1-large": "titan-tg1-large",
+        "amazon.titan-text-lite-v1": "titan-text-lite",
+        "amazon.titan-text-express-v1": "titan-text-express",
     };
 
     data = data.filter(item => item.provider !== "openrouter");
