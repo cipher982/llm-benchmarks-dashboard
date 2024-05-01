@@ -44,6 +44,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/llama-v3-8b-instruct": "llama-3-8b",
         "meta.llama3-8b-instruct-v1:0": "llama-3-8b",
         "llama3-8b-8192": "llama-3-8b",
+        "meta-llama/Meta-Llama-3-8B-Instruct": "llama-3-8b",
 
         // llama 3 70b
         "meta-llama/Meta-Llama-3-70B-Instruct": "llama-3-70b",
@@ -72,6 +73,8 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // mistral 8x22b
         "mistralai/Mixtral-8x22B": "mistral-8x22b",
+        "mistralai/Mixtral-8x22B-Instruct-v0.1": "mistral-8x22b",
+        
 
         // claude-instant
         "anthropic.claude-instant-v1": "claude-instant-1",
@@ -99,6 +102,8 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // claude-3 opus
         "claude-3-opus-20240229": "claude-3-opus",
+        "claude-3-opus@20240229": "claude-3-opus",
+        "anthropic.claude-3-opus-20240229-v1:0": "claude-3-opus",
 
         // gpt-3.5
         "gpt-3.5-turbo-0613": "gpt-3.5-turbo",
@@ -172,6 +177,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // gemini 1.5 pro
         "gemini-1.5-pro-preview-0409": "gemini-1.5-pro",
+
+        // Starcoder 2 15b
+        "bigcode/starcoder2-15b": "starcoder-2-15b",
     };
 
     data = data.filter(item => item.provider !== "openrouter");
