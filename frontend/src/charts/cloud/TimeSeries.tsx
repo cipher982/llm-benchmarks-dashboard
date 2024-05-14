@@ -25,7 +25,7 @@ interface BenchmarksByModel {
 
 const filterBenchmarks = (data: CloudBenchmark[]): BenchmarkData[] => {
     const latestTimestamps = generateTimestampRange();
-    return data.map(({ provider, model_name, tokens_per_second }) => {
+    const filteredData = data.map(({ provider, model_name, tokens_per_second }) => {
         const startIndex = Math.max(tokens_per_second.length - N_RUNS, 0);
         const slicedTokensPerSecond = tokens_per_second.slice(startIndex);
         const alignedTimestamps = latestTimestamps.slice(-slicedTokensPerSecond.length);
@@ -36,6 +36,17 @@ const filterBenchmarks = (data: CloudBenchmark[]): BenchmarkData[] => {
             timestamps: alignedTimestamps,
         };
     });
+
+    // const claudeOpusData = filteredData.filter(benchmark => benchmark.model_name === 'claude-3-opus');
+    // if (claudeOpusData.length > 0) {
+    //     console.log('Filtered = claude-3-opus:', claudeOpusData);
+    // }
+
+    // const claudetwoData = filteredData.filter(benchmark => benchmark.model_name === 'claude-2');
+    // if (claudetwoData.length > 0) {
+    //     console.log('Filtered = claude-2:', claudetwoData);
+    // }
+    return filteredData;
 };
 
 const groupBenchmarksByModel = (benchmarks: BenchmarkData[]): { [model_name: string]: BenchmarkData[] } => {
@@ -47,6 +58,15 @@ const groupBenchmarksByModel = (benchmarks: BenchmarkData[]): { [model_name: str
             benchmarksByModel[benchmark.model_name] = [benchmark];
         }
     });
+
+    // if (benchmarksByModel['claude-3-opus']) {
+    //     console.log('Grouped = claude-3-opus:', benchmarksByModel['claude-3-opus']);
+    // }
+
+    // if (benchmarksByModel['claude-2']) {
+    //     console.log('Grouped = claude-2:', benchmarksByModel['claude-2']);
+    // }
+
     return benchmarksByModel;
 };
 
@@ -64,10 +84,8 @@ const generateTimestampRange = () => {
 
 const normalizeDataLengths = (benchmarks: BenchmarkData[], timestamps: number[]): BenchmarkData[] => {
     return benchmarks.map(benchmark => {
-        const normalizedTokensPerSecond = timestamps.map(timestamp => {
-            const index = benchmark.timestamps.findIndex(t => t === timestamp);
-            return index !== -1 ? benchmark.tokens_per_second[index] : null;
-        });
+        const timestampToTokenMap = new Map(benchmark.timestamps.map((t, i) => [t, benchmark.tokens_per_second[i]]));
+        const normalizedTokensPerSecond = timestamps.map(timestamp => timestampToTokenMap.get(timestamp) ?? null);
         return { ...benchmark, tokens_per_second: normalizedTokensPerSecond, timestamps };
     });
 };
@@ -107,11 +125,25 @@ const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
         return acc;
     }, {});
 
+    // if (normalizedBenchmarksByModel['claude-3-opus']) {
+    //     console.log('Normalized = claude-3-opus:', normalizedBenchmarksByModel['claude-3-opus']);
+    // }
+
+    // if (normalizedBenchmarksByModel['claude-2']) {
+    //     console.log('Normalized = claude-2:', normalizedBenchmarksByModel['claude-2']);
+    // }
+
+
     const lineChartData = timestampRange.map((timestamp) => {
         const dataPoint: { [key: string]: number | null } = { timestamp };
-        Object.values(normalizedBenchmarksByModel).flat().forEach((benchmark) => {
-            const index = benchmark.timestamps.indexOf(timestamp);
-            dataPoint[benchmark.provider] = index !== -1 ? benchmark.tokens_per_second[index] : null;
+        Object.entries(normalizedBenchmarksByModel).forEach(([modelName, benchmarks]) => {
+            benchmarks.forEach((benchmark) => {
+                const index = benchmark.timestamps.indexOf(timestamp);
+                if (index !== -1) {
+                    const key = `${modelName}-${benchmark.provider}`;
+                    dataPoint[key] = benchmark.tokens_per_second[index];
+                }
+            });
         });
         return dataPoint;
     });
@@ -139,10 +171,10 @@ const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
                                 <Legend />
                                 {benchmarks.map((benchmark) => (
                                     <Line
-                                        key={benchmark.provider}
+                                        key={`${model_name}-${benchmark.provider}`}
                                         type="monotone"
-                                        dataKey={benchmark.provider}
-                                        name={benchmark.provider}
+                                        dataKey={`${model_name}-${benchmark.provider}`}
+                                        name={`${model_name} - ${benchmark.provider}`}
                                         stroke={providerColors[benchmark.provider]}
                                         strokeWidth={2}
                                         dot={{ stroke: providerColors[benchmark.provider], strokeWidth: 0, fill: providerColors[benchmark.provider] }}
