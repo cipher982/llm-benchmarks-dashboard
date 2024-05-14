@@ -109,7 +109,6 @@ const getMidnightTimestamps = (startTimestamp: number, endTimestamp: number): nu
     return midnightTimestamps;
 };
 
-
 const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
     const theme = useTheme();
     const filteredBenchmarks = filterBenchmarks(data);
@@ -125,22 +124,13 @@ const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
         return acc;
     }, {});
 
-    // if (normalizedBenchmarksByModel['claude-3-opus']) {
-    //     console.log('Normalized = claude-3-opus:', normalizedBenchmarksByModel['claude-3-opus']);
-    // }
-
-    // if (normalizedBenchmarksByModel['claude-2']) {
-    //     console.log('Normalized = claude-2:', normalizedBenchmarksByModel['claude-2']);
-    // }
-
-
     const lineChartData = timestampRange.map((timestamp) => {
         const dataPoint: { [key: string]: number | null } = { timestamp };
         Object.entries(normalizedBenchmarksByModel).forEach(([modelName, benchmarks]) => {
             benchmarks.forEach((benchmark) => {
                 const index = benchmark.timestamps.indexOf(timestamp);
                 if (index !== -1) {
-                    const key = `${modelName}-${benchmark.provider}`;
+                    const key = `${benchmark.provider}`;
                     dataPoint[key] = benchmark.tokens_per_second[index];
                 }
             });
@@ -171,10 +161,10 @@ const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
                                 <Legend />
                                 {benchmarks.map((benchmark) => (
                                     <Line
-                                        key={`${model_name}-${benchmark.provider}`}
+                                        key={`${benchmark.provider}`}
                                         type="monotone"
-                                        dataKey={`${model_name}-${benchmark.provider}`}
-                                        name={`${model_name} - ${benchmark.provider}`}
+                                        dataKey={`${benchmark.provider}`}
+                                        name={`${benchmark.provider}`}
                                         stroke={providerColors[benchmark.provider]}
                                         strokeWidth={2}
                                         dot={{ stroke: providerColors[benchmark.provider], strokeWidth: 0, fill: providerColors[benchmark.provider] }}
