@@ -7,7 +7,6 @@ import { Provider, providerColors } from '../../theme/theme';
 const N_RUNS = 144; // 3 days of 30 minute intervals
 const debug = false;
 
-
 type BenchmarkData = {
     provider: Provider;
     model_name: string;
@@ -25,7 +24,7 @@ interface BenchmarksByModel {
 
 const filterBenchmarks = (data: CloudBenchmark[]): BenchmarkData[] => {
     const latestTimestamps = generateTimestampRange();
-    const filteredData = data.map(({ provider, model_name, tokens_per_second }) => {
+    return data.map(({ provider, model_name, tokens_per_second }) => {
         const startIndex = Math.max(tokens_per_second.length - N_RUNS, 0);
         const slicedTokensPerSecond = tokens_per_second.slice(startIndex);
         const alignedTimestamps = latestTimestamps.slice(-slicedTokensPerSecond.length);
@@ -36,50 +35,23 @@ const filterBenchmarks = (data: CloudBenchmark[]): BenchmarkData[] => {
             timestamps: alignedTimestamps,
         };
     });
-
-    // const claudeOpusData = filteredData.filter(benchmark => benchmark.model_name === 'claude-3-opus');
-    // if (claudeOpusData.length > 0) {
-    //     console.log('Filtered = claude-3-opus:', claudeOpusData);
-    // }
-
-    // const claudetwoData = filteredData.filter(benchmark => benchmark.model_name === 'claude-2');
-    // if (claudetwoData.length > 0) {
-    //     console.log('Filtered = claude-2:', claudetwoData);
-    // }
-    return filteredData;
 };
 
 const groupBenchmarksByModel = (benchmarks: BenchmarkData[]): { [model_name: string]: BenchmarkData[] } => {
-    const benchmarksByModel: { [model_name: string]: BenchmarkData[] } = {};
-    benchmarks.forEach((benchmark) => {
-        if (benchmarksByModel[benchmark.model_name]) {
-            benchmarksByModel[benchmark.model_name].push(benchmark);
-        } else {
-            benchmarksByModel[benchmark.model_name] = [benchmark];
+    return benchmarks.reduce((acc, benchmark) => {
+        if (!acc[benchmark.model_name]) {
+            acc[benchmark.model_name] = [];
         }
-    });
-
-    // if (benchmarksByModel['claude-3-opus']) {
-    //     console.log('Grouped = claude-3-opus:', benchmarksByModel['claude-3-opus']);
-    // }
-
-    // if (benchmarksByModel['claude-2']) {
-    //     console.log('Grouped = claude-2:', benchmarksByModel['claude-2']);
-    // }
-
-    return benchmarksByModel;
+        acc[benchmark.model_name].push(benchmark);
+        return acc;
+    }, {} as { [model_name: string]: BenchmarkData[] });
 };
 
 const generateTimestampRange = () => {
     const now = new Date();
     const endTimestamp = now.getTime();
     const startTimestamp = endTimestamp - (N_RUNS - 1) * 30 * 60 * 1000;
-    const timestamps = [];
-    for (let i = 0; i < N_RUNS; i++) {
-        const timestamp = startTimestamp + i * 30 * 60 * 1000;
-        timestamps.push(timestamp);
-    }
-    return timestamps;
+    return Array.from({ length: N_RUNS }, (_, i) => startTimestamp + i * 30 * 60 * 1000);
 };
 
 const normalizeDataLengths = (benchmarks: BenchmarkData[], timestamps: number[]): BenchmarkData[] => {
@@ -130,7 +102,7 @@ const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
             benchmarks.forEach((benchmark) => {
                 const index = benchmark.timestamps.indexOf(timestamp);
                 if (index !== -1) {
-                    const key = `${benchmark.provider}`;
+                    const key = `${modelName}-${benchmark.provider}`;
                     dataPoint[key] = benchmark.tokens_per_second[index];
                 }
             });
@@ -161,9 +133,9 @@ const TimeSeriesChart: React.FC<CloudBenchmarkChartProps> = ({ data }) => {
                                 <Legend />
                                 {benchmarks.map((benchmark) => (
                                     <Line
-                                        key={`${benchmark.provider}`}
+                                        key={`${model_name}-${benchmark.provider}`}
                                         type="monotone"
-                                        dataKey={`${benchmark.provider}`}
+                                        dataKey={`${model_name}-${benchmark.provider}`}
                                         name={`${benchmark.provider}`}
                                         stroke={providerColors[benchmark.provider]}
                                         strokeWidth={2}
