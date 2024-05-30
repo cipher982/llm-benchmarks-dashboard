@@ -182,9 +182,11 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // gemini 1.5 pro
         "gemini-1.5-pro-preview-0409": "gemini-1.5-pro",
+        "gemini-1.5-pro-001": "gemini-1.5-pro",
 
         // gemini 1.5 flash
         "gemini-1.5-flash-preview-0514": "gemini-1.5-flash",
+        "gemini-1.5-flash-001": "gemini-1.5-flash",
 
         // Starcoder 2 15b
         "bigcode/starcoder2-15b": "starcoder-2-15b",
