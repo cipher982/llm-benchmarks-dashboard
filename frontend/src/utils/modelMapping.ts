@@ -77,7 +77,6 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "mistralai/Mixtral-8x22B": "mistral-8x22b",
         "mistralai/Mixtral-8x22B-Instruct-v0.1": "mistral-8x22b",
         
-
         // claude-instant
         "anthropic.claude-instant-v1": "claude-instant-1",
         "claude-instant-1.2": "claude-instant-1",
@@ -187,6 +186,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // gemini 1.5 flash
         "gemini-1.5-flash-preview-0514": "gemini-1.5-flash",
         "gemini-1.5-flash-001": "gemini-1.5-flash",
+
+        // google bison
+        "text-bison@002": "google-bison",
 
         // Starcoder 2 15b
         "bigcode/starcoder2-15b": "starcoder-2-15b",
