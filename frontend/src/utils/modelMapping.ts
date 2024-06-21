@@ -70,6 +70,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "mistral.mixtral-8x7b-instruct-v0:1": "mistral-8x7b",
         "mixtral-8x7b-32768": "mistral-8x7b",
 
+        // mistral small
+        "mistral.mistral-small-2402-v1:0": "mistral-small",
+
         // mistral large
         "mistral-large": "mistral-large",
 
@@ -105,6 +108,10 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "claude-3-opus-20240229": "claude-3-opus",
         "claude-3-opus@20240229": "claude-3-opus",
         "anthropic.claude-3-opus-20240229-v1:0": "claude-3-opus",
+
+        // claude-3-5 sonnet
+        "claude-3-5-sonnet-20240620": "claude-3-5-sonnet",
+        "anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet",
 
         // gpt-3.5
         "gpt-3.5-turbo-0613": "gpt-3.5-turbo",
