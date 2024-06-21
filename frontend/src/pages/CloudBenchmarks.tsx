@@ -15,6 +15,8 @@ const CloudBenchmarks: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const isMobile = useMediaQuery('(max-width:500px)');
+    const [dataReady, setDataReady] = useState<boolean>(false);
+
 
     useEffect(() => {
         const fetchCloudBenchmarks = async () => {
@@ -27,6 +29,7 @@ const CloudBenchmarks: React.FC = () => {
 
                 setBenchmarks(mappedData);
                 setLoading(false);
+                setDataReady(true);
             } catch (err) {
                 const error = err as Error;
                 console.error("Error fetching data:", error);
@@ -99,10 +102,12 @@ const CloudBenchmarks: React.FC = () => {
                 </div>
             </TableContainer>
 
-            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
-                <h4>📈 Time Series 📈</h4>
-                <TimeSeriesChart data={benchmarks} />
-            </ChartContainer>
+            {dataReady && (
+                <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
+                    <h4>📈 Time Series 📈</h4>
+                    <TimeSeriesChart data={benchmarks} />
+                </ChartContainer>
+            )}
         </MainContainer>
     );
 };
