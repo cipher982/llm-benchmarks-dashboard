@@ -26,12 +26,14 @@ const ProviderGroup = styled('div')(() => {
     };
 });
 
-const ModelItem = styled('div')(() => {
+const ModelItem = styled('div')<{ deprecated?: boolean }>(({ deprecated }) => {
     const theme = useTheme();
     return {
         fontSize: '14px',
         lineHeight: '1.4',
         marginBottom: '5px',
+        opacity: deprecated ? 0.6 : 1,
+        fontStyle: deprecated ? 'italic' : 'normal',
     };
 });
 
@@ -58,6 +60,12 @@ const StatusPage: React.FC = () => {
     const [data, setData] = useState<Record<string, ModelData>>({});
     const [isMobile, setIsMobile] = useState<boolean>(false);
     const [lastRunInfo, setLastRunInfo] = useState<string>('');
+
+    const isModelDeprecated = (lastRunTimestamp: string): boolean => {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        return new Date(lastRunTimestamp + 'Z') < oneWeekAgo;
+    };
 
     useEffect(() => {
         const handleResize = () => {
@@ -98,15 +106,22 @@ const StatusPage: React.FC = () => {
         setLastRunInfo(`⏰ Last model run: ${hours}h ${minutes}m ago`);
     };
 
-    const groupedData = Object.entries(data).reduce((acc, [key, model]) => {
-        if (!acc[model.provider] && !model.provider.includes('_todo')) {
-            acc[model.provider] = [];
-        }
+    const { activeModels, deprecatedModels } = Object.entries(data).reduce((acc, [key, model]) => {
         if (!model.provider.includes('_todo')) {
-            acc[model.provider].push({ key, ...model });
+            const group = isModelDeprecated(model.last_run_timestamp)
+                ? acc.deprecatedModels
+                : acc.activeModels;
+        
+            if (!group[model.provider]) {
+                group[model.provider] = [];
+            }
+            group[model.provider].push({ key, ...model });
         }
         return acc;
-    }, {} as Record<string, Array<{ key: string } & ModelData>>);
+    }, {
+        activeModels: {} as Record<string, Array<{ key: string } & ModelData>>,
+        deprecatedModels: {} as Record<string, Array<{ key: string } & ModelData>>
+    });
 
     const getRecentNonDidNotRunStatuses = (runs: string[]) => {
         const filteredRuns = runs.filter((status) => status !== 'did-not-run');
@@ -123,15 +138,41 @@ const StatusPage: React.FC = () => {
             <StatusPageContainer style={{ borderRadius: "10px" }}>
                 <h1>Model Benchmarking Status</h1>
                 <LastRunInfo>{lastRunInfo}</LastRunInfo>
-                {Object.entries(groupedData).map(([provider, models]) => (
+
+                <h2>Active Models</h2>
+                {Object.entries(activeModels).map(([provider, models]) => (
                     <ProviderGroup key={provider}>
-                        <h2>{provider}</h2>
+                        <h3>{provider}</h3>
                         {models.map((model) => {
                             const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
                             const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
 
                             return (
                                 <ModelItem key={model.key}>
+                                    <span>{model.model}</span>
+                                    <span> - Last Run: {localLastRunTimestamp}</span>
+                                    <span> - Status: </span>
+                                    {recentStatuses.map((status, index) => (
+                                        <StatusIndicator key={index} status={status}>
+                                            {status === 'success' ? '✓' : '✗'}
+                                        </StatusIndicator>
+                                    ))}
+                                </ModelItem>
+                            );
+                        })}
+                    </ProviderGroup>
+                ))}
+
+                <h2>Deprecated Models</h2>
+                {Object.entries(deprecatedModels).map(([provider, models]) => (
+                    <ProviderGroup key={provider}>
+                        <h3>{provider}</h3>
+                        {models.map((model) => {
+                            const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
+                            const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
+
+                            return (
+                                <ModelItem key={model.key} deprecated>
                                     <span>{model.model}</span>
                                     <span> - Last Run: {localLastRunTimestamp}</span>
                                     <span> - Status: </span>
