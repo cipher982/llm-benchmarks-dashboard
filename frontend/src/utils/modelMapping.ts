@@ -55,6 +55,23 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "meta.llama3-70b-instruct-v1:0": "llama-3-70b",
         "llama3-70b-8192": "llama-3-70b",
 
+        // llama 3.1 8b
+        "meta.llama3-1-8b-instruct-v1:0": "llama-3.1-8b",
+        "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo": "llama-3.1-8b",
+        "accounts/fireworks/models/llama-v3p1-8b-instruct": "llama-3.1-8b",
+        "llama-3.1-8b-instant": "llama-3.1-8b",
+
+        // llama 3.1 70b
+        "meta.llama3-1-70b-instruct-v1:0": "llama-3.1-70b",
+        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo": "llama-3.1-70b",
+        "accounts/fireworks/models/llama-v3p1-70b-instruct": "llama-3.1-70b",
+        "llama-3.1-70b-versatile": "llama-3.1-70b",
+
+        // llama 3.1 405b
+        "meta.llama3-1-405b-instruct-v1:0": "llama-3.1-405b",
+        "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo": "llama-3.1-405b",
+        "accounts/fireworks/models/llama-v3p1-405b-instruct": "llama-3.1-405b",
+
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
         "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b",
@@ -79,6 +96,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // mistral 8x22b
         "mistralai/Mixtral-8x22B": "mistral-8x22b",
         "mistralai/Mixtral-8x22B-Instruct-v0.1": "mistral-8x22b",
+        "accounts/fireworks/models/mixtral-8x22b-instruct": "mistral-8x22b",
         
         // claude-instant
         "anthropic.claude-instant-v1": "claude-instant-1",
@@ -166,6 +184,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "Qwen/Qwen1.5-72B-Chat": "qwen-1.5-72b",
         "accounts/fireworks/models/qwen-72b-chat": "qwen-1.5-72b",
 
+        // qwen 2 72b
+        "accounts/fireworks/models/qwen2-72b-instruct": "qwen-2-72b",
+
         // yi 34b
         "01-ai/yi-34b-chat": "yi-34b",
         "zero-one-ai/Yi-34B-Chat": "yi-34b",
@@ -196,6 +217,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // google bison
         "text-bison@002": "google-bison",
+
+        // starcover 16b
+        "accounts/fireworks/models/starcoder-16b": "starcoder-16b",
 
         // Starcoder 2 15b
         "bigcode/starcoder2-15b": "starcoder-2-15b",
