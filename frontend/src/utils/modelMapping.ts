@@ -79,21 +79,25 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "us.meta.llama3-2-1b-instruct-v1:0": "llama-3.2-1b",
         "meta-llama/Llama-Vision-Free": "llama-3.2-1b",
         "meta-llama/Llama-3.2-1B-Instruct": "llama-3.2-1b",
+        "llama-3.2-1b-preview": "llama-3.2-1b",
 
         // llama 3.2 3b
         "us.meta.llama3-2-3b-instruct-v1:0": "llama-3.2-3b",
         "meta-llama/Llama-3.2-3B-Instruct-Turbo": "llama-3.2-3b",
         "meta-llama/Llama-3.2-3B-Instruct": "llama-3.2-3b",
+        "llama-3.2-3b-preview": "llama-3.2-3b",
 
         // llama 3.2 11b
         "us.meta.llama3-2-11b-instruct-v1:0": "llama-3.2-11b",
         "meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo": "llama-3.2-11b",
         "meta-llama/Llama-3.2-11B-Vision-Instruct": "llama-3.2-11b",
+        "llama-3.2-11b-text-preview": "llama-3.2-11b",
 
         // llama 3.2 90b
         "us.meta.llama3-2-90b-instruct-v1:0": "llama-3.2-90b",
         "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo": "llama-3.2-90b",
         "meta-llama/Llama-3.2-90B-Vision-Instruct": "llama-3.2-90b",
+        "llama-3.2-90b-text-preview": "llama-3.2-90b",
 
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
