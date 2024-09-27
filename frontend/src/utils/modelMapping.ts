@@ -60,33 +60,40 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo": "llama-3.1-8b",
         "accounts/fireworks/models/llama-v3p1-8b-instruct": "llama-3.1-8b",
         "llama-3.1-8b-instant": "llama-3.1-8b",
+        "meta-llama/Meta-Llama-3.1-8B-Instruct": "llama-3.1-8b",
 
         // llama 3.1 70b
         "meta.llama3-1-70b-instruct-v1:0": "llama-3.1-70b",
         "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo": "llama-3.1-70b",
         "accounts/fireworks/models/llama-v3p1-70b-instruct": "llama-3.1-70b",
         "llama-3.1-70b-versatile": "llama-3.1-70b",
+        "meta-llama/Meta-Llama-3.1-70B-Instruct": "llama-3.1-70b",
 
         // llama 3.1 405b
         "meta.llama3-1-405b-instruct-v1:0": "llama-3.1-405b",
         "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo": "llama-3.1-405b",
         "accounts/fireworks/models/llama-v3p1-405b-instruct": "llama-3.1-405b",
+        "meta-llama/Meta-Llama-3.1-405B-Instruct": "llama-3.1-405b",
 
         // llama 3.2 1b
         "us.meta.llama3-2-1b-instruct-v1:0": "llama-3.2-1b",
         "meta-llama/Llama-Vision-Free": "llama-3.2-1b",
+        "meta-llama/Llama-3.2-1B-Instruct": "llama-3.2-1b",
 
         // llama 3.2 3b
         "us.meta.llama3-2-3b-instruct-v1:0": "llama-3.2-3b",
         "meta-llama/Llama-3.2-3B-Instruct-Turbo": "llama-3.2-3b",
+        "meta-llama/Llama-3.2-3B-Instruct": "llama-3.2-3b",
 
         // llama 3.2 11b
         "us.meta.llama3-2-11b-instruct-v1:0": "llama-3.2-11b",
         "meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo": "llama-3.2-11b",
+        "meta-llama/Llama-3.2-11B-Vision-Instruct": "llama-3.2-11b",
 
         // llama 3.2 90b
         "us.meta.llama3-2-90b-instruct-v1:0": "llama-3.2-90b",
         "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo": "llama-3.2-90b",
+        "meta-llama/Llama-3.2-90B-Vision-Instruct": "llama-3.2-90b",
 
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
@@ -202,6 +209,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // qwen 2 72b
         "accounts/fireworks/models/qwen2-72b-instruct": "qwen-2-72b",
+
+        // qwem 2.5 72b
+        "Qwen/Qwen2.5-72B-Instruct": "qwen-2.5-72b",
 
         // yi 34b
         "01-ai/yi-34b-chat": "yi-34b",
