@@ -4,14 +4,13 @@ import { lazy, Suspense } from "react";
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
-// import RawCloudTable from '../tables/cloud/RawCloudTable';
-import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import { calculateMB } from '../utils/stats';
 import { mapModelNames } from '../utils/modelMapping';
 import { CloudBenchmark } from '../types/CloudData';
 
 const TimeSeriesChart = lazy(() => import("../charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../tables/cloud/RawCloudTable"));
+const SpeedDistChart = lazy(() => import("../charts/cloud/SpeedDistChart"));
 
 
 const CloudBenchmarks: React.FC = () => {
@@ -82,10 +81,9 @@ const CloudBenchmarks: React.FC = () => {
             <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px", maxWidth: "100%", overflowX: "auto" }}>
                 <h4>📊 Speed Distribution 📊</h4>
                 <div style={{ maxWidth: '1100px', maxHeight: '600px', width: '100%', height: '100%', margin: 'auto', paddingBottom: '0px' }}>
-                    <SpeedDistChart
-                        data={benchmarks}
-                    // isMobile={isMobile} 
-                    />
+                    <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
+                        <SpeedDistChart data={benchmarks} />
+                    </Suspense>
                 </div>
             </ChartContainer>
 
