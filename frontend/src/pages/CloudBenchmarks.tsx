@@ -1,38 +1,42 @@
-// CloudBenchmarks.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { lazy, Suspense } from "react";
-import CircularProgress from '@mui/material/CircularProgress';
-import { useMediaQuery } from '@mui/material';
-import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
-import { calculateMB } from '../utils/stats';
-import { mapModelNames } from '../utils/modelMapping';
-import { CloudBenchmark } from '../types/CloudData';
+import CircularProgress from "@mui/material/CircularProgress";
+import { useMediaQuery } from "@mui/material";
+import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from "../styles";
+import { calculateMB } from "../utils/stats";
+import { mapModelNames } from "../utils/modelMapping";
+import { CloudBenchmark } from "../types/CloudData";
 
 const TimeSeriesChart = lazy(() => import("../charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../tables/cloud/RawCloudTable"));
 const SpeedDistChart = lazy(() => import("../charts/cloud/SpeedDistChart"));
 
+// Move data processing to a separate function
+const processCloudData = (data: CloudBenchmark[]) => {
+    console.log(`cloud: size: ${calculateMB(data)} MB`);
+    return mapModelNames(data);
+};
 
 const CloudBenchmarks: React.FC = () => {
     const [benchmarks, setBenchmarks] = useState<CloudBenchmark[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
-    const isMobile = useMediaQuery('(max-width:500px)');
+    const isMobile = useMediaQuery("(max-width:500px)");
     const [dataReady, setDataReady] = useState<boolean>(false);
-
 
     useEffect(() => {
         const fetchCloudBenchmarks = async () => {
             try {
                 const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
-                let data: CloudBenchmark[] = await res.json();
-                console.log(`cloud: size: ${calculateMB(data)} MB`);
-
-                const mappedData = mapModelNames(data);
-
-                setBenchmarks(mappedData);
-                setLoading(false);
-                setDataReady(true);
+                const data: CloudBenchmark[] = await res.json();
+                
+                // Process data in next tick to avoid blocking main thread
+                setTimeout(() => {
+                    const mappedData = processCloudData(data);
+                    setBenchmarks(mappedData);
+                    setLoading(false);
+                    setDataReady(true);
+                }, 0);
             } catch (err) {
                 const error = err as Error;
                 console.error("Error fetching data:", error);
@@ -60,7 +64,6 @@ const CloudBenchmarks: React.FC = () => {
 
     return (
         <MainContainer isMobile={isMobile}>
-
             <DescriptionSection isMobile={isMobile} style={{ borderRadius: "10px" }}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
                     <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
@@ -73,21 +76,27 @@ const CloudBenchmarks: React.FC = () => {
                         I am working daily to add more providers and models, looking anywhere that
                         does not require purchasing dedicated endpoints for hosting (why some models may appear
                         to be missing). If you have any more suggestions let me know on GitHub!! 😊
-
                     </p>
                 </div>
             </DescriptionSection>
 
             <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px", maxWidth: "100%", overflowX: "auto" }}>
                 <h4>📊 Speed Distribution 📊</h4>
-                <div style={{ maxWidth: '1100px', maxHeight: '600px', width: '100%', height: '100%', margin: 'auto', paddingBottom: '0px' }}>
+                <div style={{ maxWidth: "1100px", maxHeight: "600px", width: "100%", height: "100%", margin: "auto", paddingBottom: "0px" }}>
                     <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
                         <SpeedDistChart data={benchmarks} />
                     </Suspense>
                 </div>
             </ChartContainer>
 
-            <TableContainer isMobile={isMobile} style={{ borderRadius: "10px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <TableContainer isMobile={isMobile} style={{ 
+                borderRadius: "10px", 
+                display: "flex", 
+                flexDirection: "column", 
+                alignItems: "center", 
+                justifyContent: "center",
+                minHeight: "400px"
+            }}>
                 <h4 style={{ width: "100%", textAlign: "center" }}>📚 Full Results 📚</h4>
                 <div style={{
                     height: "100%",
