@@ -4,13 +4,14 @@ import { lazy, Suspense } from "react";
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
-import RawCloudTable from '../tables/cloud/RawCloudTable';
+// import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
 import { calculateMB } from '../utils/stats';
 import { mapModelNames } from '../utils/modelMapping';
 import { CloudBenchmark } from '../types/CloudData';
 
 const TimeSeriesChart = lazy(() => import("../charts/cloud/TimeSeries"));
+const RawCloudTable = lazy(() => import("../tables/cloud/RawCloudTable"));
 
 
 const CloudBenchmarks: React.FC = () => {
@@ -100,7 +101,9 @@ const CloudBenchmarks: React.FC = () => {
                     margin: "auto"
                 }}>
                     <div style={{ paddingBottom: "50px" }}>
-                        <RawCloudTable benchmarks={benchmarks} />
+                        <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
+                            <RawCloudTable benchmarks={benchmarks} />
+                        </Suspense>
                     </div>
                 </div>
             </TableContainer>

@@ -70,3 +70,5 @@ backend/.next
 backend/.gitignore
 frontend/package-lock.json
 frontend/build
+
+pagespeed/
