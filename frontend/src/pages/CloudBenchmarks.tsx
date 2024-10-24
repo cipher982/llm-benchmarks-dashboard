@@ -1,14 +1,17 @@
 // CloudBenchmarks.tsx
 import React, { useState, useEffect } from 'react';
+import { lazy, Suspense } from "react";
 import CircularProgress from '@mui/material/CircularProgress';
 import { useMediaQuery } from '@mui/material';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
 import RawCloudTable from '../tables/cloud/RawCloudTable';
 import SpeedDistChart from '../charts/cloud/SpeedDistChart';
-import TimeSeriesChart from '../charts/cloud/TimeSeries';
 import { calculateMB } from '../utils/stats';
 import { mapModelNames } from '../utils/modelMapping';
 import { CloudBenchmark } from '../types/CloudData';
+
+const TimeSeriesChart = lazy(() => import("../charts/cloud/TimeSeries"));
+
 
 const CloudBenchmarks: React.FC = () => {
     const [benchmarks, setBenchmarks] = useState<CloudBenchmark[]>([]);
@@ -105,7 +108,9 @@ const CloudBenchmarks: React.FC = () => {
             {dataReady && (
                 <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                     <h4>📈 Time Series 📈</h4>
-                    <TimeSeriesChart data={benchmarks} />
+                    <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
+                        <TimeSeriesChart data={benchmarks} />
+                    </Suspense>
                 </ChartContainer>
             )}
         </MainContainer>
