@@ -56,17 +56,21 @@ const StatusPage: React.FC = () => {
     const [data, setData] = useState<Record<string, ModelData>>({});
     const [isMobile, setIsMobile] = useState<boolean>(false);
     const [lastRunInfo, setLastRunInfo] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const fetchData = useCallback(async () => {
         try {
+            setIsLoading(true);
             const response = await fetch("https://llm-benchmarks-backend.vercel.app/api/status");
             const data = await response.json();
             setData(data);
             updateLastRunInfo(data);
         } catch (error) {
             console.error("Error fetching model status data:", error);
+        } finally {
+            setIsLoading(false);
         }
-    }, []); 
+    }, []);
 
     const isModelDeprecated = (lastRunTimestamp: string): boolean => {
         const oneWeekAgo = new Date();
@@ -133,55 +137,60 @@ const StatusPage: React.FC = () => {
         <MainContainer isMobile={isMobile}>
             <StatusPageContainer style={{ borderRadius: "10px" }}>
                 <h1>Model Benchmarking Status</h1>
-                <LastRunInfo>{lastRunInfo}</LastRunInfo>
+                {isLoading ? (
+                    <div>Loading model status...</div>
+                ) : (
+                    <>
+                        <LastRunInfo>{lastRunInfo}</LastRunInfo>
+                        <h2>Active Models</h2>
+                        {Object.entries(activeModels).map(([provider, models]) => (
+                            <ProviderGroup key={provider}>
+                                <h3>{provider}</h3>
+                                {models.map((model) => {
+                                    const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
+                                    const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
 
-                <h2>Active Models</h2>
-                {Object.entries(activeModels).map(([provider, models]) => (
-                    <ProviderGroup key={provider}>
-                        <h3>{provider}</h3>
-                        {models.map((model) => {
-                            const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
-                            const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
+                                    return (
+                                        <ModelItem key={model.key}>
+                                            <span>{model.model}</span>
+                                            <span> - Last Run: {localLastRunTimestamp}</span>
+                                            <span> - Status: </span>
+                                            {recentStatuses.map((status, index) => (
+                                                <StatusIndicator key={index} status={status}>
+                                                    {status === 'success' ? '✓' : '✗'}
+                                                </StatusIndicator>
+                                            ))}
+                                        </ModelItem>
+                                    );
+                                })}
+                            </ProviderGroup>
+                        ))}
 
-                            return (
-                                <ModelItem key={model.key}>
-                                    <span>{model.model}</span>
-                                    <span> - Last Run: {localLastRunTimestamp}</span>
-                                    <span> - Status: </span>
-                                    {recentStatuses.map((status, index) => (
-                                        <StatusIndicator key={index} status={status}>
-                                            {status === 'success' ? '✓' : '✗'}
-                                        </StatusIndicator>
-                                    ))}
-                                </ModelItem>
-                            );
-                        })}
-                    </ProviderGroup>
-                ))}
+                        <h2>Deprecated Models</h2>
+                        {Object.entries(deprecatedModels).map(([provider, models]) => (
+                            <ProviderGroup key={provider}>
+                                <h3>{provider}</h3>
+                                {models.map((model) => {
+                                    const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
+                                    const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
 
-                <h2>Deprecated Models</h2>
-                {Object.entries(deprecatedModels).map(([provider, models]) => (
-                    <ProviderGroup key={provider}>
-                        <h3>{provider}</h3>
-                        {models.map((model) => {
-                            const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
-                            const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
-
-                            return (
-                                <ModelItem key={model.key} deprecated>
-                                    <span>{model.model}</span>
-                                    <span> - Last Run: {localLastRunTimestamp}</span>
-                                    <span> - Status: </span>
-                                    {recentStatuses.map((status, index) => (
-                                        <StatusIndicator key={index} status={status}>
-                                            {status === 'success' ? '✓' : '✗'}
-                                        </StatusIndicator>
-                                    ))}
-                                </ModelItem>
-                            );
-                        })}
-                    </ProviderGroup>
-                ))}
+                                    return (
+                                        <ModelItem key={model.key} deprecated>
+                                            <span>{model.model}</span>
+                                            <span> - Last Run: {localLastRunTimestamp}</span>
+                                            <span> - Status: </span>
+                                            {recentStatuses.map((status, index) => (
+                                                <StatusIndicator key={index} status={status}>
+                                                    {status === 'success' ? '✓' : '✗'}
+                                                </StatusIndicator>
+                                            ))}
+                                        </ModelItem>
+                                    );
+                                })}
+                            </ProviderGroup>
+                        ))}
+                    </>
+                )}
             </StatusPageContainer>
         </MainContainer>
     );
