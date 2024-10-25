@@ -3,19 +3,11 @@ import { lazy, Suspense } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useMediaQuery } from "@mui/material";
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from "../styles";
-import { calculateMB } from "../utils/stats";
-import { mapModelNames } from "../utils/modelMapping";
 import { CloudBenchmark } from "../types/CloudData";
 
 const TimeSeriesChart = lazy(() => import("../charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../tables/cloud/RawCloudTable"));
 const SpeedDistChart = lazy(() => import("../charts/cloud/SpeedDistChart"));
-
-// Move data processing to a separate function
-const processCloudData = (data: CloudBenchmark[]) => {
-    console.log(`cloud: size: ${calculateMB(data)} MB`);
-    return mapModelNames(data);
-};
 
 const CloudBenchmarks: React.FC = () => {
     const [benchmarks, setBenchmarks] = useState<CloudBenchmark[]>([]);
@@ -28,15 +20,21 @@ const CloudBenchmarks: React.FC = () => {
         const fetchCloudBenchmarks = async () => {
             try {
                 const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
-                const data: CloudBenchmark[] = await res.json();
+                const data = await res.json();
                 
-                // Process data in next tick to avoid blocking main thread
-                setTimeout(() => {
-                    const mappedData = processCloudData(data);
-                    setBenchmarks(mappedData);
+                const worker = new Worker(
+                    new URL("../workers/dataWorker.ts", import.meta.url)
+                );
+                
+                worker.onmessage = (event) => {
+                    setBenchmarks(event.data);
                     setLoading(false);
                     setDataReady(true);
-                }, 0);
+                    worker.terminate();
+                };
+
+                worker.postMessage(data);
+                
             } catch (err) {
                 const error = err as Error;
                 console.error("Error fetching data:", error);

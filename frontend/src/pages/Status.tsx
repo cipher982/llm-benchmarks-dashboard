@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { styled, useTheme } from '@mui/system';
 import { MainContainer } from '../styles';
 
@@ -19,15 +19,11 @@ const StatusPageContainer = styled('div')(() => {
     };
 });
 
-const ProviderGroup = styled('div')(() => {
-    const theme = useTheme();
-    return {
-        marginBottom: '10px',
-    };
-});
+const ProviderGroup = styled('div')(() => ({
+    marginBottom: "10px",
+}));
 
 const ModelItem = styled('div')<{ deprecated?: boolean }>(({ deprecated }) => {
-    const theme = useTheme();
     return {
         fontSize: '14px',
         lineHeight: '1.4',
@@ -49,9 +45,9 @@ const StatusIndicator = styled('span')<{ status: string }>(({ status }) => {
 const LastRunInfo = styled('div')(() => {
     const theme = useTheme();
     return {
-        marginBottom: '20px',
-        fontSize: '18px',
-        fontWeight: 'bold',
+        marginBottom: "20px",
+        fontSize: "18px",
+        fontWeight: "bold",
         color: theme.palette.text.primary,
     };
 });
@@ -60,6 +56,17 @@ const StatusPage: React.FC = () => {
     const [data, setData] = useState<Record<string, ModelData>>({});
     const [isMobile, setIsMobile] = useState<boolean>(false);
     const [lastRunInfo, setLastRunInfo] = useState<string>('');
+
+    const fetchData = useCallback(async () => {
+        try {
+            const response = await fetch("https://llm-benchmarks-backend.vercel.app/api/status");
+            const data = await response.json();
+            setData(data);
+            updateLastRunInfo(data);
+        } catch (error) {
+            console.error("Error fetching model status data:", error);
+        }
+    }, []); 
 
     const isModelDeprecated = (lastRunTimestamp: string): boolean => {
         const oneWeekAgo = new Date();
@@ -81,18 +88,7 @@ const StatusPage: React.FC = () => {
         fetchData();
         const interval = setInterval(fetchData, 60000);
         return () => clearInterval(interval);
-    }, []);
-
-    const fetchData = async () => {
-        try {
-            const response = await fetch('https://llm-benchmarks-backend.vercel.app/api/status');
-            const data = await response.json();
-            setData(data);
-            updateLastRunInfo(data);
-        } catch (error) {
-            console.error('Error fetching model status data:', error);
-        }
-    };
+    }, [fetchData]);
 
     const updateLastRunInfo = (data: Record<string, ModelData>) => {
         const mostRecentRunTimestamp = Math.max(...Object.values(data).map((model) => {
