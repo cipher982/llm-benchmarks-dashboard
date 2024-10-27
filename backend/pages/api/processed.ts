@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import createEndpoint from "../../utils/createEndpoint";
-import { CloudBenchmark } from "../../../frontend/src/types/CloudData";
-import { mapModelNames } from "../../../frontend/src/utils/modelMapping";
+import type { CloudBenchmark } from "../../types/CloudData";
+import { mapModelNames } from "../../utils/modelMapping";
 
 async function fetchRawData() {
     const response = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
