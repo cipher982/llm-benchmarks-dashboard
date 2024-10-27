@@ -13,8 +13,11 @@ const processData = async (data: CloudBenchmark[]) => {
 };
 
 const mockModel = {
-    find: async () => processData(await fetchRawData())
+    find: async () => ({
+        select: async () => processData(await fetchRawData())
+    })
 };
+
 
 export default async function handler(
     req: NextApiRequest & { method: string },
