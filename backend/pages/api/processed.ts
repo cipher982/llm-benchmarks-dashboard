@@ -1,25 +1,33 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import createEndpoint from "../../utils/createEndpoint";
 import { mapModelNames } from "../../utils/modelMapping";
+import { CloudBenchmark } from "../../types/CloudData";
 
-async function fetchRawData() {
+
+async function fetchRawData(): Promise<CloudBenchmark[]> {
     const response = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
-    return response.json();
+    const data = await response.json();
+    return data.map((item: any) => ({
+        ...item,
+        run_ts: new Date(item.run_ts || Date.now())
+    }));
 }
 
 const dataModel = {
-    find: async () => ({
-        select: () => ({
-            exec: async () => {
-                const rawData = await fetchRawData();
-                const processedData = mapModelNames(rawData);
-                return processedData.map(item => ({
-                    ...item,
-                    toObject: () => item
-                }));
-            }
-        })
-    })
+    find: async (query?: any) => {
+        const rawData = await fetchRawData();
+        const processedData = mapModelNames(rawData);
+        
+        const filteredData = query?.run_ts?.$gte 
+            ? processedData.filter(item => item.run_ts && item.run_ts >= query.run_ts.$gte)
+            : processedData;
+
+        return {
+            select: () => ({
+                exec: async () => filteredData
+            })
+        };
+    }
 };
 
 
