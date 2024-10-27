@@ -26,7 +26,7 @@ async function createEndpoint(
 
         const metrics: Metric[] = await model.find({
             run_ts: { $gte: dateFilter }
-        }).select('-times_between_tokens');
+        }).select('-times_between_tokens').exec();
 
         if (!metrics || metrics.length === 0) {
             return res.status(404).json({ message: "oops no metrics found :(" });
