@@ -3,7 +3,6 @@ import createEndpoint from "../../utils/createEndpoint";
 import { mapModelNames } from "../../utils/modelMapping";
 import { CloudBenchmark } from "../../types/CloudData";
 
-
 async function fetchRawData(): Promise<CloudBenchmark[]> {
     const response = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
     const data = await response.json();
@@ -14,22 +13,26 @@ async function fetchRawData(): Promise<CloudBenchmark[]> {
 }
 
 const dataModel = {
-    find: async (query?: any) => {
-        const rawData = await fetchRawData();
-        const processedData = mapModelNames(rawData);
-        
-        const filteredData = query?.run_ts?.$gte 
-            ? processedData.filter(item => item.run_ts && item.run_ts >= query.run_ts.$gte)
-            : processedData;
-
+    find: function(query?: any) {
         return {
-            select: () => ({
-                exec: async () => filteredData
-            })
+            select: function(projection?: string) {
+                return {
+                    exec: async function() {
+                        const rawData = await fetchRawData();
+                        const processedData = mapModelNames(rawData);
+                        
+                        if (query?.run_ts?.$gte) {
+                            return processedData.filter(item => 
+                                item.run_ts && item.run_ts >= query.run_ts.$gte
+                            );
+                        }
+                        return processedData;
+                    }
+                };
+            }
         };
     }
 };
-
 
 export default async function handler(
     req: NextApiRequest & { method: string },
