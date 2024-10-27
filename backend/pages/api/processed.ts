@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import createEndpoint from "../../utils/createEndpoint";
-import type { CloudBenchmark } from "../../types/CloudData";
 import { mapModelNames } from "../../utils/modelMapping";
 
 async function fetchRawData() {
@@ -8,13 +7,18 @@ async function fetchRawData() {
     return response.json();
 }
 
-const processData = async (data: CloudBenchmark[]) => {
-    return mapModelNames(data);
-};
-
-const mockModel = {
+const dataModel = {
     find: async () => ({
-        select: async () => processData(await fetchRawData())
+        select: () => ({
+            exec: async () => {
+                const rawData = await fetchRawData();
+                const processedData = mapModelNames(rawData);
+                return processedData.map(item => ({
+                    ...item,
+                    toObject: () => item
+                }));
+            }
+        })
     })
 };
 
@@ -28,7 +32,7 @@ export default async function handler(
     }
 
     try {
-        return createEndpoint(req, res, mockModel);
+        return createEndpoint(req, res, dataModel);
     } catch (error) {
         console.error("Error processing data:", error);
         res.status(500).json({ error: "Failed to process data" });
