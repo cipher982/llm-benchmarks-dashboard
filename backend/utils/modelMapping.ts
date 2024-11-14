@@ -107,6 +107,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "mistralai/mistral-7b-instruct": "mistral-7b",
         "accounts/fireworks/models/mistral-7b": "mistral-7b",
         "mistral.mistral-7b-instruct-v0:2": "mistral-7b",
+        "mistralai/Mistral-7B-Instruct-v0.3": "mistral-7b",
 
         // mistral 8x7b
         "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistral-8x7b",
@@ -121,6 +122,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // mistral large
         "mistral-large": "mistral-large",
+        "mistral.mistral-large-2402-v1:0": "mistral-large",
 
         // mistral 8x22b
         "mistralai/Mixtral-8x22B": "mistral-8x22b",
@@ -155,10 +157,16 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "claude-3-opus-20240229": "claude-3-opus",
         "claude-3-opus@20240229": "claude-3-opus",
         "anthropic.claude-3-opus-20240229-v1:0": "claude-3-opus",
+        "us.anthropic.claude-3-opus-20240229-v1:0": "claude-3-opus",
+
+        // claude-3.5 haiku
+        "us.anthropic.claude-3-5-haiku-20241022-v1:0": "claude-3-5-haiku",
+        "claude-3-5-haiku-20241022": "claude-3-5-haiku",
 
         // claude-3-5 sonnet
         "claude-3-5-sonnet-20240620": "claude-3-5-sonnet",
         "anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet",
+        "us.anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet",
 
         // gpt-3.5
         "gpt-3.5-turbo-0613": "gpt-3.5-turbo",
@@ -196,6 +204,12 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "gemma-7b-it": "gemma-7b",
         "accounts/fireworks/models/gemma-7b-it": "gemma-7b",
 
+        // gemma 2 9b
+        "google/gemma-2-9b-it": "gemma-2-9b",
+
+        // gemma 2 27b
+        "google/gemma-2-27b-it": "gemma-2-27b",
+
         // phi-2
         "microsoft/phi-2": "phi-2",
 
@@ -216,8 +230,12 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // qwen 2 72b
         "accounts/fireworks/models/qwen2-72b-instruct": "qwen-2-72b",
 
+        // qwen 2.5 7b
+        "qwen/Qwen2.5-7B-Instruct-Turbo": "qwen-2.5-7b",
+
         // qwem 2.5 72b
         "Qwen/Qwen2.5-72B-Instruct": "qwen-2.5-72b",
+        "qwen/Qwen2.5-72B-Instruct-Turbo": "qwen-2.5-72b",
 
         // yi 34b
         "01-ai/yi-34b-chat": "yi-34b",
@@ -260,6 +278,9 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "amazon.titan-tg1-large": "titan-tg1-large",
         "amazon.titan-text-lite-v1": "titan-text-lite",
         "amazon.titan-text-express-v1": "titan-text-express",
+
+        // deepseek 67b
+        "deepseek-ai/deepseek-llm-67b-chat": "deepseek-67b",
     };
 
     data = data.filter(item => item.provider !== "openrouter");
