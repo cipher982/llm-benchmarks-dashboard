@@ -123,6 +123,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // mistral large
         "mistral-large": "mistral-large",
         "mistral.mistral-large-2402-v1:0": "mistral-large",
+        "mistral.mistral-large-2402-v1:1": "mistral-large",
 
         // mistral 8x22b
         "mistralai/Mixtral-8x22B": "mistral-8x22b",
