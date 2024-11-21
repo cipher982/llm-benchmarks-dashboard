@@ -10,7 +10,7 @@ const debug = false;
 const useCache = !debug;
 
 async function handler(
-    req: NextApiRequest & { method: string },
+    req: NextApiRequest,
     res: NextApiResponse
 ) {
     if (req.method !== "GET") {
@@ -57,6 +57,8 @@ async function handler(
 }
 
 // Wrap the handler with the existing CORS middleware
-export default function (req: NextApiRequest, res: NextApiResponse) {
-    return corsMiddleware(req, res) || handler(req, res);
+export default async function (req: NextApiRequest, res: NextApiResponse) {
+    const handled = await corsMiddleware(req, res);
+    if (handled) return;
+    return handler(req, res);
 }

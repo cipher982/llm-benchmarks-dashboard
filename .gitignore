@@ -72,3 +72,4 @@ frontend/package-lock.json
 frontend/build
 
 pagespeed/
+.env*

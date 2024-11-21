@@ -33,11 +33,8 @@ export async function setupApiEndpoint(
     daysAgo: number,
     useCache: boolean
 ) {
-    setupCORS(req, res);
-
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
+    const handled = corsMiddleware(req, res);
+    if (handled) return;
 
     if (req.method !== 'GET') {
         logger.warn(`Method ${req.method} not allowed`);
@@ -67,8 +64,9 @@ export function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
 
     if (req.method === 'OPTIONS') {
         res.status(200).end();
-        return;
+        return true;
     }
+    return false;
 }
 
 function setupCORS(req: NextApiRequest, res: NextApiResponse) {
