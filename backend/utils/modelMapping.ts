@@ -168,6 +168,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "claude-3-5-sonnet-20240620": "claude-3-5-sonnet",
         "anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet",
         "us.anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet",
+        "claude-3-5-sonnet@20240620": "claude-3-5-sonnet",
 
         // gpt-3.5
         "gpt-3.5-turbo-0613": "gpt-3.5-turbo",
@@ -272,6 +273,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // gemini 1.5 flash
         "gemini-1.5-flash-preview-0514": "gemini-1.5-flash",
         "gemini-1.5-flash-001": "gemini-1.5-flash",
+        "gemini-1.5-flash-002": "gemini-1.5-flash",
 
         // google bison
         "text-bison@002": "google-bison",
