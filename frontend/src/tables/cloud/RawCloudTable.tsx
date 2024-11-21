@@ -1,25 +1,14 @@
 import React, { useState } from 'react';
-import { DataGrid } from '@mui/x-data-grid';
-import { GridSortModel } from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridSortModel } from '@mui/x-data-grid';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
-
-
-interface Benchmark {
-    provider: string;
-    model_name: string;
-    tokens_per_second_mean: number;
-    tokens_per_second_min: number;
-    tokens_per_second_max: number;
-    time_to_first_token_mean: number;
-}
+import { TableRow } from '../../types/ProcessedData';
 
 interface RawCloudTableProps {
-    benchmarks: Benchmark[];
+    data: TableRow[];
 }
 
-// Table columns and their properties
-const columns = [
+const columns: GridColDef[] = [
     { field: "provider", headerName: "Provider", width: 150 },
     { field: "model_name", headerName: "Model Name", width: 200 },
     {
@@ -27,30 +16,34 @@ const columns = [
         headerName: "Toks/Sec (Mean)",
         type: "number",
         width: 150,
+        valueGetter: (params: { row: TableRow }) => Number(params.row.tokens_per_second_mean).toFixed(2)
     },
     {
         field: "tokens_per_second_min",
         headerName: "Min",
         type: "number",
         width: 80,
+        valueGetter: (params: { row: TableRow }) => Math.floor(params.row.tokens_per_second_min)
     },
     {
         field: "tokens_per_second_max",
         headerName: "Max",
         type: "number",
         width: 80,
+        valueGetter: (params: { row: TableRow }) => Math.ceil(params.row.tokens_per_second_max)
     },
     {
         field: "time_to_first_token_mean",
         headerName: "First Token",
         type: "number",
         width: 120,
-    },
+        valueGetter: (params: { row: TableRow }) => Number(params.row.time_to_first_token_mean).toFixed(2)
+    }
 ];
 
-
-const RawCloudTable: React.FC<RawCloudTableProps> = ({ benchmarks }) => {
+const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
     const theme = useTheme();
+    // console.log('RawCloudTable received data:', data);
 
     const [sortModel, setSortModel] = useState<GridSortModel>([
         {
@@ -59,15 +52,11 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ benchmarks }) => {
         },
     ]);
 
-    const rows = benchmarks.map((row, index) => ({
+    const rows = data.map((row, index) => ({
         id: index,
-        provider: row.provider,
-        model_name: row.model_name,
-        tokens_per_second_mean: row.tokens_per_second_mean,
-        tokens_per_second_min: Math.floor(row.tokens_per_second_min),
-        tokens_per_second_max: Math.ceil(row.tokens_per_second_max),
-        time_to_first_token_mean: row.time_to_first_token_mean,
+        ...row
     }));
+
     return (
         <Box sx={{ height: 500, width: '100%', border: "1px solid white" }}>
             <DataGrid
