@@ -42,12 +42,12 @@ export async function refreshCache(req: NextApiRequest, res: NextApiResponse, mo
             logger.info('No new metrics found for cache update');
             return res.status(404).json({ message: 'No metrics found' });
         }
-        logger.info(`Updating cache with ${processedMetrics.length} metrics`);
+        logger.info(`Updating cache with ${processedMetrics.raw.length} metrics`);
 
         await updateCache(cacheKey, processedMetrics);
 
         const details = {
-            totalMetrics: processedMetrics.length,
+            totalMetrics: processedMetrics.raw.length,
         };
 
         res.status(200).json({

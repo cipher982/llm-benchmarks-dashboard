@@ -20,7 +20,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "llama2-13b-chat": "llama-2-13b",
         "accounts/fireworks/models/llama-v2-13b": "llama-2-13b",
         "accounts/fireworks/models/llama-v2-13b-chat": "llama-2-13b",
-        "meta.llama2-13b-chat-v1": "llama-2-13b",
+        "meta.llama2-13b-chat-v1:0": "llama-2-13b",
         "meta-llama/Llama-2-13b-hf": "llama-2-13b",
 
         // llama 2 34b - code
@@ -35,7 +35,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "meta-llama/llama-2-70b-chat": "llama-2-70b",
         "accounts/fireworks/models/llama-v2-70b": "llama-2-70b",
         "accounts/fireworks/models/llama-v2-70b-chat": "llama-2-70b",
-        "meta.llama2-70b-chat-v1": "llama-2-70b",
+        "meta.llama2-70b-chat-v1:0": "llama-2-70b",
         "llama2-70b-4096": "llama-2-70b",
         "meta-llama/Llama-2-70b-hf": "llama-2-70b",
 
@@ -324,13 +324,27 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         items.forEach((item) => {
             mergedItem.tokens_per_second.push(...item.tokens_per_second);
-            mergedItem.time_to_first_token.push(...item.time_to_first_token);
+            if (item.time_to_first_token) {
+                mergedItem.time_to_first_token!.push(...item.time_to_first_token);
+            }
             mergedItem.tokens_per_second_mean += item.tokens_per_second_mean;
             mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
             mergedItem.tokens_per_second_max = Math.max(mergedItem.tokens_per_second_max, item.tokens_per_second_max);
             mergedItem.time_to_first_token_mean += item.time_to_first_token_mean;
-            mergedItem.time_to_first_token_min = Math.min(mergedItem.time_to_first_token_min, item.time_to_first_token_min);
-            mergedItem.time_to_first_token_max = Math.max(mergedItem.time_to_first_token_max, item.time_to_first_token_max);
+            
+            // Safely handle optional time_to_first_token min/max values
+            if (item.time_to_first_token_min !== undefined) {
+                mergedItem.time_to_first_token_min = Math.min(
+                    mergedItem.time_to_first_token_min ?? Infinity,
+                    item.time_to_first_token_min
+                );
+            }
+            if (item.time_to_first_token_max !== undefined) {
+                mergedItem.time_to_first_token_max = Math.max(
+                    mergedItem.time_to_first_token_max ?? -Infinity,
+                    item.time_to_first_token_max
+                );
+            }
         });
 
         mergedItem.tokens_per_second_mean /= items.length;
