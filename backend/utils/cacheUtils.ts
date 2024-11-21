@@ -8,6 +8,8 @@ export const CACHE_KEYS = {
     CLOUD_METRICS_LAST_UPDATE: 'cloudMetrics:365days:lastUpdate',
     LOCAL_METRICS: 'localMetrics:365days',
     LOCAL_METRICS_LAST_UPDATE: 'localMetrics:365days:lastUpdate',
+    PROCESSED_METRICS: 'processedMetrics:14days',
+    PROCESSED_METRICS_LAST_UPDATE: 'processedMetrics:14days:lastUpdate',
 };
 
 async function shouldRefreshCache(cacheKey: string): Promise<boolean> {
