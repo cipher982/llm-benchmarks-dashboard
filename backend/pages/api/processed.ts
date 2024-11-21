@@ -1,40 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import createEndpoint from "../../utils/createEndpoint";
-import { mapModelNames } from "../../utils/modelMapping";
-import { CloudBenchmark } from "../../types/CloudData";
+import { CloudMetrics } from '../../models/BenchmarkMetrics';
+import connectToMongoDB from '../../utils/connectToMongoDB';
+import { processSpeedDistData, processTimeSeriesData, processRawTableData } from '../../utils/dataProcessing';
+import { cleanTransformCloud } from '../../utils/processCloud';
+import { corsMiddleware } from '../../utils/apiMiddleware';
 
-async function fetchRawData(): Promise<CloudBenchmark[]> {
-    const response = await fetch("https://llm-benchmarks-backend.vercel.app/api/cloud");
-    const data = await response.json();
-    return data.map((item: any) => ({
-        ...item,
-        run_ts: new Date(item.run_ts || Date.now())
-    }));
-}
+export const daysAgo = 14;
+const debug = false;
+const useCache = !debug;
 
-const dataModel = {
-    find: function(query?: any) {
-        return {
-            select: function(projection?: string) {
-                return {
-                    exec: async function() {
-                        const rawData = await fetchRawData();
-                        const processedData = mapModelNames(rawData);
-                        
-                        if (query?.run_ts?.$gte) {
-                            return processedData.filter(item => 
-                                item.run_ts && item.run_ts >= query.run_ts.$gte
-                            );
-                        }
-                        return processedData;
-                    }
-                };
-            }
-        };
-    }
-};
-
-export default async function handler(
+async function handler(
     req: NextApiRequest & { method: string },
     res: NextApiResponse
 ) {
@@ -43,9 +18,45 @@ export default async function handler(
     }
 
     try {
-        return createEndpoint(req, res, dataModel);
+        // 1. Get raw data from MongoDB
+        await connectToMongoDB();
+        const dateFilter = new Date();
+        dateFilter.setDate(dateFilter.getDate() - daysAgo);
+        const metrics = await CloudMetrics.find({ 
+            run_ts: { $gte: dateFilter } 
+        }).select('-times_between_tokens');
+        const rawMetrics = metrics.map(metric => metric.toObject());
+
+        // 2. Apply base transformation
+        const transformedData = cleanTransformCloud(rawMetrics);
+
+        // 3. Process data for each visualization
+        const speedDistData = processSpeedDistData(transformedData);
+        const timeSeriesData = processTimeSeriesData(transformedData);
+        const tableData = processRawTableData(transformedData);
+        
+        // Log sizes for analysis
+        const response = {
+            speedDistribution: speedDistData,
+            timeSeries: timeSeriesData,
+            table: tableData
+        };
+        
+        console.log('Data sizes (KB):');
+        console.log('Speed Distribution:', JSON.stringify(speedDistData).length / 1024);
+        console.log('Time Series:', JSON.stringify(timeSeriesData).length / 1024);
+        console.log('Table:', JSON.stringify(tableData).length / 1024);
+        console.log('Total:', JSON.stringify(response).length / 1024);
+        
+        // 4. Return only the processed data
+        return res.status(200).json(response);
     } catch (error) {
         console.error("Error processing data:", error);
         res.status(500).json({ error: "Failed to process data" });
     }
+}
+
+// Wrap the handler with the existing CORS middleware
+export default function (req: NextApiRequest, res: NextApiResponse) {
+    return corsMiddleware(req, res) || handler(req, res);
 }

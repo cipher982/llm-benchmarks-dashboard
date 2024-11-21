@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { handleCachedApiResponse } from './cacheUtils';
 import connectToMongoDB from './connectToMongoDB';
 import logger from './logger';
+import { processSpeedDistData } from './dataProcessing';
 
 export async function fetchAndProcessMetrics(model: { find: (query?: any) => any }, daysAgo: number, cleanTransform: (rawData: any[]) => any[]) {
     await connectToMongoDB();
@@ -13,7 +14,14 @@ export async function fetchAndProcessMetrics(model: { find: (query?: any) => any
     const rawMetrics = metrics.map((metric: any) => metric.toObject());
     const processedMetrics = cleanTransform(rawMetrics);
     logger.info(`Processed ${processedMetrics.length} metrics`);
-    return processedMetrics.length === 0 ? null : processedMetrics;
+
+    // Additional processing for charts
+    const speedDistData = processSpeedDistData(processedMetrics);
+    
+    return {
+        raw: processedMetrics,
+        speedDistribution: speedDistData
+    };
 }
 
 export async function setupApiEndpoint(

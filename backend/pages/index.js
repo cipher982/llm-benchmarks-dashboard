@@ -24,6 +24,9 @@ const HomePage = () => {
                 <li>
                     <Link href="/api/status">Status API</Link>
                 </li>
+                <li>
+                    <Link href="/api/processed">Processed Benchmarks API</Link>
+                </li>
             </ul>
             <span className="no-visual">
                     {`\`\`\`
