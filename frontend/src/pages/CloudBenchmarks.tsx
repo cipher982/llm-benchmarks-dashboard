@@ -137,7 +137,7 @@ const CloudBenchmarks: React.FC = () => {
             {dataReady && (
                 <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                     <h4>📈 Time Series 📈</h4>
-                    <div style={{ padding: "0 20px 20px 20px" }}>
+                    <div style={{ padding: "0 5px 20px 5px" }}>
                         <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
                             <TimeSeriesChart data={timeSeriesData} />
                         </Suspense>

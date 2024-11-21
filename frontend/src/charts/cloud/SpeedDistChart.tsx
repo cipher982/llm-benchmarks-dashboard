@@ -253,13 +253,15 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
 
     return (
         <div
-            ref={d3Container}
-            style={{
-                width: '100%',
-                height: '100%',
-                minHeight: '600px'
-            }}
-        />
+        ref={d3Container}
+        style={{
+            width: '100%',
+            // Remove the height: '100%' and adjust minHeight
+            aspectRatio: '1100/600', // This maintains the chart's proportions
+            minHeight: 'auto',       // Allow it to scale down
+            maxHeight: '600px'       // Cap the maximum height
+        }}
+    />
     );
 };
 
