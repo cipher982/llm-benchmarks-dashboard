@@ -42,6 +42,9 @@ const CloudBenchmarks: React.FC = () => {
 
                 setSpeedDistData(data.speedDistribution);
                 setTimeSeriesData(data.timeSeries);
+                // console.log('Time series data from API:', data.timeSeries);
+                // console.log('Sample timestamps:', data.timeSeries.timestamps.slice(0, 5));
+                // console.log('Sample model data:', data.timeSeries.models[0]);
                 setTableData(data.table);
                 setLoading(false);
                 setError(null);

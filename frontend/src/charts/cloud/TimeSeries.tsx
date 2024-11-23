@@ -24,29 +24,40 @@ interface ChartDataPoint {
 
 const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data }) => {
     const theme = useTheme();
-    // console.log('TimeSeries received data:', data);
+    console.log('TimeSeries received data:', data);
 
     // Ensure data is properly initialized
     const timestamps = data?.timestamps || [];
     const modelsArray: TimeSeriesModel[] = data?.models || [];
-    // console.log('Processed timestamps:', timestamps);
-    // console.log('Processed models:', modelsArray);
+    // console.log('Raw timestamps array:', timestamps);
+    // console.log('First few timestamps:', timestamps.slice(0, 5));
+    // console.log('Number of unique timestamps:', new Set(timestamps).size);
+    // console.log('Sample provider values length:', modelsArray[0]?.providers[0]?.values?.length);
+    // console.log('Raw models:', modelsArray);
 
-    // Transform data into chart format with null checks
-    const chartData: ChartDataPoint[] = timestamps.map((timestamp) => {
+    // Create synthetic timestamps (one every 30 minutes)
+    const numDataPoints = data?.timestamps?.length || 0;
+    const now = new Date();
+    const syntheticTimestamps = Array.from({ length: numDataPoints }, (_, i) => {
+        const timestamp = new Date(now.getTime() - (numDataPoints - 1 - i) * 30 * 60 * 1000);
+        return timestamp.toISOString();
+    });
+
+    // Transform data into chart format with synthetic timestamps
+    const chartData: ChartDataPoint[] = syntheticTimestamps.map((timestamp, index) => {
         const point: ChartDataPoint = { timestamp };
         modelsArray.forEach((model: TimeSeriesModel) => {
-            // Handle all providers for each model
             model.providers?.forEach(provider => {
                 if (provider?.values) {
                     const key = `${model.model_name}-${provider.provider}`;
-                    point[key] = provider.values[timestamps.indexOf(timestamp)] ?? null;
+                    point[key] = provider.values[index] ?? null;
                 }
             });
         });
         return point;
     });
-    // console.log('Transformed chart data:', chartData);
+
+    console.log('Chart data with synthetic timestamps:', chartData.slice(0, 5));
 
     // Sort models by number of providers
     const sortedModels = modelsArray
@@ -59,8 +70,8 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data }) => {
     //     providerCount: m.providers?.length || 0
     // })));
 
-    if (!timestamps.length || !sortedModels.length) {
-        console.log('No data available - timestamps:', timestamps.length, 'sortedModels:', sortedModels.length);
+    if (!numDataPoints || !sortedModels.length) {
+        console.log('No data available - numDataPoints:', numDataPoints, 'sortedModels:', sortedModels.length);
         return <div>No data available</div>;
     }
 
@@ -94,6 +105,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data }) => {
                             <YAxis 
                                 stroke={theme.palette.common.white} 
                                 domain={['auto', 'auto']} 
+                                tickFormatter={(value) => value.toFixed(1)}
                             />
                             <Tooltip />
                             <Legend />
@@ -107,9 +119,11 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data }) => {
                                     strokeWidth={2}
                                     dot={{ 
                                         stroke: providerColors[provider.provider as Provider],
-                                        strokeWidth: 0,
+                                        strokeWidth: 1,
+                                        r: 2,
                                         fill: providerColors[provider.provider as Provider]
                                     }}
+                                    connectNulls={false}
                                     isAnimationActive={false}
                                 />
                             ))}
