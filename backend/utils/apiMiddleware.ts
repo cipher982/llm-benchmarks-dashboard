@@ -33,7 +33,7 @@ export async function setupApiEndpoint(
     daysAgo: number,
     useCache: boolean
 ) {
-    const handled = corsMiddleware(req, res);
+    const handled = await corsMiddleware(req, res);
     if (handled) return;
 
     if (req.method !== 'GET') {

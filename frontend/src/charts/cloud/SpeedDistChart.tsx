@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import { Provider, providerColors } from '../../theme/theme';
 import { SpeedDistributionPoint } from '../../types/ProcessedData';
 
@@ -10,7 +10,7 @@ interface SpeedDistChartProps {
 const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
     const d3Container = useRef<HTMLDivElement | null>(null);
     const svgRef = useRef<SVGSVGElement | null>(null);
-    const margin = { top: 30, right: 30, bottom: 70, left: 80 };
+    const margin = useMemo(() => ({ top: 30, right: 30, bottom: 70, left: 80 }), []);
     const width = 1100 - margin.left - margin.right;
     const height = 600 - margin.top - margin.bottom;
 
@@ -39,7 +39,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             d.density_points ? d3.max(d.density_points, p => p.y) || 0 : 0
         ) || 0;
         y.domain([0, maxDensity * 1.1]); // Add 10% padding
-    }, [data]);
+    }, [data, x, y]);
 
     const drawAxes = useCallback((svg: d3.Selection<SVGGElement, unknown, null, undefined>) => {
         // Remove existing axes
