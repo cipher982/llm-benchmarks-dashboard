@@ -1,6 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { styled, useTheme } from '@mui/system';
 import { MainContainer } from '../styles';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
 
 interface ModelData {
     runs: string[];
@@ -19,38 +26,58 @@ const StatusPageContainer = styled('div')(() => {
     };
 });
 
-const ProviderGroup = styled('div')(() => ({
-    marginBottom: "10px",
+const ProviderSection = styled(Paper)(({ theme }) => ({
+    marginBottom: "8px",
+    backgroundColor: 'transparent',
+    color: theme.palette.text.primary,
 }));
 
-const ModelItem = styled('div')<{ deprecated?: boolean }>(({ deprecated }) => {
-    return {
-        fontSize: '14px',
-        lineHeight: '1.4',
-        marginBottom: '5px',
-        opacity: deprecated ? 0.6 : 1,
-        fontStyle: deprecated ? 'italic' : 'normal',
-    };
-});
+const ProviderHeader = styled('div')(({ theme }) => ({
+    padding: "4px 8px",
+    fontSize: "1rem",
+    fontWeight: "bold",
+    borderBottom: `1px solid ${theme.palette.divider}`,
+}));
 
-const StatusIndicator = styled('span')<{ status: string }>(({ status }) => {
-    const theme = useTheme();
+const StatusIndicator = styled('span')<{ status: string }>(({ status, theme }) => {
     const color = status === 'success' ? theme.palette.success.main : theme.palette.error.main;
     return {
         color,
-        marginRight: '5px',
+        marginRight: '2px',
+        display: 'inline-block',
+        width: '12px',
+        textAlign: 'center',
+        fontSize: '0.8rem'
     };
 });
 
-const LastRunInfo = styled('div')(() => {
-    const theme = useTheme();
-    return {
-        marginBottom: "20px",
-        fontSize: "18px",
-        fontWeight: "bold",
-        color: theme.palette.text.primary,
-    };
-});
+const LastRunInfo = styled('div')(() => ({
+    marginBottom: "12px",
+    fontSize: "1rem",
+    fontWeight: "bold",
+}));
+
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    color: theme.palette.text.primary,
+    padding: '4px 8px',
+    fontSize: '0.8rem',
+    whiteSpace: 'nowrap',
+    '&.header': {
+        fontWeight: 'bold',
+        backgroundColor: theme.palette.primary.dark,
+        padding: '4px 8px',
+        fontSize: '0.8rem',
+    },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+    backgroundColor: theme.palette.primary.main,
+    '&:hover': {
+        backgroundColor: theme.palette.primary.dark,
+    },
+    height: '24px',
+}));
 
 const StatusPage: React.FC = () => {
     const [data, setData] = useState<Record<string, ModelData>>({});
@@ -83,7 +110,7 @@ const StatusPage: React.FC = () => {
             setIsMobile(window.innerWidth < 768);
         };
 
-        handleResize(); // Set initial value
+        handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -133,61 +160,64 @@ const StatusPage: React.FC = () => {
         return localTimestamp.toUTCString();
     };
 
+    const renderModelTable = (models: Array<{ key: string } & ModelData>) => (
+        <TableContainer component={Paper} sx={{ backgroundColor: 'transparent' }}>
+            <Table size="small" sx={{ '& .MuiTable-root': { borderCollapse: 'collapse' } }}>
+                <TableHead>
+                    <TableRow>
+                        <StyledTableCell className="header" style={{ width: '25%' }}>Model Name</StyledTableCell>
+                        <StyledTableCell className="header" style={{ width: '45%' }}>Last Run</StyledTableCell>
+                        <StyledTableCell className="header" style={{ width: '30%' }}>Status History</StyledTableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {models.map((model) => {
+                        const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
+                        const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
+
+                        return (
+                            <StyledTableRow key={model.key}>
+                                <StyledTableCell>{model.model}</StyledTableCell>
+                                <StyledTableCell>{localLastRunTimestamp}</StyledTableCell>
+                                <StyledTableCell>
+                                    {recentStatuses.map((status, index) => (
+                                        <StatusIndicator key={index} status={status}>
+                                            {status === 'success' ? '✓' : '✗'}
+                                        </StatusIndicator>
+                                    ))}
+                                </StyledTableCell>
+                            </StyledTableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+        </TableContainer>
+    );
+
     return (
         <MainContainer isMobile={isMobile}>
-            <StatusPageContainer style={{ borderRadius: "10px" }}>
-                <h1>Model Benchmarking Status</h1>
+            <StatusPageContainer>
+                <h1 style={{ marginBottom: '8px', fontSize: '1.5rem' }}>Model Benchmarking Status</h1>
                 {isLoading ? (
                     <div>Loading model status...</div>
                 ) : (
                     <>
                         <LastRunInfo>{lastRunInfo}</LastRunInfo>
-                        <h2>Active Models</h2>
+                        
+                        <h2 style={{ marginBottom: '8px', fontSize: '1.2rem' }}>Active Models</h2>
                         {Object.entries(activeModels).map(([provider, models]) => (
-                            <ProviderGroup key={provider}>
-                                <h3>{provider}</h3>
-                                {models.map((model) => {
-                                    const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
-                                    const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
-
-                                    return (
-                                        <ModelItem key={model.key}>
-                                            <span>{model.model}</span>
-                                            <span> - Last Run: {localLastRunTimestamp}</span>
-                                            <span> - Status: </span>
-                                            {recentStatuses.map((status, index) => (
-                                                <StatusIndicator key={index} status={status}>
-                                                    {status === 'success' ? '✓' : '✗'}
-                                                </StatusIndicator>
-                                            ))}
-                                        </ModelItem>
-                                    );
-                                })}
-                            </ProviderGroup>
+                            <ProviderSection key={provider}>
+                                <ProviderHeader>{provider}</ProviderHeader>
+                                {renderModelTable(models)}
+                            </ProviderSection>
                         ))}
 
-                        <h2>Deprecated Models</h2>
+                        <h2 style={{ marginTop: '16px', marginBottom: '8px', fontSize: '1.2rem' }}>Deprecated Models</h2>
                         {Object.entries(deprecatedModels).map(([provider, models]) => (
-                            <ProviderGroup key={provider}>
-                                <h3>{provider}</h3>
-                                {models.map((model) => {
-                                    const recentStatuses = getRecentNonDidNotRunStatuses(model.runs);
-                                    const localLastRunTimestamp = formatTimestamp(model.last_run_timestamp);
-
-                                    return (
-                                        <ModelItem key={model.key} deprecated>
-                                            <span>{model.model}</span>
-                                            <span> - Last Run: {localLastRunTimestamp}</span>
-                                            <span> - Status: </span>
-                                            {recentStatuses.map((status, index) => (
-                                                <StatusIndicator key={index} status={status}>
-                                                    {status === 'success' ? '✓' : '✗'}
-                                                </StatusIndicator>
-                                            ))}
-                                        </ModelItem>
-                                    );
-                                })}
-                            </ProviderGroup>
+                            <ProviderSection key={provider}>
+                                <ProviderHeader>{provider}</ProviderHeader>
+                                {renderModelTable(models)}
+                            </ProviderSection>
                         ))}
                     </>
                 )}
