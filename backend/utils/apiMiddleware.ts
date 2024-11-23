@@ -64,7 +64,8 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
     const allowedOrigins = [
         'http://localhost:3000',
         'http://localhost:3001',
-        'https://llm-benchmarks-dashboard.vercel.app'
+        'https://llm-benchmarks-dashboard.vercel.app',
+        'https://www.llm-benchmarks.com'
     ];
 
     const origin = req.headers.origin;
