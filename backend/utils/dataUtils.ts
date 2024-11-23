@@ -45,6 +45,37 @@ function shuffleArray<T>(array: T[]): T[] {
     return array;
 }
 
+// Round a number to specified significant digits
+function roundToSignificantDigits(num: number, digits: number = 3): number {
+    if (num === 0) return 0;
+    if (!isFinite(num)) return num;
+    
+    // Convert to exponential notation with desired precision
+    const rounded = Number(num.toPrecision(digits));
+    
+    // Remove any floating point artifacts by converting through string
+    // This handles cases like 42.800000000000004
+    return Number(rounded.toFixed(10));
+}
+
+// Recursively round all numbers in a data structure
+function roundNumbers(data: any, significantDigits: number = 3): any {
+    if (typeof data === 'number') {
+        return roundToSignificantDigits(data, significantDigits);
+    }
+    if (Array.isArray(data)) {
+        return data.map(item => roundNumbers(item, significantDigits));
+    }
+    if (data && typeof data === 'object') {
+        const rounded: any = {};
+        for (const key in data) {
+            rounded[key] = roundNumbers(data[key], significantDigits);
+        }
+        return rounded;
+    }
+    return data;
+}
+
 // Consolidated export statement
 export { 
     calculateMean, 
@@ -54,5 +85,6 @@ export {
     calculateMax, 
     calculateQuartiles,
     calculateMB,
-    shuffleArray
+    shuffleArray,
+    roundNumbers
 };

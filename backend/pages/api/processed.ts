@@ -7,6 +7,7 @@ import { corsMiddleware } from '../../utils/apiMiddleware';
 import { CACHE_KEYS } from '../../utils/cacheUtils';
 import redisClient from '../../utils/redisClient';
 import logger from '../../utils/logger';
+import { roundNumbers } from '../../utils/dataUtils';
 
 export const daysAgo = 14;
 const debug = true; // Set to true to disable cache
@@ -30,29 +31,43 @@ async function handler(
             }
         }
 
+        const startTime_all = process.hrtime.bigint();
+
         // If not cached or cache disabled, compute the data
+        logger.info('Starting MongoDB fetch');
+        const startTime0 = process.hrtime.bigint();
         await connectToMongoDB();
         const dateFilter = new Date();
         dateFilter.setDate(dateFilter.getDate() - daysAgo);
-        const metrics = await CloudMetrics.find({ 
-            run_ts: { $gte: dateFilter } 
+        const metrics = await CloudMetrics.find({
+            run_ts: { $gte: dateFilter }
         }).select('-times_between_tokens');
         const rawMetrics = metrics.map(metric => metric.toObject());
+        console.log('MongoDB Response - Raw metrics:', rawMetrics.length);
+        const endTime0 = process.hrtime.bigint();
+        logger.info(`MongoDB fetch took ${(endTime0 - startTime0) / 1000000n}ms`);
 
         // Apply transformations and processing
+        const startTime = process.hrtime.bigint();
         const transformedData = cleanTransformCloud(rawMetrics);
+        const endTime = process.hrtime.bigint();
+        logger.info(`cleanTransformCloud took ${(endTime - startTime) / 1000000n}ms`);
+
+        const startTime2 = process.hrtime.bigint();
         const speedDistData = processSpeedDistData(transformedData);
-        
-        console.log('API Response - First model speed dist data:', {
-            modelName: speedDistData[0]?.model_name,
-            hasDensityPoints: Boolean(speedDistData[0]?.density_points),
-            densityPointsLength: speedDistData[0]?.density_points?.length,
-            firstDensityPoint: speedDistData[0]?.density_points?.[0]
-        });
-        
+        const endTime2 = process.hrtime.bigint();
+        logger.info(`processSpeedDistData took ${(endTime2 - startTime2) / 1000000n}ms`);
+
+        const startTime3 = process.hrtime.bigint();
         const timeSeriesData = processTimeSeriesData(transformedData);
+        const endTime3 = process.hrtime.bigint();
+        logger.info(`processTimeSeriesData took ${(endTime3 - startTime3) / 1000000n}ms`);
+
+        const startTime4 = process.hrtime.bigint();
         const tableData = processRawTableData(transformedData);
-        
+        const endTime4 = process.hrtime.bigint();
+        logger.info(`processRawTableData took ${(endTime4 - startTime4) / 1000000n}ms`);
+
         // Log first item's density points for verification
         if (speedDistData.length > 0) {
             logger.info(`First model density points sample: ${
@@ -66,21 +81,33 @@ async function handler(
             table: tableData
         };
 
+        // Round all numbers in the response to 3 significant digits
+        const roundedResponse = roundNumbers(response);
+
         // Cache the processed data if caching is enabled
         if (useCache) {
             logger.info('Updating processed metrics cache');
-            await redisClient.set(CACHE_KEYS.PROCESSED_METRICS, JSON.stringify(response));
-            await redisClient.set(CACHE_KEYS.PROCESSED_METRICS_LAST_UPDATE, Date.now().toString());
+            await redisClient.set(
+                CACHE_KEYS.PROCESSED_METRICS,
+                JSON.stringify(roundedResponse)
+            );
+            await redisClient.set(
+                CACHE_KEYS.PROCESSED_METRICS_LAST_UPDATE,
+                Date.now().toString()
+            );
         }
         
         // Log sizes for analysis
         console.log('Data sizes (KB):');
-        console.log('Speed Distribution:', JSON.stringify(speedDistData).length / 1024);
-        console.log('Time Series:', JSON.stringify(timeSeriesData).length / 1024);
-        console.log('Table:', JSON.stringify(tableData).length / 1024);
-        console.log('Total:', JSON.stringify(response).length / 1024);
+        console.log('Speed Distribution:', (JSON.stringify(speedDistData).length / 1024).toFixed(2));
+        console.log('Time Series:', (JSON.stringify(timeSeriesData).length / 1024).toFixed(2));
+        console.log('Table:', (JSON.stringify(tableData).length / 1024).toFixed(2));
+        console.log('Total:', (JSON.stringify(response).length / 1024).toFixed(2));
+
+        const endTime_all = process.hrtime.bigint();
+        logger.info(`Total processing took ${(endTime_all - startTime_all) / 1000000n}ms`);
         
-        return res.status(200).json(response);
+        return res.status(200).json(roundedResponse);
     } catch (error) {
         console.error('Error processing metrics:', error);
         return res.status(500).json({ error: 'Failed to process metrics' });
