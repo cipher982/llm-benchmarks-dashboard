@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, memo } from 'react';
 import {
     LineChart,
     Line,
@@ -12,6 +12,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { Provider, providerColors } from '../../theme/theme';
 import { TimeSeriesData, TimeSeriesModel } from '../../types/ProcessedData';
+import { Virtuoso } from 'react-virtuoso';
 
 interface TimeSeriesChartProps {
     data: TimeSeriesData;
@@ -22,117 +23,142 @@ interface ChartDataPoint {
     [key: string]: string | number | null;
 }
 
+// Memoized individual chart component
+const ModelChart = memo(({ 
+    model, 
+    chartData, 
+    theme 
+}: { 
+    model: TimeSeriesModel; 
+    chartData: ChartDataPoint[]; 
+    theme: any; 
+}) => (
+    <div key={model.model_name}>
+        <h3>{model.model_name}</h3>
+        <ResponsiveContainer width="100%" height={250}>
+            <LineChart
+                data={chartData}
+                margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                }}
+            >
+                <CartesianGrid strokeDasharray="1 1" />
+                <XAxis
+                    dataKey="timestamp"
+                    tickFormatter={(timestamp: string) => {
+                        const date = new Date(timestamp);
+                        return date.toLocaleString('default', { 
+                            month: 'numeric', 
+                            day: 'numeric' 
+                        });
+                    }}
+                    tick={{ fontSize: 12, fill: theme.palette.common.white }}
+                />
+                <YAxis 
+                    stroke={theme.palette.common.white} 
+                    domain={['auto', 'auto']} 
+                    tickFormatter={(value) => value.toFixed(1)}
+                />
+                <Tooltip />
+                <Legend />
+                {model.providers?.map(provider => (
+                    provider?.values && (
+                        <Line
+                            key={`${model.model_name}-${provider.provider}`}
+                            type="monotone"
+                            dataKey={`${model.model_name}-${provider.provider}`}
+                            stroke={providerColors[provider.provider as Provider]}
+                            dot={false}
+                            name={provider.provider}
+                        />
+                    )
+                ))}
+            </LineChart>
+        </ResponsiveContainer>
+    </div>
+));
+
+ModelChart.displayName = 'ModelChart';
+
 const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ data }) => {
     const theme = useTheme();
-    console.log('TimeSeries received data:', data);
+    
+    useEffect(() => {
+        performance.mark('chart-start');
+        return () => {
+            performance.measure('chart-total-time', 'chart-start');
+        };
+    }, []);
 
-    // Ensure data is properly initialized
-    const timestamps = data?.timestamps || [];
-    const modelsArray: TimeSeriesModel[] = data?.models || [];
-    // console.log('Raw timestamps array:', timestamps);
-    // console.log('First few timestamps:', timestamps.slice(0, 5));
-    // console.log('Number of unique timestamps:', new Set(timestamps).size);
-    // console.log('Sample provider values length:', modelsArray[0]?.providers[0]?.values?.length);
-    // console.log('Raw models:', modelsArray);
-
-    // Create synthetic timestamps (one every 30 minutes)
-    const numDataPoints = data?.timestamps?.length || 0;
-    const now = new Date();
-    const syntheticTimestamps = Array.from({ length: numDataPoints }, (_, i) => {
-        const timestamp = new Date(now.getTime() - (numDataPoints - 1 - i) * 30 * 60 * 1000);
-        return timestamp.toISOString();
-    });
-
-    // Transform data into chart format with synthetic timestamps
-    const chartData: ChartDataPoint[] = syntheticTimestamps.map((timestamp, index) => {
-        const point: ChartDataPoint = { timestamp };
-        modelsArray.forEach((model: TimeSeriesModel) => {
-            model.providers?.forEach(provider => {
-                if (provider?.values) {
-                    const key = `${model.model_name}-${provider.provider}`;
-                    point[key] = provider.values[index] ?? null;
-                }
-            });
+    // Memoize synthetic timestamps
+    const syntheticTimestamps = useMemo(() => {
+        console.time('synthetic-timestamps');
+        const numDataPoints = data?.timestamps?.length || 0;
+        const now = new Date();
+        const timestamps = Array.from({ length: numDataPoints }, (_, i) => {
+            const timestamp = new Date(now.getTime() - (numDataPoints - 1 - i) * 30 * 60 * 1000);
+            return timestamp.toISOString();
         });
-        return point;
-    });
+        console.timeEnd('synthetic-timestamps');
+        return timestamps;
+    }, [data?.timestamps?.length]);
 
-    console.log('Chart data with synthetic timestamps:', chartData.slice(0, 5));
+    // Memoize chart data transformation
+    const chartData = useMemo(() => {
+        console.time('chart-data-transform');
+        if (!data?.models) return [];
+        
+        const result = syntheticTimestamps.map((timestamp, index) => {
+            const point: ChartDataPoint = { timestamp };
+            data.models.forEach((model: TimeSeriesModel) => {
+                model.providers?.forEach(provider => {
+                    if (provider?.values) {
+                        const key = `${model.model_name}-${provider.provider}`;
+                        point[key] = provider.values[index] ?? null;
+                    }
+                });
+            });
+            return point;
+        });
+        console.timeEnd('chart-data-transform');
+        return result;
+    }, [data?.models, syntheticTimestamps]);
 
-    // Sort models by number of providers
-    const sortedModels = modelsArray
-        .filter((model: TimeSeriesModel) => model?.providers?.some(p => p?.values))
-        .sort((a: TimeSeriesModel, b: TimeSeriesModel) => 
-            (b.providers?.length || 0) - (a.providers?.length || 0)
-        );
-    // // console.log('Sorted models by provider count:', sortedModels.map(m => ({
-    //     model: m.model_name,
-    //     providerCount: m.providers?.length || 0
-    // })));
+    // Memoize sorted models
+    const sortedModels = useMemo(() => {
+        console.time('model-sorting');
+        const result = (data?.models || [])
+            .filter((model: TimeSeriesModel) => model?.providers?.some(p => p?.values))
+            .sort((a: TimeSeriesModel, b: TimeSeriesModel) => 
+                (b.providers?.length || 0) - (a.providers?.length || 0)
+            );
+        console.timeEnd('model-sorting');
+        return result;
+    }, [data?.models]);
 
-    if (!numDataPoints || !sortedModels.length) {
-        console.log('No data available - numDataPoints:', numDataPoints, 'sortedModels:', sortedModels.length);
+    if (!data?.timestamps?.length || !sortedModels.length) {
+        console.log('No data available - numDataPoints:', data?.timestamps?.length, 'sortedModels:', sortedModels.length);
         return <div>No data available</div>;
     }
 
     return (
-        <div>
-            {sortedModels.map((model: TimeSeriesModel) => (
-                <div key={model.model_name}>
-                    <h3>{model.model_name}</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                        <LineChart
-                            data={chartData}
-                            margin={{
-                                top: 5,
-                                right: 30,
-                                left: 20,
-                                bottom: 5,
-                            }}
-                        >
-                            <CartesianGrid strokeDasharray="1 1" />
-                            <XAxis
-                                dataKey="timestamp"
-                                tickFormatter={(timestamp: string) => {
-                                    const date = new Date(timestamp);
-                                    return date.toLocaleString('default', { 
-                                        month: 'numeric', 
-                                        day: 'numeric' 
-                                    });
-                                }}
-                                tick={{ fontSize: 12, fill: theme.palette.common.white }}
-                            />
-                            <YAxis 
-                                stroke={theme.palette.common.white} 
-                                domain={['auto', 'auto']} 
-                                tickFormatter={(value) => value.toFixed(1)}
-                            />
-                            <Tooltip />
-                            <Legend />
-                            {model.providers?.map(provider => (
-                                <Line
-                                    key={`${model.model_name}-${provider.provider}`}
-                                    type="monotone"
-                                    dataKey={`${model.model_name}-${provider.provider}`}
-                                    name={`${provider.provider}`}
-                                    stroke={providerColors[provider.provider as Provider]}
-                                    strokeWidth={2}
-                                    dot={{ 
-                                        stroke: providerColors[provider.provider as Provider],
-                                        strokeWidth: 1,
-                                        r: 2,
-                                        fill: providerColors[provider.provider as Provider]
-                                    }}
-                                    connectNulls={false}
-                                    isAnimationActive={false}
-                                />
-                            ))}
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-            ))}
-        </div>
+        <Virtuoso
+            useWindowScroll
+            totalCount={sortedModels.length}
+            itemContent={index => (
+                <ModelChart
+                    key={sortedModels[index].model_name}
+                    model={sortedModels[index]}
+                    chartData={chartData}
+                    theme={theme}
+                />
+            )}
+            overscan={3}
+        />
     );
 };
 
-export default TimeSeriesChart;
+export default memo(TimeSeriesChart);
