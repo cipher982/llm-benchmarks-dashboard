@@ -10,10 +10,11 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 
 interface ModelData {
-    runs: string[];
     provider: string;
     model: string;
     last_run_timestamp: string;
+    runs: string[];
+    latest_status: string;
 }
 
 // Styles
@@ -88,7 +89,8 @@ const StatusPage: React.FC = () => {
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const response = await fetch("https://llm-benchmarks-backend.vercel.app/api/status");
+            const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
+            const response = await fetch(`${apiUrl}/api/status`);
             const data = await response.json();
             setData(data);
             updateLastRunInfo(data);
@@ -152,7 +154,7 @@ const StatusPage: React.FC = () => {
 
     const getRecentNonDidNotRunStatuses = (runs: string[]) => {
         const filteredRuns = runs.filter((status) => status !== 'did-not-run');
-        return filteredRuns.slice(-10);
+        return filteredRuns;
     };
 
     const formatTimestamp = (timestamp: string) => {
@@ -167,7 +169,7 @@ const StatusPage: React.FC = () => {
                     <TableRow>
                         <StyledTableCell className="header" style={{ width: '25%' }}>Model Name</StyledTableCell>
                         <StyledTableCell className="header" style={{ width: '45%' }}>Last Run</StyledTableCell>
-                        <StyledTableCell className="header" style={{ width: '30%' }}>Status History</StyledTableCell>
+                        <StyledTableCell className="header" style={{ width: '30%' }}>Status</StyledTableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>

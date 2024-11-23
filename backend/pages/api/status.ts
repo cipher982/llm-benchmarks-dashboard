@@ -12,13 +12,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     corsMiddleware(req, res);
     if (req.method === 'OPTIONS') return;
 
-    console.log("Making redis connection for /api/status:", redis.options);
     if (req.method === 'GET') {
         try {
             const statusData = await redis.get('cloud_log_status');
-            console.log("Fetched statusData:", statusData);
             if (statusData) {
-                res.status(200).json(JSON.parse(statusData));
+                const parsedData = JSON.parse(statusData);
+                
+                // Keep the data structure but ensure runs array is limited to last 10 entries
+                const optimizedData = Object.entries(parsedData).reduce((acc, [key, value]: [string, any]) => {
+                    acc[key] = {
+                        provider: value.provider,
+                        model: value.model,
+                        last_run_timestamp: value.last_run_timestamp,
+                        runs: Array.isArray(value.runs) ? value.runs.slice(-10) : []
+                    };
+                    return acc;
+                }, {} as Record<string, any>);
+
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Cache-Control', 'public, s-maxage=10');
+                res.status(200).json(optimizedData);
             } else {
                 res.status(404).json({ error: 'Status data not found' });
             }
