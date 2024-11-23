@@ -10,6 +10,7 @@ const RawCloudTable = lazy(() => import("../tables/cloud/RawCloudTable"));
 const SpeedDistChart = lazy(() => import("../charts/cloud/SpeedDistChart"));
 
 const CloudBenchmarks: React.FC = () => {
+    console.log('CloudBenchmarks component mounted');
     const [speedDistData, setSpeedDistData] = useState<SpeedDistributionPoint[]>([]);
     const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>({ 
         timestamps: [], 
@@ -28,8 +29,9 @@ const CloudBenchmarks: React.FC = () => {
             try {
                 setLoading(true);
                 const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
+                console.time('fetchCloudBenchmarks');
                 const res = await fetch(`${apiUrl}/api/processed`);
-                
+                console.timeEnd('fetchCloudBenchmarks');
                 if (!res.ok) {
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }

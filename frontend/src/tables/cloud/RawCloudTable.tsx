@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { DataGrid, GridColDef, GridSortModel } from '@mui/x-data-grid';
-import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import { TableRow } from '../../types/ProcessedData';
 
@@ -42,7 +41,6 @@ const columns: GridColDef[] = [
 ];
 
 const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
-    const theme = useTheme();
     // console.log('RawCloudTable received data:', data);
 
     const [sortModel, setSortModel] = useState<GridSortModel>([
