@@ -33,11 +33,14 @@ const ProviderSection = styled(Paper)(({ theme }) => ({
     color: theme.palette.text.primary,
 }));
 
-const ProviderHeader = styled('div')(({ theme }) => ({
-    padding: "4px 8px",
-    fontSize: "1rem",
-    fontWeight: "bold",
-    borderBottom: `1px solid ${theme.palette.divider}`,
+const ProviderHeader = styled('h3')(({ theme }) => ({
+    fontSize: '1.0rem',
+    fontWeight: 600,
+    color: theme.palette.text.primary,
+    marginBottom: '12px',
+    textAlign: 'center',
+    padding: '4px 0',
+    borderBottom: `2px solid ${theme.palette.primary.main}`,
 }));
 
 const StatusIndicator = styled('span')<{ status: string }>(({ status, theme }) => {
@@ -209,7 +212,7 @@ const StatusPage: React.FC = () => {
                         <h2 style={{ marginBottom: '8px', fontSize: '1.2rem' }}>Active Models</h2>
                         {Object.entries(activeModels).map(([provider, models]) => (
                             <ProviderSection key={provider}>
-                                <ProviderHeader>{provider}</ProviderHeader>
+                                <ProviderHeader>{provider.toUpperCase()}</ProviderHeader>
                                 {renderModelTable(models)}
                             </ProviderSection>
                         ))}
@@ -217,7 +220,7 @@ const StatusPage: React.FC = () => {
                         <h2 style={{ marginTop: '16px', marginBottom: '8px', fontSize: '1.2rem' }}>Deprecated Models</h2>
                         {Object.entries(deprecatedModels).map(([provider, models]) => (
                             <ProviderSection key={provider}>
-                                <ProviderHeader>{provider}</ProviderHeader>
+                                <ProviderHeader>{provider.toUpperCase()}</ProviderHeader>
                                 {renderModelTable(models)}
                             </ProviderSection>
                         ))}
