@@ -1,37 +1,26 @@
 import mongoose from "mongoose";
 import logger from "./logger";
 
-interface Env {
-  MONGODB_URI: string;
+if (!process.env.MONGODB_URI) {
+    throw new Error('Please define the MONGODB_URI environment variable inside .env');
 }
 
-// Ensure that necessary environment variables are present
-const env: Env = process.env as any;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-async function connectToMongoDB(): Promise<void> {
-  if (mongoose.connection.readyState === 1) {
-    logger.info("MongoDB connection is already established.");
-    return;
-  }
+async function connectToMongoDB() {
+    try {
+        if (mongoose.connection.readyState === 1) {
+            logger.debug('Using existing MongoDB connection');
+            return;
+        }
 
-  // Enable Mongoose debug mode to log all operations to the console
-  mongoose.set("debug", false);
-
-  try {
-    logger.info(`Verifying MONGODB_URI: ${env.MONGODB_URI}`);
-    // Add more detailed logging before attempting to connect
-    logger.debug("Attempting to connect to MongoDB...");
-
-    await mongoose.connect(env.MONGODB_URI);
-    logger.info(`MongoDB connected to ${env.MONGODB_URI}`);
-    logger.debug(`MongoDB connection state: ${mongoose.connection.readyState}`);
-
-  } catch (err) {
-    logger.error(`MongoDB connection error: ${JSON.stringify(err)}`);
-    // Log additional information about the connection attempt
-    logger.debug(`Failed connection parameters: MONGODB_URI=${env.MONGODB_URI}`);
-    throw err;
-  }
-};
+        logger.info('Creating new MongoDB connection');
+        await mongoose.connect(MONGODB_URI);
+        logger.info('MongoDB connected successfully');
+    } catch (error) {
+        logger.error('Error connecting to MongoDB:', error);
+        throw error;
+    }
+}
 
 export default connectToMongoDB;

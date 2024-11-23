@@ -82,16 +82,70 @@ export const processTimeSeriesData = (data: CloudBenchmark[]) => {
     };
 };
 
+// Kernel density estimation functions
+function gaussianKernel(u: number): number {
+    return Math.exp(-(u * u) / 2) / Math.sqrt(2 * Math.PI);
+}
+
+function calculateKernelDensity(data: number[], points: number = 100, bandwidth: number = 7): Array<{ x: number; y: number }> {
+    if (data.length === 0) return [];
+    
+    // Filter out any NaN or invalid values
+    const validData = data.filter(x => !isNaN(x) && isFinite(x));
+    if (validData.length === 0) return [];
+    
+    // Find the data range
+    const min = Math.min(...validData);
+    const max = Math.max(...validData);
+    const range = max - min;
+    
+    // Extend the range by 3 bandwidths on each side to ensure curves complete
+    const paddedMin = Math.max(0, min - bandwidth * 3);
+    const paddedMax = max + bandwidth * 3;
+    
+    // Generate x values with extended range
+    const step = (paddedMax - paddedMin) / (points - 1);
+    const xValues = Array.from({ length: points }, (_, i) => paddedMin + i * step);
+    
+    // Calculate density for each x value
+    return xValues.map(x => {
+        const density = validData.reduce((sum, xi) => {
+            const u = (x - xi) / bandwidth;
+            return sum + gaussianKernel(u);
+        }, 0) / (validData.length * bandwidth);
+        
+        return { x, y: density };
+    });
+}
+
 export const processSpeedDistData = (data: CloudBenchmark[]) => {
-    // Apply model mapping and sample the tokens_per_second arrays
-    const mappedData = mapModelNames(data);
-    return mappedData.map(benchmark => ({
-        provider: benchmark.provider,
-        model_name: benchmark.model_name,
-        tokens_per_second: sampleArray(benchmark.tokens_per_second, SAMPLE_SIZE)
-            .map(val => Number(val.toFixed(PRECISION))),
-        display_name: benchmark.model_name,
-    }));
+    // Apply model mapping and filter data
+    const processedData = mapModelNames(data)
+        .filter(d => !d.model_name.includes('amazon'))
+        .map(d => ({
+            ...d,
+            model_name: `${d.provider}-${d.model_name}`,
+            display_name: d.model_name,
+            tokens_per_second: d.tokens_per_second.filter(val => val <= 140)
+        }))
+        .filter(d => d.tokens_per_second.length > 0);
+    
+    return processedData.map(benchmark => {
+        // Calculate density estimation
+        const densityPoints = calculateKernelDensity(
+            benchmark.tokens_per_second,
+            100,  // Same number of points as original
+            7     // Same bandwidth as original
+        );
+        
+        return {
+            provider: benchmark.provider,
+            model_name: benchmark.model_name,
+            display_name: benchmark.display_name,
+            tokens_per_second: benchmark.tokens_per_second,
+            density_points: densityPoints
+        };
+    });
 };
 
 export const processRawTableData = (data: CloudBenchmark[]) => {

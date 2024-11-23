@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { lazy, Suspense } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useMediaQuery } from "@mui/material";
@@ -17,43 +17,64 @@ const CloudBenchmarks: React.FC = () => {
     });
     const [tableData, setTableData] = useState<TableRow[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [dataReady, setDataReady] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
     const isMobile = useMediaQuery("(max-width:500px)");
 
-    useEffect(() => {
-        const fetchCloudBenchmarks = async () => {
+    const fetchCloudBenchmarks = useCallback(async () => {
+        const maxRetries = 2;
+        let retryCount = 0;
+        
+        const tryFetch = async (): Promise<void> => {
             try {
+                setLoading(true);
                 const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
                 const res = await fetch(`${apiUrl}/api/processed`);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+                
                 const data = await res.json();
                 
-                console.log('API Response:', data);
-                
                 if (!data || !data.speedDistribution || !data.timeSeries || !data.table) {
-                    console.error('Invalid data structure:', data);
                     throw new Error('Invalid data format received from API');
                 }
-
-                // console.log('Speed Distribution:', data.speedDistribution);
-                // console.log('Time Series:', data.timeSeries);
-                // console.log('Table Data:', data.table);
 
                 setSpeedDistData(data.speedDistribution);
                 setTimeSeriesData(data.timeSeries);
                 setTableData(data.table);
-                setDataReady(true);
+                setLoading(false);
+                setError(null);
                 
             } catch (err) {
                 const error = err as Error;
                 console.error("Error fetching data:", error);
+                
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    console.log(`Retrying... (${retryCount}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                    return tryFetch();
+                }
+                
                 setError(error.toString());
-                setDataReady(true);
+                setLoading(false);
             }
         };
-        fetchCloudBenchmarks();
+
+        await tryFetch();
     }, []);
 
-    if (!dataReady) {
+    // Use a ref to prevent unnecessary re-fetches during development
+    const fetchRef = useRef(false);
+    
+    useEffect(() => {
+        if (fetchRef.current) return;
+        fetchRef.current = true;
+        fetchCloudBenchmarks();
+    }, [fetchCloudBenchmarks]);
+
+    if (loading) {
         return (
             <div style={{
                 display: "flex",
@@ -67,7 +88,9 @@ const CloudBenchmarks: React.FC = () => {
         );
     }
 
-    if (error) return <div>Error: {error}</div>;
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
 
     return (
         <MainContainer isMobile={isMobile}>
@@ -90,20 +113,22 @@ const CloudBenchmarks: React.FC = () => {
             <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px", maxWidth: "100%", overflowX: "auto", marginBottom: "20px" }}>
                 <h4>📊 Speed Distribution 📊</h4>
                 <div style={{ maxWidth: "1100px", maxHeight: "600px", width: "100%", height: "100%", margin: "auto", paddingBottom: "20px" }}>
-                    <Suspense fallback={
-                        <div style={{ 
-                            width: "100%", 
-                            height: "600px", 
-                            display: "flex", 
-                            alignItems: "center", 
-                            justifyContent: "center",
-                            backgroundColor: "white"
-                        }}>
-                            <CircularProgress style={{ color: "#663399" }} size={60} />
-                        </div>
-                    }>
-                        <SpeedDistChart data={speedDistData} />
-                    </Suspense>
+                    {speedDistData.length > 0 && (
+                        <Suspense fallback={
+                            <div style={{ 
+                                width: "100%", 
+                                height: "600px", 
+                                display: "flex", 
+                                alignItems: "center", 
+                                justifyContent: "center",
+                                backgroundColor: "white"
+                            }}>
+                                <CircularProgress style={{ color: "#663399" }} size={60} />
+                            </div>
+                        }>
+                            <SpeedDistChart data={speedDistData} />
+                        </Suspense>
+                    )}
                 </div>
             </ChartContainer>
 
@@ -134,7 +159,7 @@ const CloudBenchmarks: React.FC = () => {
                 </div>
             </TableContainer>
 
-            {dataReady && (
+            {timeSeriesData.timestamps.length > 0 && (
                 <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                     <h4>📈 Time Series 📈</h4>
                     <div style={{ padding: "0 5px 20px 5px" }}>

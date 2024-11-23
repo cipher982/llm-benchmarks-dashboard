@@ -9,7 +9,7 @@ import redisClient from '../../utils/redisClient';
 import logger from '../../utils/logger';
 
 export const daysAgo = 14;
-const debug = false;
+const debug = true; // Set to true to disable cache
 const useCache = !debug;
 
 async function handler(
@@ -42,8 +42,23 @@ async function handler(
         // Apply transformations and processing
         const transformedData = cleanTransformCloud(rawMetrics);
         const speedDistData = processSpeedDistData(transformedData);
+        
+        console.log('API Response - First model speed dist data:', {
+            modelName: speedDistData[0]?.model_name,
+            hasDensityPoints: Boolean(speedDistData[0]?.density_points),
+            densityPointsLength: speedDistData[0]?.density_points?.length,
+            firstDensityPoint: speedDistData[0]?.density_points?.[0]
+        });
+        
         const timeSeriesData = processTimeSeriesData(transformedData);
         const tableData = processRawTableData(transformedData);
+        
+        // Log first item's density points for verification
+        if (speedDistData.length > 0) {
+            logger.info(`First model density points sample: ${
+                JSON.stringify(speedDistData[0].density_points.slice(0, 3))
+            }`);
+        }
         
         const response = {
             speedDistribution: speedDistData,

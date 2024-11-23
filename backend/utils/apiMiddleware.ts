@@ -59,31 +59,27 @@ export async function setupApiEndpoint(
     }
 }
 
-export function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
-    setupCORS(req, res);
+export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
+    // Allow requests from localhost during development
+    const allowedOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://llm-benchmarks-dashboard.vercel.app'
+    ];
 
+    const origin = req.headers.origin;
+    
+    if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+
+    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return true;
     }
-    return false;
-}
 
-function setupCORS(req: NextApiRequest, res: NextApiResponse) {
-    const allowedOrigins = [
-        'https://www.llm-benchmarks.com',
-        'https://llm-benchmarks-backend.vercel.app',
-        'http://localhost:3000',
-        'http://localhost:3001',
-    ];
-    const origin = req.headers.origin;
-    logger.info("Request Origin:", origin);
-    if (origin && allowedOrigins.includes(origin)) {
-        logger.info("Setting Access-Control-Allow-Origin for:", origin);
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    } else {
-        logger.warn("Origin not allowed or not present in the request:", origin);
-    }
+    return false;
 }
