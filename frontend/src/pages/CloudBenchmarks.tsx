@@ -18,68 +18,57 @@ const CloudBenchmarks: React.FC = () => {
     });
     const [tableData, setTableData] = useState<TableRow[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [initialLoading, setInitialLoading] = useState<boolean>(true);
+    const [selectedDays, setSelectedDays] = useState<number>(14);
     const isMobile = useMediaQuery("(max-width:500px)");
 
-    const fetchCloudBenchmarks = useCallback(async () => {
-        const maxRetries = 2;
-        let retryCount = 0;
-        
-        const tryFetch = async (): Promise<void> => {
-            try {
-                setLoading(true);
-                const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
-                console.time('fetchCloudBenchmarks');
-                const res = await fetch(`${apiUrl}/api/processed`);
-                console.timeEnd('fetchCloudBenchmarks');
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-                
-                const data = await res.json();
-                
-                if (!data || !data.speedDistribution || !data.timeSeries || !data.table) {
-                    throw new Error('Invalid data format received from API');
-                }
-
-                setSpeedDistData(data.speedDistribution);
-                setTimeSeriesData(data.timeSeries);
-                // console.log('Time series data from API:', data.timeSeries);
-                // console.log('Sample timestamps:', data.timeSeries.timestamps.slice(0, 5));
-                // console.log('Sample model data:', data.timeSeries.models[0]);
-                setTableData(data.table);
-                setLoading(false);
-                setError(null);
-                
-            } catch (err) {
-                const error = err as Error;
-                console.error("Error fetching data:", error);
-                
-                if (retryCount < maxRetries) {
-                    retryCount++;
-                    console.log(`Retrying... (${retryCount}/${maxRetries})`);
-                    await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-                    return tryFetch();
-                }
-                
-                setError(error.toString());
-                setLoading(false);
+    const fetchCloudBenchmarks = useCallback(async (days?: number) => {
+        try {
+            const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
+            console.time('fetchCloudBenchmarks');
+            const queryParams = days ? `?days=${days}` : '';
+            const res = await fetch(`${apiUrl}/api/processed${queryParams}`);
+            console.timeEnd('fetchCloudBenchmarks');
+            
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
             }
-        };
+            
+            const data = await res.json();
+            
+            if (!data || !data.speedDistribution || !data.timeSeries || !data.table) {
+                throw new Error('Invalid data format received from API');
+            }
 
-        await tryFetch();
+            setSpeedDistData(data.speedDistribution);
+            setTimeSeriesData(data.timeSeries);
+            setTableData(data.table);
+            setError(null);
+        } catch (err: any) {
+            console.error('Error fetching cloud benchmarks:', err);
+            setError(err.message);
+        }
     }, []);
 
-    // Use a ref to prevent unnecessary re-fetches during development
-    const fetchRef = useRef(false);
-    
+    // Only run on initial mount
     useEffect(() => {
-        if (fetchRef.current) return;
-        fetchRef.current = true;
-        fetchCloudBenchmarks();
+        const initializeData = async () => {
+            try {
+                await fetchCloudBenchmarks(selectedDays);
+            } finally {
+                setInitialLoading(false);
+            }
+        };
+        initializeData();
+    }, []); // Empty dependency array - only runs on mount
+
+    // Handle time range changes
+    const handleTimeRangeChange = useCallback(async (days: number) => {
+        setSelectedDays(days);
+        await fetchCloudBenchmarks(days);
     }, [fetchCloudBenchmarks]);
 
-    if (loading) {
+    if (initialLoading) {
         return (
             <div style={{
                 display: "flex",
@@ -169,7 +158,11 @@ const CloudBenchmarks: React.FC = () => {
                     <h4>📈 Time Series 📈</h4>
                     <div style={{ padding: "0 5px 20px 5px" }}>
                         <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
-                            <TimeSeriesChart data={timeSeriesData} />
+                            <TimeSeriesChart 
+                                data={timeSeriesData} 
+                                onTimeRangeChange={handleTimeRangeChange}
+                                selectedDays={selectedDays}
+                            />
                         </Suspense>
                     </div>
                 </ChartContainer>
