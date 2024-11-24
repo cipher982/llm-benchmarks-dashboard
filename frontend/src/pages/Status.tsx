@@ -139,16 +139,25 @@ const StatusPage: React.FC = () => {
     };
 
     const { activeModels, deprecatedModels } = Object.entries(data).reduce((acc, [key, model]) => {
-        if (!model.provider.includes('_todo')) {
-            const group = isModelDeprecated(model.last_run_timestamp)
-                ? acc.deprecatedModels
-                : acc.activeModels;
-        
-            if (!group[model.provider]) {
-                group[model.provider] = [];
-            }
-            group[model.provider].push({ key, ...model });
+        // Skip if model or provider is undefined
+        if (!model || !model.provider) {
+            return acc;
         }
+
+        // Skip todo models
+        if (model.provider.includes('_todo')) {
+            return acc;
+        }
+
+        const group = isModelDeprecated(model.last_run_timestamp)
+            ? acc.deprecatedModels
+            : acc.activeModels;
+    
+        if (!group[model.provider]) {
+            group[model.provider] = [];
+        }
+        group[model.provider].push({ key, ...model });
+        
         return acc;
     }, {
         activeModels: {} as Record<string, Array<{ key: string } & ModelData>>,

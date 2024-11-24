@@ -6,6 +6,7 @@ const redis = new Redis({
     host: process.env.REDIS_HOST,
     port: Number(process.env.REDIS_PORT),
     password: process.env.REDIS_PASSWORD,
+    db: Number(process.env.REDIS_DB)
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -22,11 +23,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const optimizedData = Object.entries(parsedData).reduce((acc, [compositeKey, value]: [string, any]) => {
                     // Handle both old and new format
                     const isNewFormat = compositeKey.includes(':');
-                    const model = isNewFormat ? compositeKey.split(':').slice(1).join(':') : compositeKey;
+                    const [provider, ...modelParts] = isNewFormat ? compositeKey.split(':') : [value.provider, compositeKey];
+                    const model = isNewFormat ? modelParts.join(':') : compositeKey;
                     
+                    // Use the model name as the key for backwards compatibility
                     acc[model] = {
-                        provider: value.provider,
-                        model: value.model,
+                        provider: provider || value.provider || 'unknown', // Ensure provider is never undefined
+                        model: value.model || model,
                         last_run_timestamp: value.last_run_timestamp,
                         runs: Array.isArray(value.runs) ? value.runs.slice(-10) : []
                     };
