@@ -19,8 +19,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const parsedData = JSON.parse(statusData);
                 
                 // Keep the data structure but ensure runs array is limited to last 10 entries
-                const optimizedData = Object.entries(parsedData).reduce((acc, [key, value]: [string, any]) => {
-                    acc[key] = {
+                const optimizedData = Object.entries(parsedData).reduce((acc, [compositeKey, value]: [string, any]) => {
+                    // Handle both old and new format
+                    const isNewFormat = compositeKey.includes(':');
+                    const model = isNewFormat ? compositeKey.split(':').slice(1).join(':') : compositeKey;
+                    
+                    acc[model] = {
                         provider: value.provider,
                         model: value.model,
                         last_run_timestamp: value.last_run_timestamp,
