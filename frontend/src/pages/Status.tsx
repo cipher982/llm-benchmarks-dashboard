@@ -13,7 +13,7 @@ interface ModelData {
     provider: string;
     model: string;
     last_run_timestamp: string;
-    runs: string[];
+    runs: boolean[];
     latest_status: string;
 }
 
@@ -164,9 +164,8 @@ const StatusPage: React.FC = () => {
         deprecatedModels: {} as Record<string, Array<{ key: string } & ModelData>>
     });
 
-    const getRecentNonDidNotRunStatuses = (runs: string[]) => {
-        const filteredRuns = runs.filter((status) => status !== 'did-not-run');
-        return filteredRuns;
+    const getRecentNonDidNotRunStatuses = (runs: boolean[]) => {
+        return runs;
     };
 
     const formatTimestamp = (timestamp: string) => {
@@ -195,8 +194,8 @@ const StatusPage: React.FC = () => {
                                 <StyledTableCell>{localLastRunTimestamp}</StyledTableCell>
                                 <StyledTableCell>
                                     {recentStatuses.map((status, index) => (
-                                        <StatusIndicator key={index} status={status}>
-                                            {status === 'success' ? '✓' : '✗'}
+                                        <StatusIndicator key={index} status={status ? 'success' : 'error'}>
+                                            {status ? '✓' : '✗'}
                                         </StatusIndicator>
                                     ))}
                                 </StyledTableCell>
