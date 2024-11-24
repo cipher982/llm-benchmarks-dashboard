@@ -104,12 +104,6 @@ const StatusPage: React.FC = () => {
         }
     }, []);
 
-    const isModelDeprecated = (lastRunTimestamp: string): boolean => {
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        return new Date(lastRunTimestamp + 'Z') < oneWeekAgo;
-    };
-
     useEffect(() => {
         const handleResize = () => {
             setIsMobile(window.innerWidth < 768);
@@ -138,7 +132,7 @@ const StatusPage: React.FC = () => {
         setLastRunInfo(`⏰ Last model run: ${hours}h ${minutes}m ago`);
     };
 
-    const { activeModels, deprecatedModels } = Object.entries(data).reduce((acc, [key, model]) => {
+    const { activeModels } = Object.entries(data).reduce((acc, [key, model]) => {
         // Skip if model or provider is undefined
         if (!model || !model.provider) {
             return acc;
@@ -149,19 +143,14 @@ const StatusPage: React.FC = () => {
             return acc;
         }
 
-        const group = isModelDeprecated(model.last_run_timestamp)
-            ? acc.deprecatedModels
-            : acc.activeModels;
-    
-        if (!group[model.provider]) {
-            group[model.provider] = [];
+        if (!acc.activeModels[model.provider]) {
+            acc.activeModels[model.provider] = [];
         }
-        group[model.provider].push({ key, ...model });
+        acc.activeModels[model.provider].push({ key, ...model });
         
         return acc;
     }, {
         activeModels: {} as Record<string, Array<{ key: string } & ModelData>>,
-        deprecatedModels: {} as Record<string, Array<{ key: string } & ModelData>>
     });
 
     const getRecentNonDidNotRunStatuses = (runs: boolean[]) => {
@@ -219,14 +208,6 @@ const StatusPage: React.FC = () => {
                         
                         <h2 style={{ marginBottom: '8px', fontSize: '1.2rem' }}>Active Models</h2>
                         {Object.entries(activeModels).map(([provider, models]) => (
-                            <ProviderSection key={provider}>
-                                <ProviderHeader>{provider.toUpperCase()}</ProviderHeader>
-                                {renderModelTable(models)}
-                            </ProviderSection>
-                        ))}
-
-                        <h2 style={{ marginTop: '16px', marginBottom: '8px', fontSize: '1.2rem' }}>Deprecated Models</h2>
-                        {Object.entries(deprecatedModels).map(([provider, models]) => (
                             <ProviderSection key={provider}>
                                 <ProviderHeader>{provider.toUpperCase()}</ProviderHeader>
                                 {renderModelTable(models)}
