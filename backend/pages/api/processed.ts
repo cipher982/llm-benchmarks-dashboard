@@ -11,7 +11,7 @@ import { roundNumbers } from '../../utils/dataUtils';
 
 const debug = false; // Set to true to disable cache
 const useCache = !debug;
-export const DEFAULT_DAYS = 14;
+export const DEFAULT_DAYS = 3;
 
 interface TimeRange {
     days: number;

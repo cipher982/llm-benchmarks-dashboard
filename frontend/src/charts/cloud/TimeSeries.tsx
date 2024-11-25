@@ -1,4 +1,4 @@
-import React, { useCallback, memo, useMemo } from 'react';
+import React, { useCallback, memo, useMemo, useState } from 'react';
 import {
     LineChart,
     Line,
@@ -10,6 +10,7 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import { useTheme } from '@mui/material/styles';
+import { CircularProgress, Box } from '@mui/material';
 import { Provider, providerColors } from '../../theme/theme';
 import { TimeSeriesData, TimeSeriesModel } from '../../types/ProcessedData';
 import { Virtuoso } from 'react-virtuoso';
@@ -30,68 +31,104 @@ interface ChartDataPoint {
 const ModelChart = memo(({ 
     model, 
     chartData, 
-    theme 
+    theme,
+    selectedDays,
+    isLoading 
 }: { 
     model: TimeSeriesModel; 
     chartData: ChartDataPoint[]; 
-    theme: any; 
-}) => (
-    <div key={model.model_name}>
-        <h3>{model.display_name || model.model_name}</h3>
-        <ResponsiveContainer width="100%" height={250}>
-            <LineChart
-                data={chartData}
-                margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                }}
-            >
-                <CartesianGrid strokeDasharray="1 1" />
-                <XAxis
-                    dataKey="timestamp"
-                    tickFormatter={(timestamp: string) => {
-                        const date = new Date(timestamp);
-                        // For shorter time ranges (≤ 2 days), show hours
-                        if (chartData.length <= 96) {  // 48 points per day
-                            return date.getHours().toString().padStart(2, '0') + ':00';
-                        }
-                        // For longer ranges, show date
-                        return `${date.getMonth() + 1}/${date.getDate()}`;
-                    }}
-                    tick={{ fontSize: 12, fill: theme.palette.common.white }}
-                    interval={Math.max(Math.floor(chartData.length / 10), 1)}  // Show ~10 ticks
-                />
-                <YAxis 
-                    tickFormatter={(value) => value.toFixed(1)}
-                    domain={['auto', 'auto']}
-                    stroke={theme.palette.common.white}
-                    tick={{ fill: theme.palette.common.white }}
-                />
-                <Tooltip 
-                    labelFormatter={(timestamp: string) => {
-                        const date = new Date(timestamp);
-                        return date.toLocaleString();
-                    }}
-                    formatter={(value: number) => [value?.toFixed(2) || 'N/A', '']}
-                />
-                <Legend />
-                {model.providers.map((provider) => (
-                    <Line
-                        key={provider.provider}
-                        type="monotone"
-                        dataKey={`${model.model_name}-${provider.provider}`}
-                        name={provider.provider}
-                        stroke={providerColors[provider.provider as Provider] || '#000000'}
-                        dot={false}
-                        connectNulls
-                    />
-                ))}
-            </LineChart>
-        </ResponsiveContainer>
-    </div>
-));
+    theme: any;
+    selectedDays: number;
+    isLoading: boolean;
+}) => {
+    // Calculate tick interval based on selected days
+    const getTickInterval = () => {
+        if (selectedDays === 1) {
+            // For 1 day, show ticks every 4 hours (6 ticks)
+            return Math.floor(chartData.length / 6);
+        }
+        // For other ranges, show one tick per day
+        return Math.floor(chartData.length / selectedDays);
+    };
+
+    return (
+        <div key={model.model_name} style={{ position: 'relative' }}>
+            <h3>{model.display_name || model.model_name}</h3>
+            <Box sx={{ position: 'relative', width: '100%', height: 250 }}>
+                {isLoading && (
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                            zIndex: 1,
+                        }}
+                    >
+                        <CircularProgress sx={{ color: theme.palette.common.white }} />
+                    </Box>
+                )}
+                <ResponsiveContainer width="100%" height={250}>
+                    <LineChart
+                        data={chartData}
+                        margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                        }}
+                    >
+                        <CartesianGrid strokeDasharray="1 1" />
+                        <XAxis
+                            dataKey="timestamp"
+                            tickFormatter={(timestamp: string) => {
+                                const date = new Date(timestamp);
+                                if (selectedDays === 1) {
+                                    // For 1 day view, show HH:MM
+                                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                }
+                                // For longer ranges, show MM/DD
+                                return `${date.getMonth() + 1}/${date.getDate()}`;
+                            }}
+                            tick={{ fontSize: 12, fill: theme.palette.common.white }}
+                            interval={getTickInterval()}
+                        />
+                        <YAxis 
+                            tickFormatter={(value) => value.toFixed(1)}
+                            domain={['auto', 'auto']}
+                            stroke={theme.palette.common.white}
+                            tick={{ fontSize: 12, fill: theme.palette.common.white }}
+                        />
+                        <Tooltip 
+                            labelFormatter={(timestamp: string) => {
+                                const date = new Date(timestamp);
+                                return date.toLocaleString();
+                            }}
+                            formatter={(value: number) => [value?.toFixed(2) || 'N/A', '']}
+                        />
+                        <Legend />
+                        {!isLoading && model.providers.map((provider) => (
+                            <Line
+                                key={provider.provider}
+                                type="monotone"
+                                dataKey={`${model.model_name}-${provider.provider}`}
+                                name={provider.provider}
+                                stroke={providerColors[provider.provider as Provider] || '#000000'}
+                                dot={false}
+                                connectNulls
+                            />
+                        ))}
+                    </LineChart>
+                </ResponsiveContainer>
+            </Box>
+        </div>
+    );
+});
 
 ModelChart.displayName = 'ModelChart';
 
@@ -101,10 +138,16 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     selectedDays
 }) => {
     const theme = useTheme();
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleTimeRangeChange = useCallback(async (days: number) => {
         if (onTimeRangeChange) {
-            await onTimeRangeChange(days);
+            setIsLoading(true);
+            try {
+                await onTimeRangeChange(days);
+            } finally {
+                setIsLoading(false);
+            }
         }
     }, [onTimeRangeChange]);
 
@@ -145,7 +188,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 onChange={handleTimeRangeChange}
             />
             <Virtuoso
-                style={{ height: '100vh' }}
+                useWindowScroll
                 totalCount={sortedModels.length}
                 itemContent={index => (
                     <ModelChart
@@ -153,6 +196,8 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                         model={sortedModels[index]}
                         chartData={chartData}
                         theme={theme}
+                        selectedDays={selectedDays}
+                        isLoading={isLoading}
                     />
                 )}
             />

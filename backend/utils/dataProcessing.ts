@@ -5,6 +5,7 @@ import { mapModelNames } from './modelMapping';
 const SAMPLE_SIZE = 100; // Number of points to sample for speed distribution
 const PRECISION = 2; // Number of decimal places to keep
 const MINUTES_INTERVAL = 30; // Data points are 30 minutes apart
+const TARGET_DATA_POINTS = 144; // Target number of data points for time series (3 days worth at 30min intervals)
 
 // Time Series Processing
 const roundToNearest30Minutes = (timestamp: number): number => {
@@ -17,13 +18,21 @@ const roundToNearest30Minutes = (timestamp: number): number => {
 
 const generateTimestampRange = (days: number) => {
     const intervalsPerDay = (24 * 60) / MINUTES_INTERVAL;
-    const nRuns = Math.ceil(days * intervalsPerDay);
+    const totalIntervals = Math.ceil(days * intervalsPerDay);
+    
+    // Calculate sampling interval to achieve target data points
+    const samplingInterval = Math.max(1, Math.floor(totalIntervals / TARGET_DATA_POINTS));
+    const nRuns = Math.min(totalIntervals, TARGET_DATA_POINTS);
     
     const now = new Date();
     const roundedNow = roundToNearest30Minutes(now.getTime());
     const endTimestamp = roundedNow;
-    const startTimestamp = endTimestamp - (nRuns - 1) * MINUTES_INTERVAL * 60 * 1000;
-    return Array.from({ length: nRuns }, (_, i) => startTimestamp + i * MINUTES_INTERVAL * 60 * 1000);
+    const startTimestamp = endTimestamp - (totalIntervals - 1) * MINUTES_INTERVAL * 60 * 1000;
+    
+    // Generate timestamps with appropriate sampling interval
+    return Array.from({ length: nRuns }, (_, i) => 
+        startTimestamp + (i * samplingInterval * MINUTES_INTERVAL * 60 * 1000)
+    );
 };
 
 const findClosestTimestamp = (
@@ -63,25 +72,32 @@ export const processTimeSeriesData = (data: CloudBenchmark[], days: number = 14)
     // Process each model group
     const processedModels = Object.entries(modelGroups).map(([model_name, benchmarks]) => {
         const providers = benchmarks.map(benchmark => {
-            // Calculate how many data points we need based on the time range
-            const dataPoints = Math.min(benchmark.tokens_per_second.length, nRuns);
-            const startIndex = benchmark.tokens_per_second.length - dataPoints;
-            
-            // Ensure we don't try to slice beyond array bounds
-            const slicedTokensPerSecond = startIndex >= 0 
-                ? benchmark.tokens_per_second
-                    .slice(startIndex)
-                    .map(val => Number(val.toFixed(PRECISION)))
-                : Array(nRuns).fill(null);  // Fill with nulls if we don't have enough data
+            const values = benchmark.tokens_per_second;
+            let processedValues: number[] = [];
 
-            // Pad with nulls if we don't have enough data points
-            const paddedValues = slicedTokensPerSecond.length < nRuns
-                ? [...Array(nRuns - slicedTokensPerSecond.length).fill(null), ...slicedTokensPerSecond]
-                : slicedTokensPerSecond;
+            if (values.length > nRuns) {
+                // If we have more values than needed, sample evenly
+                const step = values.length / nRuns;
+                processedValues = Array.from({ length: nRuns }, (_, i) => {
+                    const index = Math.min(Math.floor(i * step), values.length - 1);
+                    return Number(values[index].toFixed(PRECISION));
+                });
+            } else if (values.length < nRuns) {
+                // If we have fewer values than needed, pad with nulls
+                processedValues = Array(nRuns).fill(null);
+                // Copy available values to the end of the array
+                const startIndex = nRuns - values.length;
+                values.forEach((val, i) => {
+                    processedValues[startIndex + i] = Number(val.toFixed(PRECISION));
+                });
+            } else {
+                // If we have exactly the right number of values
+                processedValues = values.map(val => Number(val.toFixed(PRECISION)));
+            }
 
             return {
                 provider: benchmark.provider as Provider,
-                values: paddedValues
+                values: processedValues
             };
         });
 
