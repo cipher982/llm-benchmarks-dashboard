@@ -2,25 +2,37 @@ import { CloudBenchmark } from '../types/CloudData';
 import { Provider } from '../types/common';
 import { mapModelNames } from './modelMapping';
 
-const N_RUNS = 144; // 3 days of 30 minute intervals
 const SAMPLE_SIZE = 100; // Number of points to sample for speed distribution
 const PRECISION = 2; // Number of decimal places to keep
+const MINUTES_INTERVAL = 30; // Data points are 30 minutes apart
+const TARGET_DATA_POINTS = 144; // Target number of data points for time series (3 days worth at 30min intervals)
 
 // Time Series Processing
 const roundToNearest30Minutes = (timestamp: number): number => {
     const date = new Date(timestamp);
     const minutes = date.getMinutes();
-    const roundedMinutes = Math.round(minutes / 30) * 30;
+    const roundedMinutes = Math.round(minutes / MINUTES_INTERVAL) * MINUTES_INTERVAL;
     const roundedDate = new Date(date.setMinutes(roundedMinutes, 0, 0));
     return roundedDate.getTime();
 };
 
-const generateTimestampRange = () => {
+const generateTimestampRange = (days: number) => {
+    const intervalsPerDay = (24 * 60) / MINUTES_INTERVAL;
+    const totalIntervals = Math.ceil(days * intervalsPerDay);
+    
+    // Calculate sampling interval to achieve target data points
+    const samplingInterval = Math.max(1, Math.floor(totalIntervals / TARGET_DATA_POINTS));
+    const nRuns = Math.min(totalIntervals, TARGET_DATA_POINTS);
+    
     const now = new Date();
     const roundedNow = roundToNearest30Minutes(now.getTime());
     const endTimestamp = roundedNow;
-    const startTimestamp = endTimestamp - (N_RUNS - 1) * 30 * 60 * 1000;
-    return Array.from({ length: N_RUNS }, (_, i) => startTimestamp + i * 30 * 60 * 1000);
+    const startTimestamp = endTimestamp - (totalIntervals - 1) * MINUTES_INTERVAL * 60 * 1000;
+    
+    // Generate timestamps with appropriate sampling interval
+    return Array.from({ length: nRuns }, (_, i) => 
+        startTimestamp + (i * samplingInterval * MINUTES_INTERVAL * 60 * 1000)
+    );
 };
 
 const findClosestTimestamp = (
@@ -40,8 +52,9 @@ const findClosestTimestamp = (
     return closest;
 };
 
-export const processTimeSeriesData = (data: CloudBenchmark[]) => {
-    const latestTimestamps = generateTimestampRange();
+export const processTimeSeriesData = (data: CloudBenchmark[], days: number = 14) => {
+    const latestTimestamps = generateTimestampRange(days);
+    const nRuns = latestTimestamps.length;
     
     // First, apply model mapping
     const mappedData = mapModelNames(data);
@@ -59,25 +72,44 @@ export const processTimeSeriesData = (data: CloudBenchmark[]) => {
     // Process each model group
     const processedModels = Object.entries(modelGroups).map(([model_name, benchmarks]) => {
         const providers = benchmarks.map(benchmark => {
-            const startIndex = Math.max(benchmark.tokens_per_second.length - N_RUNS, 0);
-            const slicedTokensPerSecond = benchmark.tokens_per_second
-                .slice(startIndex)
-                .map(val => Number(val.toFixed(PRECISION)));
+            const values = benchmark.tokens_per_second;
+            let processedValues: number[] = [];
+
+            if (values.length > nRuns) {
+                // If we have more values than needed, sample evenly
+                const step = values.length / nRuns;
+                processedValues = Array.from({ length: nRuns }, (_, i) => {
+                    const index = Math.min(Math.floor(i * step), values.length - 1);
+                    return Number(values[index].toFixed(PRECISION));
+                });
+            } else if (values.length < nRuns) {
+                // If we have fewer values than needed, pad with nulls
+                processedValues = Array(nRuns).fill(null);
+                // Copy available values to the end of the array
+                const startIndex = nRuns - values.length;
+                values.forEach((val, i) => {
+                    processedValues[startIndex + i] = Number(val.toFixed(PRECISION));
+                });
+            } else {
+                // If we have exactly the right number of values
+                processedValues = values.map(val => Number(val.toFixed(PRECISION)));
+            }
 
             return {
                 provider: benchmark.provider as Provider,
-                values: slicedTokensPerSecond
+                values: processedValues
             };
         });
 
         return {
             model_name,
+            display_name: benchmarks[0]?.display_name || model_name,
             providers
         };
     });
 
     return {
-        timestamps: latestTimestamps,
+        timestamps: latestTimestamps.map(ts => new Date(ts).toISOString()),
         models: processedModels
     };
 };
