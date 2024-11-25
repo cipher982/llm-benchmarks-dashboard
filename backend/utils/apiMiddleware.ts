@@ -60,18 +60,20 @@ export async function setupApiEndpoint(
 }
 
 export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
-    // Allow requests from localhost during development
-    const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:3001',
+    // Production origins
+    const productionOrigins = [
         'https://llm-benchmarks-dashboard.vercel.app',
-        'https://www.llm-benchmarks.com',
-        'https://llm-benchmarks-backend.vercel.app'
+        'https://www.llm-benchmarks.com'
     ];
 
     const origin = req.headers.origin;
     
-    if (origin && allowedOrigins.includes(origin)) {
+    // Allow localhost for development and vercel.app domains for preview deployments
+    if (origin && (
+        origin.startsWith('http://localhost:') ||
+        origin.endsWith('.vercel.app') ||
+        productionOrigins.includes(origin)
+    )) {
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
