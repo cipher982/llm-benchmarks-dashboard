@@ -69,20 +69,23 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
     const origin = req.headers.origin;
     
     // Allow localhost for development and vercel.app domains for preview deployments
-    if (origin && (
+    const isAllowedOrigin = origin && (
         origin.startsWith('http://localhost:') ||
         origin.endsWith('.vercel.app') ||
         productionOrigins.includes(origin)
-    )) {
+    );
+
+    // Always set CORS headers if origin is allowed
+    if (isAllowedOrigin && origin) {
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    }
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return true;
+        
+        // Handle preflight requests
+        if (req.method === 'OPTIONS') {
+            res.status(200).end();
+            return true;
+        }
     }
 
     return false;
