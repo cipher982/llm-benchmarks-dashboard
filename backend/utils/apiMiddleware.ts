@@ -60,32 +60,43 @@ export async function setupApiEndpoint(
 }
 
 export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
-    // Production origins
-    const productionOrigins = [
-        'https://llm-benchmarks-dashboard.vercel.app',
-        'https://www.llm-benchmarks.com'
-    ];
-
     const origin = req.headers.origin;
     
-    // Allow localhost for development and vercel.app domains for preview deployments
-    const isAllowedOrigin = origin && (
-        origin.startsWith('http://localhost:') ||
-        origin.endsWith('.vercel.app') ||
-        productionOrigins.includes(origin)
-    );
-
-    // Always set CORS headers if origin is allowed
-    if (isAllowedOrigin && origin) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-        
-        // Handle preflight requests
-        if (req.method === 'OPTIONS') {
-            res.status(200).end();
-            return true;
+    console.log('CORS Debug:', {
+        origin,
+        nodeEnv: process.env.NODE_ENV,
+        vercelEnv: process.env.VERCEL_ENV,
+        method: req.method
+    });
+    
+    // In development or preview, allow all origins
+    if (process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview') {
+        if (origin) {
+            console.log('Setting CORS headers for development/preview');
+            res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         }
+    } else {
+        // In production, only allow specific origins
+        const productionOrigins = [
+            'https://llm-benchmarks-dashboard.vercel.app',
+            'https://www.llm-benchmarks.com'
+        ];
+        
+        if (origin && productionOrigins.includes(origin)) {
+            console.log('Setting CORS headers for production');
+            res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        }
+    }
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        console.log('Handling OPTIONS preflight request');
+        res.status(200).end();
+        return true;
     }
 
     return false;
