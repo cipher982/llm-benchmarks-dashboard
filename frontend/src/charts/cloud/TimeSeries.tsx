@@ -60,11 +60,14 @@ const ModelChart = memo(({
                         // For longer ranges, show date
                         return `${date.getMonth() + 1}/${date.getDate()}`;
                     }}
+                    tick={{ fontSize: 12, fill: theme.palette.common.white }}
                     interval={Math.max(Math.floor(chartData.length / 10), 1)}  // Show ~10 ticks
                 />
                 <YAxis 
                     tickFormatter={(value) => value.toFixed(1)}
                     domain={['auto', 'auto']}
+                    stroke={theme.palette.common.white}
+                    tick={{ fill: theme.palette.common.white }}
                 />
                 <Tooltip 
                     labelFormatter={(timestamp: string) => {

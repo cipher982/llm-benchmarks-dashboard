@@ -12,5 +12,6 @@ export interface CloudBenchmark {
     time_to_first_token_min?: number;
     time_to_first_token_max?: number;
     time_to_first_token_quartiles?: number[];  // Added to match ProcessedData
+    display_name?: string;  // Optional display name for the benchmark
     run_ts?: Date;
 }
