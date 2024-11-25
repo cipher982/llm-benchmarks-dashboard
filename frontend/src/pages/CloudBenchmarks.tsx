@@ -19,7 +19,7 @@ const CloudBenchmarks: React.FC = () => {
     const [tableData, setTableData] = useState<TableRow[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState<boolean>(true);
-    const [selectedDays, setSelectedDays] = useState<number>(14);
+    const [selectedDays, setSelectedDays] = useState<number>(3);
     const isMobile = useMediaQuery("(max-width:500px)");
 
     const fetchCloudBenchmarks = useCallback(async (days?: number) => {
