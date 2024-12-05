@@ -289,6 +289,10 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "amazon.titan-text-lite-v1": "titan-text-lite",
         "amazon.titan-text-express-v1": "titan-text-express",
 
+        "amazon.nova-pro-v1:0": "nova-pro",
+        "amazon.nova-lite-v1:0": "nova-lite",
+        "amazon.nova-micro-v1:0": "nova-micro",
+
         // deepseek 67b
         "deepseek-ai/deepseek-llm-67b-chat": "deepseek-67b",
     };
