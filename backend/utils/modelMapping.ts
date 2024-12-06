@@ -61,6 +61,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/llama-v3p1-8b-instruct": "llama-3.1-8b",
         "llama-3.1-8b-instant": "llama-3.1-8b",
         "meta-llama/Meta-Llama-3.1-8B-Instruct": "llama-3.1-8b",
+        "llama3.1-8b-instruct": "llama-3.1-8b",
 
         // llama 3.1 70b
         "meta.llama3-1-70b-instruct-v1:0": "llama-3.1-70b",
@@ -68,12 +69,14 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/llama-v3p1-70b-instruct": "llama-3.1-70b",
         "llama-3.1-70b-versatile": "llama-3.1-70b",
         "meta-llama/Meta-Llama-3.1-70B-Instruct": "llama-3.1-70b",
+        "llama3.1-70b-instruct-fp8": "llama-3.1-70b",
 
         // llama 3.1 405b
         "meta.llama3-1-405b-instruct-v1:0": "llama-3.1-405b",
         "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo": "llama-3.1-405b",
         "accounts/fireworks/models/llama-v3p1-405b-instruct": "llama-3.1-405b",
         "meta-llama/Meta-Llama-3.1-405B-Instruct": "llama-3.1-405b",
+        "llama3.1-405b-instruct-fp8": "llama-3.1-405b",
 
         // llama 3.2 1b
         "us.meta.llama3-2-1b-instruct-v1:0": "llama-3.2-1b",
@@ -87,6 +90,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "meta-llama/Llama-3.2-3B-Instruct": "llama-3.2-3b",
         "llama-3.2-3b-preview": "llama-3.2-3b",
         "accounts/fireworks/models/llama-v3p2-3b-instruct": "llama-3.2-3b",
+        "llama3.2-3b-instruct": "llama-3.2-3b",
 
         // llama 3.2 11b
         "us.meta.llama3-2-11b-instruct-v1:0": "llama-3.2-11b",
