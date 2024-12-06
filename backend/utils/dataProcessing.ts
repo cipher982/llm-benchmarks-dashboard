@@ -153,7 +153,6 @@ function calculateKernelDensity(data: number[], points: number = 100, bandwidth:
 export const processSpeedDistData = (data: CloudBenchmark[]) => {
     // Apply model mapping and filter data
     const processedData = mapModelNames(data)
-        .filter(d => !d.model_name.includes('amazon'))
         .map(d => ({
             ...d,
             model_name: `${d.provider}-${d.model_name}`,
