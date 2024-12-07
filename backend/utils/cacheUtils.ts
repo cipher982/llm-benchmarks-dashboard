@@ -3,19 +3,32 @@ import { fetchAndProcessMetrics } from './apiMiddleware';
 import logger from './logger';
 import redisClient from './redisClient';
 
-export const CACHE_KEYS = {
-    CLOUD_METRICS: 'cloudMetrics:365days',
-    CLOUD_METRICS_LAST_UPDATE: 'cloudMetrics:365days:lastUpdate',
-    LOCAL_METRICS: 'localMetrics:365days',
-    LOCAL_METRICS_LAST_UPDATE: 'localMetrics:365days:lastUpdate',
-    RAW_MONGO_METRICS: 'rawMongoMetrics:14days',
-    RAW_MONGO_METRICS_LAST_UPDATE: 'rawMongoMetrics:14days:lastUpdate',
-    PROCESSED_METRICS: 'processedMetrics:14days',
-    PROCESSED_METRICS_LAST_UPDATE: 'processedMetrics:14days:lastUpdate',
+// Default date ranges for different metric types
+export const DEFAULT_RANGES = {
+    CLOUD: 14,  // 14 days for cloud metrics
+    LOCAL: 1000, // 1000 days for local metrics
+    PROCESSED: 3 // 3 days default for processed metrics
 };
 
+export const CACHE_KEYS = {
+    // Base keys without date range
+    CLOUD_METRICS: 'cloudMetrics',
+    LOCAL_METRICS: 'localMetrics',
+    PROCESSED_METRICS: 'processedMetrics',
+};
+
+// Helper to get cache key with date range
+export function getCacheKey(baseKey: string, days: number): string {
+    return `${baseKey}:${days}days`;
+}
+
+// Helper to get last update key
+export function getLastUpdateKey(baseKey: string, days: number): string {
+    return `${getCacheKey(baseKey, days)}:lastUpdate`;
+}
+
 async function shouldRefreshCache(cacheKey: string): Promise<boolean> {
-    const lastUpdate = await redisClient.get(cacheKey);
+    const lastUpdate = await redisClient.get(getLastUpdateKey(cacheKey, parseInt(cacheKey.split(':')[1].split('days')[0])));
     return !lastUpdate || Date.now() - parseInt(lastUpdate) > 3600000; // 1 hour
 }
 
@@ -29,11 +42,11 @@ async function serveCachedData(res: NextApiResponse, cacheKey: string) {
 
 async function updateCache(cacheKey: string, processedMetrics: any) {
     await redisClient.set(cacheKey, JSON.stringify(processedMetrics));
-    await redisClient.set(`${cacheKey}_lastUpdate`, Date.now().toString());
+    await redisClient.set(getLastUpdateKey(cacheKey, parseInt(cacheKey.split(':')[1].split('days')[0])), Date.now().toString());
     logger.info('Cache updated successfully');
 }
 
-export async function refreshCache(req: NextApiRequest, res: NextApiResponse, model: { find: (query?: any) => any }, cleanTransform: (rawData: any[]) => any[], cacheKey: string, daysAgo: number) {
+export async function refreshCache(req: NextApiRequest, res: NextApiResponse, model: { find: (query?: any) => any }, cleanTransform: (rawData: any[]) => any[], baseKey: string, defaultDays: number) {
     const { method } = req;
     if (method !== 'GET') {
         res.setHeader('Allow', ['GET']);
@@ -41,7 +54,9 @@ export async function refreshCache(req: NextApiRequest, res: NextApiResponse, mo
     }
 
     try {
-        const processedMetrics = await fetchAndProcessMetrics(model, daysAgo, cleanTransform);
+        const days = req.query.days ? parseInt(req.query.days as string) : defaultDays;
+        const cacheKey = getCacheKey(baseKey, days);
+        const processedMetrics = await fetchAndProcessMetrics(model, days, cleanTransform);
         if (!processedMetrics) {
             logger.info('No new metrics found for cache update');
             return res.status(404).json({ message: 'No metrics found' });
@@ -69,28 +84,37 @@ export async function handleCachedApiResponse(
     res: NextApiResponse,
     model: { find: (query?: any) => any },
     cleanTransform: (rawData: any[]) => any[],
-    cacheKey: string,
-    daysAgo: number
+    baseKey: string,
+    defaultDays: number
 ) {
+    // Get days from query param or use default
+    const days = req.query.days ? parseInt(req.query.days as string) : defaultDays;
+    const cacheKey = getCacheKey(baseKey, days);
+    
+    // First try to serve from cache
     const cached = await serveCachedData(res, cacheKey);
+    
     if (!cached) {
-        logger.info('Cache miss, fetching data and updating cache');
-        await fetchAndUpdateCache(model, daysAgo, cleanTransform, cacheKey);
+        // If no cache exists, fetch and cache data synchronously for first request
+        logger.info('No cache exists, fetching data synchronously');
+        await fetchAndUpdateCache(model, days, cleanTransform, cacheKey);
         await serveCachedData(res, cacheKey);
-    } else if (await shouldRefreshCache(cacheKey)) {
-        fetchAndUpdateCache(model, daysAgo, cleanTransform, cacheKey).catch((error) =>
-            logger.error(`Async cache update error: ${error}`)
+    } else {
+        // Always trigger a background refresh after serving from cache
+        logger.info('Triggering background cache refresh');
+        fetchAndUpdateCache(model, days, cleanTransform, cacheKey).catch((error) =>
+            logger.error(`Background cache refresh error: ${error}`)
         );
     }
 }
 
 async function fetchAndUpdateCache(
     model: { find: (query?: any) => any },
-    daysAgo: number,
+    days: number,
     cleanTransform: (rawData: any[]) => any[],
     cacheKey: string
 ) {
-    const processedMetrics = await fetchAndProcessMetrics(model, daysAgo, cleanTransform);
+    const processedMetrics = await fetchAndProcessMetrics(model, days, cleanTransform);
     if (processedMetrics) {
         await updateCache(cacheKey, processedMetrics);
     }

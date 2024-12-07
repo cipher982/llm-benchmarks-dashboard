@@ -1,6 +1,9 @@
 import { calculateMean, calculateMin, calculateMax, calculateQuartiles, bytesToGB, shuffleArray } from './dataUtils';
+import logger from './logger'; // Assuming logger is imported from a separate file
 
-
+/**
+ * Raw data from the cloud benchmarks
+ */
 export interface RawData {
     _id: string;
     run_ts: string;
@@ -24,6 +27,9 @@ interface AggregatedData {
     time_to_first_token: number[];
 }
 
+/**
+ * Processed data after cleaning and transforming the cloud benchmarks
+ */
 export interface ProcessedData {
     _id: string;
     provider: string;
@@ -40,13 +46,17 @@ export interface ProcessedData {
     time_to_first_token_quartiles: number[];
 }
 
-
+/**
+ * Fields of the RawData interface
+ */
 type Fields = keyof RawData;
 
 const fields: Fields[] = ["tokens_per_second", "time_to_first_token"];
 
 // Clean up and transform the cloud benchmarks data
 export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
+    logger.info(`cleanTransformCloud input models with 'nova': ${data.filter(m => m.model_name.includes('nova')).map(m => m.model_name)}`);
+    
     const aggregatedBenchmarks = data.reduce<Record<string, AggregatedData>>((acc, benchmark, index) => {
         // First, filter out samples where tokens_per_second is less than 1
         if (benchmark.tokens_per_second < 1) {
@@ -109,5 +119,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         return processedData;
     });
 
+    logger.info(`cleanTransformCloud output models with 'nova': ${processedData.filter(m => m.model_name.includes('nova')).map(m => m.model_name)}`);
+    
     return processedData;
 };

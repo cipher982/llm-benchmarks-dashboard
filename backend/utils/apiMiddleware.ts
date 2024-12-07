@@ -14,14 +14,7 @@ export async function fetchAndProcessMetrics(model: { find: (query?: any) => any
     const rawMetrics = metrics.map((metric: any) => metric.toObject());
     const processedMetrics = cleanTransform(rawMetrics);
     logger.info(`Processed ${processedMetrics.length} metrics`);
-
-    // Additional processing for charts
-    const speedDistData = processSpeedDistData(processedMetrics);
-    
-    return {
-        raw: processedMetrics,
-        speedDistribution: speedDistData
-    };
+    return processedMetrics;
 }
 
 export async function setupApiEndpoint(
@@ -51,7 +44,7 @@ export async function setupApiEndpoint(
             if (!processedMetrics) {
                 return res.status(404).json({ message: 'No metrics found' });
             }
-            return res.status(200).json(processedMetrics);
+            return res.status(200).json({ raw: processedMetrics });
         }
     } catch (error) {
         logger.error(`Error handling request: ${error}`);

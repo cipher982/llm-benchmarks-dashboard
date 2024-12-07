@@ -167,13 +167,23 @@ export const processSpeedDistData = (data: CloudBenchmark[]) => {
             benchmark.tokens_per_second,
             100,  // Same number of points as original
             7     // Same bandwidth as original
-        );
+        ).map(point => ({
+            x: Number(point.x.toFixed(2)),
+            y: Number(point.y.toFixed(6))
+        }));
+        
+        // Calculate summary statistics
+        const mean = Number(calculateMean(benchmark.tokens_per_second).toFixed(2));
+        const min = Number(Math.min(...benchmark.tokens_per_second).toFixed(2));
+        const max = Number(Math.max(...benchmark.tokens_per_second).toFixed(2));
         
         return {
             provider: benchmark.provider,
             model_name: benchmark.model_name,
             display_name: benchmark.display_name,
-            tokens_per_second: benchmark.tokens_per_second,
+            mean_tokens_per_second: mean,
+            min_tokens_per_second: min,
+            max_tokens_per_second: max,
             density_points: densityPoints
         };
     });
