@@ -46,7 +46,14 @@ async function updateCache(cacheKey: string, processedMetrics: any) {
     logger.info('Cache updated successfully');
 }
 
-export async function refreshCache(req: NextApiRequest, res: NextApiResponse, model: { find: (query?: any) => any }, cleanTransform: (rawData: any[]) => any[], baseKey: string, defaultDays: number) {
+export async function refreshCache(
+    req: NextApiRequest,
+    res: NextApiResponse,
+    model: { find: (query?: any) => any },
+    cleanTransform: (rawData: any[]) => Promise<any[] | { raw: any[]; [key: string]: any }> | any[] | { raw: any[]; [key: string]: any },
+    baseKey: string,
+    defaultDays: number
+) {
     const { method } = req;
     if (method !== 'GET') {
         res.setHeader('Allow', ['GET']);
@@ -56,26 +63,37 @@ export async function refreshCache(req: NextApiRequest, res: NextApiResponse, mo
     try {
         const days = req.query.days ? parseInt(req.query.days as string) : defaultDays;
         const cacheKey = getCacheKey(baseKey, days);
+
+        // Check if we should refresh the cache
+        if (!await shouldRefreshCache(cacheKey)) {
+            logger.info('Cache is still fresh');
+            return res.status(200).json({ message: 'Cache is fresh' });
+        }
+
+        // Fetch and process new metrics
         const processedMetrics = await fetchAndProcessMetrics(model, days, cleanTransform);
-        if (!processedMetrics) {
+        // Normalize to object with raw property if it's an array
+        const normalizedMetrics = Array.isArray(processedMetrics) ? { raw: processedMetrics } : processedMetrics;
+        
+        if (!normalizedMetrics.raw?.length) {
             logger.info('No new metrics found for cache update');
             return res.status(404).json({ message: 'No metrics found' });
         }
-        logger.info(`Updating cache with ${processedMetrics.raw.length} metrics`);
+        logger.info(`Updating cache with ${normalizedMetrics.raw.length} metrics`);
 
-        await updateCache(cacheKey, processedMetrics);
+        await updateCache(cacheKey, normalizedMetrics);
 
         const details = {
-            totalMetrics: processedMetrics.raw.length,
+            totalMetrics: normalizedMetrics.raw.length,
         };
 
-        res.status(200).json({
+        return res.status(200).json({
             message: 'Cache refreshed successfully',
-            details: details,
+            details
         });
     } catch (error) {
         logger.error(`Error refreshing cache: ${error}`);
-        res.status(500).end('Internal Server Error');
+        return res.status(500).json({ message: 'Error refreshing cache' });
     }
 }
 
@@ -83,7 +101,7 @@ export async function handleCachedApiResponse(
     req: NextApiRequest,
     res: NextApiResponse,
     model: { find: (query?: any) => any },
-    cleanTransform: (rawData: any[]) => any[],
+    cleanTransform: (rawData: any[]) => Promise<any[] | { raw: any[]; [key: string]: any }> | any[] | { raw: any[]; [key: string]: any },
     baseKey: string,
     defaultDays: number
 ) {
@@ -97,8 +115,11 @@ export async function handleCachedApiResponse(
     if (!cached) {
         // If no cache exists, fetch and cache data synchronously for first request
         logger.info('No cache exists, fetching data synchronously');
-        await fetchAndUpdateCache(model, days, cleanTransform, cacheKey);
-        await serveCachedData(res, cacheKey);
+        const processedMetrics = await fetchAndUpdateCache(model, days, cleanTransform, cacheKey);
+        if (!processedMetrics.raw?.length) {
+            return res.status(404).json({ message: 'No metrics found' });
+        }
+        res.status(200).json(processedMetrics);
     } else {
         // Always trigger a background refresh after serving from cache
         logger.info('Triggering background cache refresh');
@@ -111,11 +132,15 @@ export async function handleCachedApiResponse(
 async function fetchAndUpdateCache(
     model: { find: (query?: any) => any },
     days: number,
-    cleanTransform: (rawData: any[]) => any[],
+    cleanTransform: (rawData: any[]) => Promise<any[] | { raw: any[]; [key: string]: any }> | any[] | { raw: any[]; [key: string]: any },
     cacheKey: string
 ) {
     const processedMetrics = await fetchAndProcessMetrics(model, days, cleanTransform);
-    if (processedMetrics) {
-        await updateCache(cacheKey, processedMetrics);
-    }
+    const metricsLength = Array.isArray(processedMetrics) ? processedMetrics.length : processedMetrics.raw?.length || 0;
+    
+    // If array, wrap it in an object with raw property
+    const metricsToCache = Array.isArray(processedMetrics) ? { raw: processedMetrics } : processedMetrics;
+    
+    await updateCache(cacheKey, metricsToCache);
+    return metricsToCache;
 }

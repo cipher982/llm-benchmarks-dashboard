@@ -73,9 +73,9 @@ async function handler(
             req,
             res,
             CloudMetrics,
-            async (rawMetrics: any[]) => {
+            (rawMetrics: any[]) => {
                 const timeRange = parseTimeRange(req);
-                return await processMetrics(rawMetrics, timeRange.days);
+                return processMetrics(rawMetrics, timeRange.days);
             },
             CACHE_KEYS.PROCESSED_METRICS,
             DEFAULT_RANGES.PROCESSED

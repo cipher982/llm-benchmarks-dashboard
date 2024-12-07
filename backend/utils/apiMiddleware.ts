@@ -4,7 +4,11 @@ import connectToMongoDB from './connectToMongoDB';
 import logger from './logger';
 import { processSpeedDistData } from './dataProcessing';
 
-export async function fetchAndProcessMetrics(model: { find: (query?: any) => any }, daysAgo: number, cleanTransform: (rawData: any[]) => any[]) {
+export async function fetchAndProcessMetrics(
+    model: { find: (query?: any) => any },
+    daysAgo: number,
+    cleanTransform: (rawData: any[]) => Promise<any[] | { raw: any[]; [key: string]: any }> | any[] | { raw: any[]; [key: string]: any }
+) {
     await connectToMongoDB();
     const dateFilter = new Date();
     dateFilter.setDate(dateFilter.getDate() - daysAgo);
@@ -12,8 +16,9 @@ export async function fetchAndProcessMetrics(model: { find: (query?: any) => any
     const metrics = await model.find({ run_ts: { $gte: dateFilter } }).select('-times_between_tokens');
     logger.info(`Fetched ${metrics.length} metrics`);
     const rawMetrics = metrics.map((metric: any) => metric.toObject());
-    const processedMetrics = cleanTransform(rawMetrics);
-    logger.info(`Processed ${processedMetrics.length} metrics`);
+    const processedMetrics = await Promise.resolve(cleanTransform(rawMetrics));
+    const metricsLength = Array.isArray(processedMetrics) ? processedMetrics.length : processedMetrics.raw?.length || 0;
+    logger.info(`Processed ${metricsLength} metrics`);
     return processedMetrics;
 }
 
