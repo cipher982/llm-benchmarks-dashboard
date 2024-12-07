@@ -83,6 +83,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "meta-llama/Llama-Vision-Free": "llama-3.2-1b",
         "meta-llama/Llama-3.2-1B-Instruct": "llama-3.2-1b",
         "llama-3.2-1b-preview": "llama-3.2-1b",
+        "accounts/fireworks/models/llama-v3p2-1b-instruct": "llama-3.2-1b",
 
         // llama 3.2 3b
         "us.meta.llama3-2-3b-instruct-v1:0": "llama-3.2-3b",
@@ -104,6 +105,8 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo": "llama-3.2-90b",
         "meta-llama/Llama-3.2-90B-Vision-Instruct": "llama-3.2-90b",
         "llama-3.2-90b-text-preview": "llama-3.2-90b",
+        "accounts/fireworks/models/llama-v3p2-90b-vision-instruct": "llama-3.2-90b",
+        "meta/llama-3.2-90b-vision-instruct-maas": "llama-3.2-90b",
 
         // mistral 7b
         "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b",
@@ -120,6 +123,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "accounts/fireworks/models/mixtral-8x7b-instruct": "mistral-8x7b",
         "mistral.mixtral-8x7b-instruct-v0:1": "mistral-8x7b",
         "mixtral-8x7b-32768": "mistral-8x7b",
+        "accounts/fireworks/models/mixtral-8x7b-instruct-hf": "mistral-8x7b",
 
         // mistral small
         "mistral.mistral-small-2402-v1:0": "mistral-small",
@@ -219,6 +223,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // gemma 2 9b
         "google/gemma-2-9b-it": "gemma-2-9b",
+        "accounts/fireworks/models/gemma2-9b-it": "gemma-2-9b",
 
         // gemma 2 27b
         "google/gemma-2-27b-it": "gemma-2-27b",
@@ -246,14 +251,21 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // qwen 2.5 7b
         "qwen/Qwen2.5-7B-Instruct-Turbo": "qwen-2.5-7b",
 
+        // qwen 2.5 32b
+        "accounts/fireworks/models/qwen2p5-coder-32b-instruct": "qwen-2.5-32b",
+
         // qwem 2.5 72b
         "Qwen/Qwen2.5-72B-Instruct": "qwen-2.5-72b",
         "qwen/Qwen2.5-72B-Instruct-Turbo": "qwen-2.5-72b",
+        "accounts/fireworks/models/qwen2p5-72b-instruct": "qwen-2.5-72b",
 
         // yi 34b
         "01-ai/yi-34b-chat": "yi-34b",
         "zero-one-ai/Yi-34B-Chat": "yi-34b",
         "accounts/fireworks/models/yi-34b-chat": "yi-34b",
+
+        // yi large
+        "accounts/yi-01-ai/models/yi-large": "yi-large",
 
         // dbrx
         "accounts/fireworks/models/dbrx-instruct": "dbrx",
@@ -282,7 +294,10 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         // google bison
         "text-bison@002": "google-bison",
 
-        // starcover 16b
+        // starcoder 7b
+        "accounts/fireworks/models/starcoder-7b": "starcoder-7b",
+
+        // starcoder 16b
         "accounts/fireworks/models/starcoder-16b": "starcoder-16b",
 
         // Starcoder 2 15b
