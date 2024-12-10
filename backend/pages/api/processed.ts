@@ -19,28 +19,39 @@ function parseTimeRange(req: NextApiRequest) {
 }
 
 async function processMetrics(rawMetrics: any[], days: number) {
-    // Log initial data
-    
-    // Apply transformations and processing
+    // Transform data first since other operations depend on it
     const startTime = process.hrtime.bigint();
     const transformedData = cleanTransformCloud(rawMetrics);
     const endTime = process.hrtime.bigint();
     logger.info(`cleanTransformCloud took ${(endTime - startTime) / 1000000n}ms`);
 
-    const startTime2 = process.hrtime.bigint();
-    const speedDistData = processSpeedDistData(transformedData);
-    const endTime2 = process.hrtime.bigint();
-    logger.info(`processSpeedDistData took ${(endTime2 - startTime2) / 1000000n}ms`);
-
-    const startTime3 = process.hrtime.bigint();
-    const timeSeriesData = processTimeSeriesData(transformedData, days);
-    const endTime3 = process.hrtime.bigint();
-    logger.info(`processTimeSeriesData took ${(endTime3 - startTime3) / 1000000n}ms`);
-
-    const startTime4 = process.hrtime.bigint();
-    const tableData = processRawTableData(transformedData);
-    const endTime4 = process.hrtime.bigint();
-    logger.info(`processRawTableData took ${(endTime4 - startTime4) / 1000000n}ms`);
+    // Run the processing operations in parallel
+    const startTimeParallel = process.hrtime.bigint();
+    const [speedDistData, timeSeriesData, tableData] = await Promise.all([
+        (async () => {
+            const start = process.hrtime.bigint();
+            const result = processSpeedDistData(transformedData);
+            const end = process.hrtime.bigint();
+            logger.info(`processSpeedDistData took ${(end - start) / 1000000n}ms`);
+            return result;
+        })(),
+        (async () => {
+            const start = process.hrtime.bigint();
+            const result = processTimeSeriesData(transformedData, days);
+            const end = process.hrtime.bigint();
+            logger.info(`processTimeSeriesData took ${(end - start) / 1000000n}ms`);
+            return result;
+        })(),
+        (async () => {
+            const start = process.hrtime.bigint();
+            const result = processRawTableData(transformedData);
+            const end = process.hrtime.bigint();
+            logger.info(`processRawTableData took ${(end - start) / 1000000n}ms`);
+            return result;
+        })()
+    ]);
+    const endTimeParallel = process.hrtime.bigint();
+    logger.info(`All parallel processing took ${(endTimeParallel - startTimeParallel) / 1000000n}ms`);
 
     // Log sizes for analysis
     if (speedDistData.length > 0) {
