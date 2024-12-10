@@ -100,10 +100,9 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                     d3.select(this)
                         .style("stroke-width", 4);
                     
-                    const meanTokensPerSecond = d3.mean(modelData.tokens_per_second);
                     tooltip
                         .style("opacity", 1)
-                        .html(`${modelData.display_name}<br/>Mean: ${meanTokensPerSecond?.toFixed(2)} tokens/s`)
+                        .html(`${modelData.display_name}<br/>Mean: ${modelData.mean_tokens_per_second.toFixed(2)} tokens/s`)
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 10) + "px");
                 })

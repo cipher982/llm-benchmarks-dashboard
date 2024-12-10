@@ -1,9 +1,11 @@
 export interface SpeedDistributionPoint {
     provider: string;
     model_name: string;
-    tokens_per_second: number[];
-    density_points: Array<{ x: number; y: number }>;
     display_name: string;
+    density_points: Array<{ x: number; y: number }>;
+    mean_tokens_per_second: number;
+    min_tokens_per_second: number;
+    max_tokens_per_second: number;
 }
 
 export interface TimeSeriesProvider {
