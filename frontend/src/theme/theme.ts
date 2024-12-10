@@ -16,6 +16,7 @@ export enum Provider {
     Nvidia = "nvidia",
     Runpod = "runpod",
     Google = "google",
+    Lambda = "lambda",
 }
 
 export const providerColors: Record<Provider, string> = {
@@ -34,6 +35,7 @@ export const providerColors: Record<Provider, string> = {
     [Provider.Nvidia]: "#85B737",
     [Provider.Runpod]: "#673AB7",
     [Provider.Google]: "#33a852",
+    [Provider.Lambda]: "#4027ff",
 };
 
 
