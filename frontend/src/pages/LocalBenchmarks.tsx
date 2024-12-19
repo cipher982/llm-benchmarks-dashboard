@@ -21,11 +21,13 @@ import { LocalBenchmark } from '../types/LocalData';
 // }
 
 const LocalBenchmarks: FC = () => {
+    // console.log('Component rendering');
     const [benchmarks, setBenchmarks] = useState<LocalBenchmark[]>([]);
     const [comparisonData, setComparisonData] = useState<any[]>([]); // Consider defining a more specific type
     const [fastestFrameworks, setFastestFrameworks] = useState<FastestFrameworks>({});
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
+    // console.log('Current state:', { loading, error, benchmarksLength: benchmarks.length });
     const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
     const isMobile = useMediaQuery('(max-width:500px)');
 
@@ -35,9 +37,12 @@ const LocalBenchmarks: FC = () => {
             try {
                 const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
                 const res = await fetch(`${apiUrl}/api/local`);
-                const data: LocalBenchmark[] = await res.json(); // Adjust according to the actual data structure
+                const response = await res.json();
+                const data: LocalBenchmark[] = response.raw; // Extract the raw array from the response
+                // console.log('Received data:', data);
                 console.log(`local: size: ${calculateMB(data)} MB`);
                 const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(data);
+                // console.log('Transformed data:', { comparisonResults, fastestFrameworks });
                 console.log(`local: comparison size: ${calculateMB(comparisonResults)} MB`);
                 console.log(`local: fastest frameworks size: ${calculateMB(fastestFrameworks)} MB`);
                 setBenchmarks(data);
@@ -54,6 +59,7 @@ const LocalBenchmarks: FC = () => {
 
     // Loading spinner
     if (loading) {
+        console.log('Rendering loading state');
         return (
             <div style={{
                 display: "flex",
@@ -67,8 +73,12 @@ const LocalBenchmarks: FC = () => {
         );
     }
 
-    if (error) return <div>Error: {error}</div>;
+    if (error) {
+        console.log('Rendering error state:', error);
+        return <div>Error: {error}</div>;
+    }
 
+    console.log('Rendering main content');
     // Render the local benchmarks page
     return (
         <MainContainer isMobile={isMobile}>
