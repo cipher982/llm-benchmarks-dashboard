@@ -33,7 +33,8 @@ const LocalBenchmarks: FC = () => {
         // Fetch local benchmarks
         const fetchLocalBenchmarks = async () => {
             try {
-                const res = await fetch("https://llm-benchmarks-backend.vercel.app/api/local");
+                const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
+                const res = await fetch(`${apiUrl}/api/local`);
                 const data: LocalBenchmark[] = await res.json(); // Adjust according to the actual data structure
                 console.log(`local: size: ${calculateMB(data)} MB`);
                 const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(data);
