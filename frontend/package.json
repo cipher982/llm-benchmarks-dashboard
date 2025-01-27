@@ -2,6 +2,9 @@
   "name": "frontend",
   "version": "1.0.0",
   "description": "",
+  "engines": {
+    "node": "20.x"
+  },
   "main": "index.tsx",
   "scripts": {
     "start": "react-scripts start",
