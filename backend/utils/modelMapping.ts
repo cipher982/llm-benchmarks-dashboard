@@ -314,6 +314,11 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
         // deepseek 67b
         "deepseek-ai/deepseek-llm-67b-chat": "deepseek-67b",
+
+        // deepseek v3
+        "accounts/fireworks/models/deepseek-v3": "deepseek-v3",
+
+
     };
 
     data = data.filter(item => item.provider !== "openrouter");
