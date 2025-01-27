@@ -316,7 +316,12 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         "deepseek-ai/deepseek-llm-67b-chat": "deepseek-67b",
 
         // deepseek v3
-        "accounts/fireworks/models/deepseek-v3": "deepseek-v3"
+        "accounts/fireworks/models/deepseek-v3": "deepseek-v3",
+        "deepseek-ai/DeepSeek-V3": "deepseek-v3",
+
+        // deepseek r1
+        "accounts/fireworks/models/deepseek-r1": "deepseek-r1",
+        "deepseek-ai/DeepSeek-R1": "deepseek-r1",
 
     };
 
