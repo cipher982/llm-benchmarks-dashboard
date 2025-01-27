@@ -5,7 +5,7 @@ import redisClient from './redisClient';
 
 // Default date ranges for different metric types
 export const DEFAULT_RANGES = {
-    CLOUD: 14,  // 14 days for cloud metrics
+    CLOUD: 10,  // 14 days for cloud metrics
     LOCAL: 1000, // 1000 days for local metrics
     PROCESSED: 3 // 3 days default for processed metrics
 };
