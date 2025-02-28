@@ -20,6 +20,7 @@ EXPOSE 5000
 # Set environment variables
 ENV PORT=5000
 ENV NODE_ENV=production
+ENV HOST=0.0.0.0
 
-# Start the application
+# Start the application using our custom server
 CMD ["npm", "start"] 
