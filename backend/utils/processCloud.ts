@@ -58,74 +58,61 @@ const fields: Fields[] = ["tokens_per_second", "time_to_first_token"];
 
 // Clean up and transform the cloud benchmarks data
 export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
-    logger.info(`cleanTransformCloud input models with 'nova': ${data.filter(m => m.model_name.includes('nova')).map(m => m.model_name)}`);
+    // Use Map instead of object for better performance with larger datasets
+    const benchmarkMap = new Map<string, AggregatedData>();
     
-    const aggregatedBenchmarks = data.reduce<Record<string, AggregatedData>>((acc, benchmark, index) => {
-        // First, filter out samples where tokens_per_second is less than 1
-        if (benchmark.tokens_per_second < 1) {
-            return acc;
-        }
-
-        // Create the key by concatenating model_name and provider
+    // Single pass through data
+    for (const benchmark of data) {
+        // Skip invalid entries
+        if (benchmark.tokens_per_second < 1) continue;
+        
         const key = `${benchmark.model_name}-${benchmark.provider}`;
-
-        // Initialize the key if it doesn't exist
-        if (!acc[key]) {
-            acc[key] = {
-                _id: `${index}`,
+        
+        if (!benchmarkMap.has(key)) {
+            benchmarkMap.set(key, {
+                _id: benchmark._id,
                 provider: benchmark.provider,
                 model_name: benchmark.model_name,
-                // Add display_name if it exists in the raw data
                 display_name: benchmark.display_name,
                 tokens_per_second: [],
                 time_to_first_token: []
-            };
+            });
         }
-
-        // Push the values directly since we've initialized them as arrays
-        acc[key].tokens_per_second.push(benchmark.tokens_per_second);
-        acc[key].time_to_first_token.push(benchmark.time_to_first_token);
-
-        return acc;
-    }, {});
-
-    const processedData = Object.values(aggregatedBenchmarks).map(benchmark => {
-        // Initialize processedData with all required properties
-        const processedData: ProcessedData = {
+        
+        const entry = benchmarkMap.get(key)!;
+        entry.tokens_per_second.push(benchmark.tokens_per_second);
+        entry.time_to_first_token.push(benchmark.time_to_first_token);
+    }
+    
+    // Process each benchmark group
+    return Array.from(benchmarkMap.values()).map(benchmark => {
+        // Calculate statistics
+        const tps_mean = calculateMean(benchmark.tokens_per_second);
+        const tps_min = calculateMin(benchmark.tokens_per_second);
+        const tps_max = calculateMax(benchmark.tokens_per_second);
+        const tps_quartiles = calculateQuartiles(benchmark.tokens_per_second);
+        
+        const ttft_mean = calculateMean(benchmark.time_to_first_token);
+        const ttft_min = calculateMin(benchmark.time_to_first_token);
+        const ttft_max = calculateMax(benchmark.time_to_first_token);
+        const ttft_quartiles = calculateQuartiles(benchmark.time_to_first_token);
+        
+        // Return processed data with calculated statistics
+        return {
             _id: benchmark._id,
             provider: benchmark.provider,
             model_name: benchmark.model_name,
             display_name: benchmark.display_name,
             tokens_per_second: benchmark.tokens_per_second,
-            tokens_per_second_mean: 0,
-            tokens_per_second_min: 0,
-            tokens_per_second_max: 0,
-            tokens_per_second_quartiles: [],
             time_to_first_token: benchmark.time_to_first_token,
-            time_to_first_token_mean: 0,
-            time_to_first_token_min: 0,
-            time_to_first_token_max: 0,
-            time_to_first_token_quartiles: []
+            tokens_per_second_mean: tps_mean,
+            tokens_per_second_min: tps_min,
+            tokens_per_second_max: tps_max,
+            tokens_per_second_quartiles: tps_quartiles,
+            time_to_first_token_mean: ttft_mean,
+            time_to_first_token_min: ttft_min,
+            time_to_first_token_max: ttft_max,
+            time_to_first_token_quartiles: ttft_quartiles
         };
-
-        // Process tokens_per_second
-        const tokensPerSecondValues = [...benchmark.tokens_per_second];
-        processedData.tokens_per_second_mean = parseFloat(calculateMean(tokensPerSecondValues).toFixed(2));
-        processedData.tokens_per_second_min = parseFloat(calculateMin(tokensPerSecondValues).toFixed(2));
-        processedData.tokens_per_second_max = parseFloat(calculateMax(tokensPerSecondValues).toFixed(2));
-        processedData.tokens_per_second_quartiles = calculateQuartiles(tokensPerSecondValues).map(val => val !== null ? parseFloat(val.toFixed(2)) : 0);
-
-        // Process time_to_first_token
-        const timeToFirstTokenValues = [...benchmark.time_to_first_token];
-        processedData.time_to_first_token_mean = parseFloat(calculateMean(timeToFirstTokenValues).toFixed(2));
-        processedData.time_to_first_token_min = parseFloat(calculateMin(timeToFirstTokenValues).toFixed(2));
-        processedData.time_to_first_token_max = parseFloat(calculateMax(timeToFirstTokenValues).toFixed(2));
-        processedData.time_to_first_token_quartiles = calculateQuartiles(timeToFirstTokenValues).map(val => val !== null ? parseFloat(val.toFixed(2)) : 0);
-
-        return processedData;
     });
-
-    logger.info(`cleanTransformCloud output models with 'nova': ${processedData.filter(m => m.model_name.includes('nova')).map(m => m.model_name)}`);
-    
-    return processedData;
 };

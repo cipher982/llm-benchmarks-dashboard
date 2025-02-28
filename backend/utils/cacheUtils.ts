@@ -41,14 +41,29 @@ async function shouldRefreshCache(cacheKey: string): Promise<boolean> {
 async function serveCachedData(res: NextApiResponse, cacheKey: string) {
     const cachedData = await redisClient.get(cacheKey);
     if (!cachedData) return false;
-    logger.info(`Serving ${cacheKey} from cache`);
-    res.status(200).json(JSON.parse(cachedData));
+    
+    // Use streaming response to reduce memory pressure when dealing with large responses
+    res.setHeader("Content-Type", "application/json");
+    res.write(cachedData);
+    res.end();
+    
+    logger.info(`Served ${cacheKey} from cache`);
     return true;
 }
 
 async function updateCache(cacheKey: string, processedMetrics: any) {
-    await redisClient.set(cacheKey, JSON.stringify(processedMetrics));
-    await redisClient.set(getLastUpdateKey(cacheKey, parseInt(cacheKey.split(':')[1].split('days')[0])), Date.now().toString());
+    // Use pipeline for more efficient Redis operations
+    const pipeline = redisClient.pipeline();
+    
+    // Set the cache data
+    pipeline.set(cacheKey, JSON.stringify(processedMetrics));
+    
+    // Set the last update timestamp
+    const daysPart = cacheKey.split(':')[1].split('days')[0];
+    pipeline.set(getLastUpdateKey(cacheKey, parseInt(daysPart)), Date.now().toString());
+    
+    // Execute the pipeline
+    await pipeline.exec();
     logger.info(`Cache updated successfully for ${cacheKey}`);
 }
 

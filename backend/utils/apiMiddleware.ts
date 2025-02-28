@@ -13,10 +13,15 @@ export async function fetchAndProcessMetrics(
     const dateFilter = new Date();
     dateFilter.setDate(dateFilter.getDate() - daysAgo);
     logger.info(`Fetching metrics since: ${dateFilter}`);
-    const metrics = await model.find({ run_ts: { $gte: dateFilter } }).select('-times_between_tokens');
+    
+    // Optimized query: select only needed fields and use lean() for better memory efficiency
+    const metrics = await model.find({ run_ts: { $gte: dateFilter } })
+        .select("model_name provider tokens_per_second time_to_first_token run_ts display_name")
+        .lean();
+    
     logger.info(`Fetched ${metrics.length} metrics`);
-    const rawMetrics = metrics.map((metric: any) => metric.toObject());
-    const processedMetrics = await Promise.resolve(cleanTransform(rawMetrics));
+    
+    const processedMetrics = await Promise.resolve(cleanTransform(metrics));
     const metricsLength = Array.isArray(processedMetrics) ? processedMetrics.length : processedMetrics.raw?.length || 0;
     logger.info(`Processed ${metricsLength} metrics`);
     return processedMetrics;
