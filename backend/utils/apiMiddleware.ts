@@ -9,22 +9,49 @@ export async function fetchAndProcessMetrics(
     daysAgo: number,
     cleanTransform: (rawData: any[]) => Promise<any[] | { raw: any[]; [key: string]: any }> | any[] | { raw: any[]; [key: string]: any }
 ) {
-    await connectToMongoDB();
-    const dateFilter = new Date();
-    dateFilter.setDate(dateFilter.getDate() - daysAgo);
-    logger.info(`Fetching metrics since: ${dateFilter}`);
-    
-    // Optimized query: select only needed fields and use lean() for better memory efficiency
-    const metrics = await model.find({ run_ts: { $gte: dateFilter } })
-        .select("model_name provider tokens_per_second time_to_first_token run_ts display_name")
-        .lean();
-    
-    logger.info(`Fetched ${metrics.length} metrics`);
-    
-    const processedMetrics = await Promise.resolve(cleanTransform(metrics));
-    const metricsLength = Array.isArray(processedMetrics) ? processedMetrics.length : processedMetrics.raw?.length || 0;
-    logger.info(`Processed ${metricsLength} metrics`);
-    return processedMetrics;
+    try {
+        await connectToMongoDB();
+        const dateFilter = new Date();
+        dateFilter.setDate(dateFilter.getDate() - daysAgo);
+        logger.info(`Fetching metrics since: ${dateFilter}`);
+        
+        // Optimized query: select only needed fields and use lean() for better memory efficiency
+        const metrics = await model.find({ run_ts: { $gte: dateFilter } })
+            .select("model_name provider tokens_per_second time_to_first_token run_ts display_name gpu_mem_usage framework quantization_method quantization_bits model_dtype")
+            .lean()
+            .exec();
+        
+        if (!metrics || !Array.isArray(metrics)) {
+            logger.warn(`No metrics found or invalid result: ${typeof metrics}`);
+            return { raw: [] };
+        }
+        
+        logger.info(`Fetched ${metrics.length} metrics`);
+        
+        try {
+            const processedMetrics = await Promise.resolve(cleanTransform(metrics));
+            
+            // Handle various return types consistently
+            if (!processedMetrics) {
+                logger.warn("cleanTransform returned null or undefined");
+                return { raw: [] };
+            }
+            
+            const metricsLength = Array.isArray(processedMetrics) 
+                ? processedMetrics.length 
+                : processedMetrics.raw?.length || 0;
+                
+            logger.info(`Processed ${metricsLength} metrics`);
+            
+            return processedMetrics;
+        } catch (transformError) {
+            logger.error(`Error in transformation function: ${transformError}`);
+            return { raw: [] };
+        }
+    } catch (error) {
+        logger.error(`Error fetching metrics: ${error}`);
+        return { raw: [] };
+    }
 }
 
 export async function setupApiEndpoint(

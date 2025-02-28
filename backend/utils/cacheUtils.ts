@@ -156,14 +156,40 @@ async function fetchAndUpdateCache(
     cleanTransform: (rawData: any[]) => Promise<any[] | { raw: any[]; [key: string]: any }> | any[] | { raw: any[]; [key: string]: any },
     cacheKey: string
 ) {
-    const processedMetrics = await fetchAndProcessMetrics(model, days, cleanTransform);
-    const metricsLength = Array.isArray(processedMetrics) ? processedMetrics.length : processedMetrics.raw?.length || 0;
-    
-    // If array, wrap it in an object with raw property
-    const metricsToCache = Array.isArray(processedMetrics) ? { raw: processedMetrics } : processedMetrics;
-    
-    await updateCache(cacheKey, metricsToCache);
-    return metricsToCache;
+    try {
+        const processedMetrics = await fetchAndProcessMetrics(model, days, cleanTransform);
+        
+        // Defensive check for null/undefined processedMetrics
+        if (!processedMetrics) {
+            logger.warn(`No processed metrics returned for ${cacheKey}`);
+            return { raw: [] };
+        }
+        
+        // Check if it's an array and has length property
+        const metricsLength = Array.isArray(processedMetrics) 
+            ? processedMetrics.length 
+            : (processedMetrics.raw && Array.isArray(processedMetrics.raw)) 
+                ? processedMetrics.raw.length 
+                : 0;
+        
+        // If array, wrap it in an object with raw property
+        const metricsToCache = Array.isArray(processedMetrics) 
+            ? { raw: processedMetrics } 
+            : (processedMetrics.raw || processedMetrics.hasOwnProperty('raw')) 
+                ? processedMetrics 
+                : { raw: [] };
+        
+        if (metricsLength > 0) {
+            await updateCache(cacheKey, metricsToCache);
+        } else {
+            logger.warn(`No metrics to cache for ${cacheKey}`);
+        }
+        
+        return metricsToCache;
+    } catch (error) {
+        logger.error(`Error in fetchAndUpdateCache: ${error}`);
+        return { raw: [] };
+    }
 }
 
 // NEW FUNCTIONS FOR TIERED CACHING SYSTEM
