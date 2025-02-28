@@ -14,6 +14,7 @@ import Navbar from './NavBar';
 import CloudBenchmarks from './pages/CloudBenchmarks';
 import LocalBenchmarks from './pages/LocalBenchmarks';
 import StatusPage from './pages/Status';
+import ModelDetail from './pages/ModelDetail';
 
 // Styles
 import './App.css';
@@ -35,6 +36,7 @@ const App: FC = () => {
             <Route path="/" element={<Navigate to="/cloud" replace />} />
             <Route path="/local" element={<LocalBenchmarks />} />
             <Route path="/cloud" element={<CloudBenchmarks />} />
+            <Route path="/models/:provider/:model" element={<ModelDetail />} />
             <Route path="/status" element={<StatusPage />} />
           </Routes>
         </MainContainer>

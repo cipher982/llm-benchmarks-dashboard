@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { lazy, Suspense } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useMediaQuery } from "@mui/material";
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from "../styles";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
+import { createModelUrl } from "../utils/seoUtils";
 
 const TimeSeriesChart = lazy(() => import("../charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../tables/cloud/RawCloudTable"));
@@ -60,7 +61,7 @@ const CloudBenchmarks: React.FC = () => {
             }
         };
         initializeData();
-    }, []); // Empty dependency array - only runs on mount
+    }, [fetchCloudBenchmarks, selectedDays]); // Add required dependencies
 
     // Handle time range changes
     const handleTimeRangeChange = useCallback(async (days: number) => {
@@ -147,7 +148,10 @@ const CloudBenchmarks: React.FC = () => {
                 }}>
                     <div style={{ paddingBottom: "30px" }}>
                         <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
-                            <RawCloudTable data={tableData} />
+                            <RawCloudTable 
+                                data={tableData} 
+                                modelLinkFn={(provider, modelName) => createModelUrl(provider, modelName)}
+                            />
                         </Suspense>
                     </div>
                 </div>
