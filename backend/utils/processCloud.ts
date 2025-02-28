@@ -8,6 +8,7 @@ export interface RawData {
     _id: string;
     run_ts: string;
     model_name: string;
+    display_name?: string;
     temperature: number;
     gen_ts: string;
     requested_tokens: number;
@@ -23,6 +24,7 @@ interface AggregatedData {
     _id: string;
     provider: string;
     model_name: string;
+    display_name?: string;
     tokens_per_second: number[];
     time_to_first_token: number[];
 }
@@ -34,6 +36,7 @@ export interface ProcessedData {
     _id: string;
     provider: string;
     model_name: string;
+    display_name?: string;
     tokens_per_second: number[];
     time_to_first_token: number[];
     tokens_per_second_mean: number;
@@ -72,6 +75,8 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 _id: `${index}`,
                 provider: benchmark.provider,
                 model_name: benchmark.model_name,
+                // Add display_name if it exists in the raw data
+                display_name: benchmark.display_name,
                 tokens_per_second: [],
                 time_to_first_token: []
             };
@@ -90,6 +95,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             _id: benchmark._id,
             provider: benchmark.provider,
             model_name: benchmark.model_name,
+            display_name: benchmark.display_name,
             tokens_per_second: benchmark.tokens_per_second,
             tokens_per_second_mean: 0,
             tokens_per_second_min: 0,

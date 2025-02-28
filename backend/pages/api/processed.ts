@@ -18,7 +18,9 @@ function parseTimeRange(req: NextApiRequest) {
     };
 }
 
-async function processMetrics(rawMetrics: any[], days: number) {
+// This is the shared processing function used by both processed.ts and model.ts endpoints
+// Performance optimization metrics are added here
+export async function processAllMetrics(rawMetrics: any[], days: number) {
     // Transform data first since other operations depend on it
     const startTime = process.hrtime.bigint();
     const transformedData = cleanTransformCloud(rawMetrics);
@@ -59,10 +61,10 @@ async function processMetrics(rawMetrics: any[], days: number) {
             JSON.stringify(speedDistData[0].density_points.slice(0, 3))
         }`);
     }
-    console.log('Data sizes (KB):');
-    console.log('Speed Distribution:', (JSON.stringify(speedDistData).length / 1024).toFixed(2));
-    console.log('Time Series:', (JSON.stringify(timeSeriesData).length / 1024).toFixed(2));
-    console.log('Table:', (JSON.stringify(tableData).length / 1024).toFixed(2));
+    logger.info('Data sizes (KB):');
+    logger.info(`Speed Distribution: ${(JSON.stringify(speedDistData).length / 1024).toFixed(2)}`);
+    logger.info(`Time Series: ${(JSON.stringify(timeSeriesData).length / 1024).toFixed(2)}`);
+    logger.info(`Table: ${(JSON.stringify(tableData).length / 1024).toFixed(2)}`);
 
     return roundNumbers({
         speedDistribution: speedDistData,
@@ -86,7 +88,7 @@ async function handler(
             CloudMetrics,
             (rawMetrics: any[]) => {
                 const timeRange = parseTimeRange(req);
-                return processMetrics(rawMetrics, timeRange.days);
+                return processAllMetrics(rawMetrics, timeRange.days);
             },
             CACHE_KEYS.PROCESSED_METRICS,
             DEFAULT_RANGES.PROCESSED

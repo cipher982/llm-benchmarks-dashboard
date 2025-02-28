@@ -15,6 +15,7 @@ export const CACHE_KEYS = {
     CLOUD_METRICS: 'cloudMetrics',
     LOCAL_METRICS: 'localMetrics',
     PROCESSED_METRICS: 'processedMetrics',
+    MODEL_METRICS: 'modelMetrics',
 };
 
 // Helper to get cache key with date range
@@ -27,6 +28,11 @@ export function getLastUpdateKey(baseKey: string, days: number): string {
     return `${getCacheKey(baseKey, days)}:lastUpdate`;
 }
 
+// Helper to get model-specific cache key
+export function getModelCacheKey(provider: string, modelName: string, days: number): string {
+    return `${CACHE_KEYS.MODEL_METRICS}:${provider}:${modelName}:${days}days`;
+}
+
 async function shouldRefreshCache(cacheKey: string): Promise<boolean> {
     const lastUpdate = await redisClient.get(getLastUpdateKey(cacheKey, parseInt(cacheKey.split(':')[1].split('days')[0])));
     return !lastUpdate || Date.now() - parseInt(lastUpdate) > 3600000; // 1 hour
@@ -35,7 +41,7 @@ async function shouldRefreshCache(cacheKey: string): Promise<boolean> {
 async function serveCachedData(res: NextApiResponse, cacheKey: string) {
     const cachedData = await redisClient.get(cacheKey);
     if (!cachedData) return false;
-    logger.info('Serving from cache');
+    logger.info(`Serving ${cacheKey} from cache`);
     res.status(200).json(JSON.parse(cachedData));
     return true;
 }
@@ -43,7 +49,7 @@ async function serveCachedData(res: NextApiResponse, cacheKey: string) {
 async function updateCache(cacheKey: string, processedMetrics: any) {
     await redisClient.set(cacheKey, JSON.stringify(processedMetrics));
     await redisClient.set(getLastUpdateKey(cacheKey, parseInt(cacheKey.split(':')[1].split('days')[0])), Date.now().toString());
-    logger.info('Cache updated successfully');
+    logger.info(`Cache updated successfully for ${cacheKey}`);
 }
 
 export async function refreshCache(
@@ -143,4 +149,185 @@ async function fetchAndUpdateCache(
     
     await updateCache(cacheKey, metricsToCache);
     return metricsToCache;
+}
+
+// NEW FUNCTIONS FOR TIERED CACHING SYSTEM
+
+/**
+ * Get processed data from cache or fetch and process it if needed
+ * @param days Number of days to look back
+ * @returns Processed metrics
+ */
+export async function getProcessedDataFromCache(days: number): Promise<any> {
+    const cacheKey = getCacheKey(CACHE_KEYS.PROCESSED_METRICS, days);
+    
+    // Try to get from cache first
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) {
+        logger.info(`Retrieved processed data from cache (${cacheKey})`);
+        return JSON.parse(cachedData);
+    }
+    
+    // If not in cache, return null - the caller should handle fetching the raw data
+    logger.info(`No processed data in cache for ${cacheKey}`);
+    return null;
+}
+
+/**
+ * Filter processed data for a specific model
+ * @param processedData Full processed data
+ * @param provider Provider name
+ * @param modelName Model name (can be a slug or original name)
+ * @returns Filtered model data
+ */
+export function filterProcessedDataForModel(processedData: any, provider: string, modelName: string): any {
+    if (!processedData || !processedData.speedDistribution || !processedData.timeSeries || !processedData.table) {
+        logger.error('Invalid processed data format for filtering');
+        return null;
+    }
+    
+    logger.info(`Filtering data for ${provider}/${modelName}`);
+    
+    // Create slug-friendly versions for comparison
+    const normalizeForComparison = (text: string): string => {
+        return text.toLowerCase().replace(/[^\w ]+/g, "").replace(/ +/g, "-");
+    };
+    
+    const modelSlug = normalizeForComparison(modelName);
+    const providerSlug = normalizeForComparison(provider);
+    
+    // Filter speed distribution data
+    const speedDistData = processedData.speedDistribution.filter((item: any) => {
+        const itemProviderSlug = normalizeForComparison(item.provider);
+        const itemModelSlug = normalizeForComparison(item.model_name);
+        return itemProviderSlug === providerSlug && itemModelSlug === modelSlug;
+    });
+    
+    // Filter time series data
+    const timeSeriesData = {
+        timestamps: processedData.timeSeries.timestamps,
+        models: processedData.timeSeries.models.filter((model: any) => {
+            const itemModelSlug = normalizeForComparison(model.model_name);
+            return itemModelSlug === modelSlug;
+        })
+    };
+    
+    // Filter table data
+    const tableData = processedData.table.filter((item: any) => {
+        const itemProviderSlug = normalizeForComparison(item.provider);
+        const itemModelSlug = normalizeForComparison(item.model_name);
+        return itemProviderSlug === providerSlug && itemModelSlug === modelSlug;
+    });
+    
+    // If no data found, return null
+    if (speedDistData.length === 0 && timeSeriesData.models.length === 0 && tableData.length === 0) {
+        logger.info(`No data found for ${provider}/${modelName}`);
+        return null;
+    }
+    
+    // Debug log
+    logger.info(`Found data: ${speedDistData.length} speed points, ${timeSeriesData.models.length} time series, ${tableData.length} table rows`);
+    
+    // Construct and return the filtered data
+    const displayName = speedDistData[0]?.display_name || modelName;
+    
+    return {
+        speedDistribution: speedDistData,
+        timeSeries: timeSeriesData,
+        table: tableData,
+        model: {
+            provider: provider,
+            model_name: modelName,
+            display_name: displayName
+        }
+    };
+}
+
+/**
+ * Cache and return model-specific data
+ * @param cacheKey Cache key for model-specific data
+ * @param modelData Filtered model data
+ * @param res Response object
+ */
+export async function cacheAndReturnModelData(cacheKey: string, modelData: any, res: NextApiResponse): Promise<void> {
+    if (!modelData) {
+        res.status(404).json({ error: 'No data found for this model' });
+        return;
+    }
+    
+    // Cache the model-specific data
+    await updateCache(cacheKey, modelData);
+    
+    // Return the data
+    res.status(200).json(modelData);
+}
+
+/**
+ * Handle model-specific API requests with tiered caching
+ */
+export async function handleModelSpecificApiRequest(
+    req: NextApiRequest,
+    res: NextApiResponse,
+    model: { find: (query?: any) => any },
+    processRawData: (rawData: any[], days: number) => Promise<any> | any,
+    filterModelFn: (processedData: any, provider: string, modelName: string, days: number) => any,
+    provider: string,
+    modelName: string,
+    days: number
+) {
+    // 1. Try to get cached model-specific data first
+    const modelCacheKey = getModelCacheKey(provider, modelName, days);
+    const cachedModelData = await redisClient.get(modelCacheKey);
+    
+    if (cachedModelData) {
+        logger.info(`Serving model-specific data from cache for ${provider}/${modelName}`);
+        res.status(200).json(JSON.parse(cachedModelData));
+        return;
+    }
+    
+    // 2. If no model cache, try to get processed data cache
+    const processedCacheKey = getCacheKey(CACHE_KEYS.PROCESSED_METRICS, days);
+    const cachedProcessedData = await redisClient.get(processedCacheKey);
+    
+    if (cachedProcessedData) {
+        // Filter the processed data for this model
+        logger.info(`Filtering processed data for ${provider}/${modelName}`);
+        const processedData = JSON.parse(cachedProcessedData);
+        const modelData = filterModelFn(processedData, provider, modelName, days);
+        
+        if (modelData) {
+            // Cache and return the filtered data
+            await updateCache(modelCacheKey, modelData);
+            res.status(200).json(modelData);
+            return;
+        }
+    }
+    
+    // 3. If no processed data cache or model not found, fetch raw data and process
+    logger.info(`No cache available for ${provider}/${modelName}, fetching raw data`);
+    try {
+        // Fetch raw data
+        const rawMetrics = await fetchAndProcessMetrics(model, days, (rawData) => rawData);
+        
+        // Process the raw data fully
+        const processedData = await processRawData(rawMetrics, days);
+        
+        // Cache the processed data
+        await updateCache(processedCacheKey, processedData);
+        
+        // Filter for this model
+        const modelData = filterModelFn(processedData, provider, modelName, days);
+        
+        if (!modelData) {
+            res.status(404).json({ error: 'No data found for this model' });
+            return;
+        }
+        
+        // Cache and return the model data
+        await updateCache(modelCacheKey, modelData);
+        res.status(200).json(modelData);
+    } catch (error) {
+        logger.error(`Error processing model-specific data: ${error}`);
+        res.status(500).json({ error: 'Failed to process model metrics' });
+    }
 }
