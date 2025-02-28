@@ -14,24 +14,14 @@ services:
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - REDIS_DB=${REDIS_DB}
-    networks:
-      - llm-bench-network
-
-  # Frontend service - commented out for now, will be added later
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   expose:
-  #     - 3000
-  #   environment:
-  #     - REACT_APP_API_URL=http://backend:5000
-  #   depends_on:
-  #     - backend
-  #   networks:
-  #     - llm-bench-network
-
-networks:
-  llm-bench-network:
-    driver: bridge
+  llm-bench-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    environment:
+      - REACT_APP_API_URL=${BACKEND_URL}
+    depends_on:
+      - llm-bench-backend
