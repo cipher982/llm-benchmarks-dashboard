@@ -19,6 +19,31 @@ const nextConfig = {
     hostname: '0.0.0.0',
     port: parseInt(process.env.PORT || '5000'),
   },
+  // Add CORS headers to all responses in development mode only
+  async headers() {
+    return process.env.NODE_ENV !== 'production' 
+      ? [
+          {
+            // Apply these headers to all routes in development
+            source: '/(.*)',
+            headers: [
+              {
+                key: 'Access-Control-Allow-Origin',
+                value: '*', // In development, allow all origins
+              },
+              {
+                key: 'Access-Control-Allow-Methods',
+                value: 'GET, POST, PUT, DELETE, OPTIONS',
+              },
+              {
+                key: 'Access-Control-Allow-Headers',
+                value: 'X-Requested-With, Content-Type, Accept',
+              },
+            ],
+          },
+        ]
+      : []; // In production, use the corsMiddleware instead
+  },
 };
 
 export default nextConfig;

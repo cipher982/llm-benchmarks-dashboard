@@ -100,26 +100,35 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
         url: req.url
     });
     
-    // List of allowed origins
-    const allowedOrigins = [
-        'https://llm-benchmarks-dashboard.vercel.app',
-        'https://www.llm-benchmarks.com',
-        'http://localhost:3000'
-    ];
-    
-    // Always set CORS headers if origin is in allowed list
-    if (origin) {
-        if (process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview' || allowedOrigins.includes(origin)) {
+    // In development mode, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+        if (origin) {
+            console.log(`Development mode: allowing origin ${origin}`);
+            res.setHeader('Access-Control-Allow-Origin', origin);
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+            res.setHeader('Access-Control-Allow-Credentials', 'true');
+        }
+    } else {
+        // In production, use a whitelist approach
+        // List of allowed origins
+        const allowedOrigins = [
+            'https://llm-benchmarks-dashboard.vercel.app',
+            'https://www.llm-benchmarks.com',
+            'https://llm-benchmarks.com',
+            'https://api.llm-benchmarks.com'
+        ];
+        
+        // Check if the origin is in our allowed list
+        if (origin && (allowedOrigins.includes(origin) || process.env.VERCEL_ENV === 'preview')) {
             console.log(`Setting CORS headers for origin: ${origin}`);
             res.setHeader('Access-Control-Allow-Origin', origin);
             res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
             res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
             res.setHeader('Access-Control-Allow-Credentials', 'true');
-        } else {
+        } else if (origin) {
             console.log(`Origin not allowed: ${origin}`);
         }
-    } else {
-        console.log('No origin header present in request');
     }
 
     // Handle preflight requests
