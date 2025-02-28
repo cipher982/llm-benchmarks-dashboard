@@ -87,7 +87,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Wrap the handler with CORS middleware
-export default async function (req: NextApiRequest, res: NextApiResponse) {
+export default async function sitemapHandler(req: NextApiRequest, res: NextApiResponse) {
   // Handle CORS preflight
   const corsHandled = await corsMiddleware(req, res);
   if (corsHandled) return;

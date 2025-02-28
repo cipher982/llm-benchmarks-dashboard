@@ -8,7 +8,7 @@ export const daysAgo = 14;
 const debug = false;
 const useCache = !debug;
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
+const cloudHandler = async (req: NextApiRequest, res: NextApiResponse) => {
   await handleCachedApiResponse(
     req, 
     res, 
@@ -18,3 +18,5 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     DEFAULT_RANGES.CLOUD
   );
 };
+
+export default cloudHandler;

@@ -62,8 +62,28 @@ async function handler(
     
     // Step 3: Data Transformation (cleanTransformCloud)
     const { result: transformedData, timings: transformTiming } = await timeOperation('Data transformation', () => {
-      // Cast the metrics to RawData[] to satisfy TypeScript
-      return cleanTransformCloud(metrics as RawData[]);
+      // Transform MongoDB documents to RawData format instead of direct casting
+      const formattedMetrics = metrics.map(doc => {
+        // Ensure _id is properly handled
+        const docId = doc._id ? (typeof doc._id === 'object' ? doc._id.toString() : String(doc._id)) : "";
+        
+        return {
+          _id: docId,
+          run_ts: doc.run_ts || "",
+          model_name: doc.model_name || "",
+          display_name: doc.display_name,
+          temperature: doc.temperature || 0,
+          gen_ts: doc.gen_ts || "",
+          requested_tokens: doc.requested_tokens || 0,
+          output_tokens: doc.output_tokens || 0,
+          generate_time: doc.generate_time || 0,
+          tokens_per_second: doc.tokens_per_second || 0,
+          provider: doc.provider || "",
+          streaming: doc.streaming || false,
+          time_to_first_token: doc.time_to_first_token || 0
+        };
+      });
+      return cleanTransformCloud(formattedMetrics);
     });
     timings.push(transformTiming);
     
@@ -142,7 +162,7 @@ async function handler(
 }
 
 // Wrap the handler with the existing CORS middleware
-export default async function (req: NextApiRequest, res: NextApiResponse) {
+export default async function benchmarkHandler(req: NextApiRequest, res: NextApiResponse) {
   // Handle CORS preflight
   const corsHandled = await corsMiddleware(req, res);
   if (corsHandled) return;

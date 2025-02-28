@@ -58,7 +58,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 // Wrap the handler with CORS middleware
-export default async function (req: NextApiRequest, res: NextApiResponse) {
+export default async function modelHandler(req: NextApiRequest, res: NextApiResponse) {
     // Handle CORS preflight
     console.log(`Received API request for model: ${req.url}`);
     

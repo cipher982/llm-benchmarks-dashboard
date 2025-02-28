@@ -30,7 +30,7 @@ const HomePage = () => {
     return (
         <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
             <Head>
-                <title>David Rose's AI Benchmarks</title>
+                <title>David Rose&apos;s AI Benchmarks</title>
                 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
                 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
                 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />

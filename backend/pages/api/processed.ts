@@ -100,7 +100,7 @@ async function handler(
 }
 
 // Wrap the handler with the existing CORS middleware
-export default async function (req: NextApiRequest, res: NextApiResponse) {
+export default async function processedHandler(req: NextApiRequest, res: NextApiResponse) {
     // Handle CORS preflight
     const corsHandled = await corsMiddleware(req, res);
     if (corsHandled) return;

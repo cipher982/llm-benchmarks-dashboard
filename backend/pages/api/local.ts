@@ -9,7 +9,7 @@ export const daysAgo = 1000;
 const debug = false;
 const useCache = !debug;
 
-export default async function (req: NextApiRequest, res: NextApiResponse) {
+export default async function localHandler(req: NextApiRequest, res: NextApiResponse) {
   // Handle CORS preflight
   const corsHandled = await corsMiddleware(req, res);
   if (corsHandled) return;
