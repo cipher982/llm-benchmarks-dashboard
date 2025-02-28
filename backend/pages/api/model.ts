@@ -60,9 +60,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 // Wrap the handler with CORS middleware
 export default async function (req: NextApiRequest, res: NextApiResponse) {
     // Handle CORS preflight
-    const corsHandled = await corsMiddleware(req, res);
-    if (corsHandled) return;
+    console.log(`Received API request for model: ${req.url}`);
+    
+    try {
+        const corsHandled = await corsMiddleware(req, res);
+        console.log(`CORS middleware result: ${corsHandled ? 'preflight handled' : 'proceeding with request'}`);
+        
+        if (corsHandled) return;
 
-    // Handle the actual request
-    return handler(req, res);
+        // Handle the actual request
+        return handler(req, res);
+    } catch (error) {
+        console.error('Unexpected error in model API route:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
 } 

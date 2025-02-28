@@ -275,6 +275,9 @@ export async function handleModelSpecificApiRequest(
     modelName: string,
     days: number
 ) {
+    // Log request details
+    logger.info(`Model request: ${provider}/${modelName} (${days} days)`);
+    
     // 1. Try to get cached model-specific data first
     const modelCacheKey = getModelCacheKey(provider, modelName, days);
     const cachedModelData = await redisClient.get(modelCacheKey);
@@ -300,6 +303,8 @@ export async function handleModelSpecificApiRequest(
             await updateCache(modelCacheKey, modelData);
             res.status(200).json(modelData);
             return;
+        } else {
+            logger.info(`No data found for ${provider}/${modelName} in processed data`);
         }
     }
     
@@ -307,7 +312,8 @@ export async function handleModelSpecificApiRequest(
     logger.info(`No cache available for ${provider}/${modelName}, fetching raw data`);
     try {
         // Fetch raw data
-        const rawMetrics = await fetchAndProcessMetrics(model, days, (rawData) => rawData);
+        const rawMetricsResult = await fetchAndProcessMetrics(model, days, (rawData) => rawData);
+        const rawMetrics = Array.isArray(rawMetricsResult) ? rawMetricsResult : (rawMetricsResult.raw || []);
         
         // Process the raw data fully
         const processedData = await processRawData(rawMetrics, days);
@@ -319,7 +325,11 @@ export async function handleModelSpecificApiRequest(
         const modelData = filterModelFn(processedData, provider, modelName, days);
         
         if (!modelData) {
-            res.status(404).json({ error: 'No data found for this model' });
+            logger.warn(`Model not found: ${provider}/${modelName}`);
+            res.status(404).json({ 
+                error: 'No data found for this model',
+                message: `No data available for ${provider}/${modelName}`
+            });
             return;
         }
         

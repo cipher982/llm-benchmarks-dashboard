@@ -64,30 +64,30 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
         origin,
         nodeEnv: process.env.NODE_ENV,
         vercelEnv: process.env.VERCEL_ENV,
-        method: req.method
+        method: req.method,
+        url: req.url
     });
     
-    // In development or preview, allow all origins
-    if (process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview') {
-        if (origin) {
-            console.log('Setting CORS headers for development/preview');
+    // List of allowed origins
+    const allowedOrigins = [
+        'https://llm-benchmarks-dashboard.vercel.app',
+        'https://www.llm-benchmarks.com',
+        'http://localhost:3000'
+    ];
+    
+    // Always set CORS headers if origin is in allowed list
+    if (origin) {
+        if (process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview' || allowedOrigins.includes(origin)) {
+            console.log(`Setting CORS headers for origin: ${origin}`);
             res.setHeader('Access-Control-Allow-Origin', origin);
             res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
             res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+            res.setHeader('Access-Control-Allow-Credentials', 'true');
+        } else {
+            console.log(`Origin not allowed: ${origin}`);
         }
     } else {
-        // In production, only allow specific origins
-        const productionOrigins = [
-            'https://llm-benchmarks-dashboard.vercel.app',
-            'https://www.llm-benchmarks.com'
-        ];
-        
-        if (origin && productionOrigins.includes(origin)) {
-            console.log('Setting CORS headers for production');
-            res.setHeader('Access-Control-Allow-Origin', origin);
-            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-        }
+        console.log('No origin header present in request');
     }
 
     // Handle preflight requests
