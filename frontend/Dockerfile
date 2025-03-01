@@ -1,32 +1,30 @@
 FROM node:20-alpine AS builder
 
+# Accept the API URL as a build argument
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=${REACT_APP_API_URL}
+
 WORKDIR /app
 
 # Copy package files for dependency installation
 COPY package*.json ./
 
-# Use npm ci for reliable, reproducible installs based on package-lock.json
+# Install dependencies
 RUN npm ci
 
 # Copy source files
 COPY . .
 
-# Build the React application
+# Build the React application with env vars available at build time
 RUN npm run build
 
-# Production stage - use nginx to serve static files
+# Production stage
 FROM nginx:alpine
 
-# Copy built files from builder stage to nginx serve directory
+# Copy built files to nginx
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Add a simple script to inject environment variables at runtime
-RUN echo '#!/bin/sh\n\
-echo "window.env = { REACT_APP_API_URL: \"$REACT_APP_API_URL\" };" > /usr/share/nginx/html/env-config.js\n\
-nginx -g "daemon off;"\n\
-' > /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
-
-# Create custom nginx config to listen on port 3000
+# Configure nginx
 RUN echo 'server { \
     listen 3000; \
     location / { \
@@ -38,5 +36,4 @@ RUN echo 'server { \
 
 EXPOSE 3000
 
-# Use the entrypoint script
-CMD ["/docker-entrypoint.sh"] 
+CMD ["nginx", "-g", "daemon off;"] 
