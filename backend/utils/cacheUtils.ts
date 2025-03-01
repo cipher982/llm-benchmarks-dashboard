@@ -52,6 +52,16 @@ async function serveCachedData(res: NextApiResponse, cacheKey: string) {
 }
 
 async function updateCache(cacheKey: string, processedMetrics: any) {
+    // Validate that we have enough models before caching
+    if (
+        processedMetrics.speedDistribution && 
+        Array.isArray(processedMetrics.speedDistribution) && 
+        processedMetrics.speedDistribution.length <= 1
+    ) {
+        logger.warn(`Not caching data for ${cacheKey} - only ${processedMetrics.speedDistribution?.length || 0} models in speedDistribution`);
+        return;
+    }
+    
     // Use pipeline for more efficient Redis operations
     const pipeline = redisClient.pipeline();
     
@@ -64,7 +74,7 @@ async function updateCache(cacheKey: string, processedMetrics: any) {
     
     // Execute the pipeline
     await pipeline.exec();
-    logger.info(`Cache updated successfully for ${cacheKey}`);
+    logger.info(`Cache updated successfully for ${cacheKey} with ${processedMetrics.speedDistribution?.length || 0} models`);
 }
 
 export async function refreshCache(
@@ -178,6 +188,14 @@ async function fetchAndUpdateCache(
             : (processedMetrics.raw || processedMetrics.hasOwnProperty('raw')) 
                 ? processedMetrics 
                 : { raw: [] };
+        
+        // Additional validation for processed metrics
+        if (cacheKey.includes('processedMetrics') && 
+            processedMetrics.speedDistribution && 
+            processedMetrics.speedDistribution.length <= 1) {
+            logger.warn(`Not caching processed metrics with only ${processedMetrics.speedDistribution.length} models`);
+            return processedMetrics; // Return but don't cache
+        }
         
         if (metricsLength > 0) {
             await updateCache(cacheKey, metricsToCache);
