@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { CloudMetrics } from '../../models/BenchmarkMetrics';
 import { processSpeedDistData, processTimeSeriesData, processRawTableData } from '../../utils/dataProcessing';
 import { cleanTransformCloud } from '../../utils/processCloud';
-import { corsMiddleware } from '../../utils/apiMiddleware';
+import { corsMiddleware, fetchAndProcessMetrics } from '../../utils/apiMiddleware';
 import { CACHE_KEYS, DEFAULT_RANGES } from '../../utils/cacheUtils';
 import { handleCachedApiResponse } from '../../utils/cacheUtils';
 import logger from '../../utils/logger';
@@ -82,17 +82,38 @@ async function handler(
     }
 
     try {
-        await handleCachedApiResponse(
-            req,
-            res,
-            CloudMetrics,
-            (rawMetrics: any[]) => {
-                const timeRange = parseTimeRange(req);
-                return processAllMetrics(rawMetrics, timeRange.days);
-            },
-            CACHE_KEYS.PROCESSED_METRICS,
-            DEFAULT_RANGES.PROCESSED
-        );
+        // Check if bypass_cache parameter is present
+        const bypassCache = req.query.bypass_cache === "true";
+        
+        if (bypassCache) {
+            // Bypass cache and fetch directly from MongoDB
+            const timeRange = parseTimeRange(req);
+            logger.info(`Bypassing cache for days=${timeRange.days}`);
+            
+            const rawMetrics = await fetchAndProcessMetrics(
+                CloudMetrics,
+                timeRange.days,
+                (rawData: any[]) => rawData
+            );
+            
+            // Process the raw metrics
+            const metricsArray = Array.isArray(rawMetrics) ? rawMetrics : (rawMetrics.raw || []);
+            const processedData = await processAllMetrics(metricsArray, timeRange.days);
+            return res.status(200).json(processedData);
+        } else {
+            // Use the regular cached approach
+            await handleCachedApiResponse(
+                req,
+                res,
+                CloudMetrics,
+                (rawMetrics: any[]) => {
+                    const timeRange = parseTimeRange(req);
+                    return processAllMetrics(rawMetrics, timeRange.days);
+                },
+                CACHE_KEYS.PROCESSED_METRICS,
+                DEFAULT_RANGES.PROCESSED
+            );
+        }
     } catch (error) {
         console.error('Error processing metrics:', error);
         return res.status(500).json({ error: 'Failed to process metrics' });
