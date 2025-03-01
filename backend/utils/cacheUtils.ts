@@ -11,10 +11,9 @@ export const DEFAULT_RANGES = {
 };
 
 export const CACHE_KEYS = {
-    // Base keys without date range
+    // One cache per data type
     CLOUD_METRICS: 'cloudMetrics',
     LOCAL_METRICS: 'localMetrics',
-    PROCESSED_METRICS: 'processedMetrics',
     MODEL_METRICS: 'modelMetrics',
 };
 
@@ -244,7 +243,7 @@ async function fetchAndUpdateCache(
  * @returns Processed metrics
  */
 export async function getProcessedDataFromCache(days: number): Promise<any> {
-    const cacheKey = getCacheKey(CACHE_KEYS.PROCESSED_METRICS, days);
+    const cacheKey = getCacheKey(CACHE_KEYS.CLOUD_METRICS, days);
     
     // Try to get from cache first
     const cachedData = await redisClient.get(cacheKey);
@@ -374,7 +373,7 @@ export async function handleModelSpecificApiRequest(
     }
     
     // 2. If no model cache, try to get processed data cache
-    const processedCacheKey = getCacheKey(CACHE_KEYS.PROCESSED_METRICS, days);
+    const processedCacheKey = getCacheKey(CACHE_KEYS.CLOUD_METRICS, days);
     const cachedProcessedData = await redisClient.get(processedCacheKey);
     
     if (cachedProcessedData) {

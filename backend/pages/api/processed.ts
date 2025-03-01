@@ -110,7 +110,7 @@ async function handler(
                     const timeRange = parseTimeRange(req);
                     return processAllMetrics(rawMetrics, timeRange.days);
                 },
-                CACHE_KEYS.PROCESSED_METRICS,
+                CACHE_KEYS.CLOUD_METRICS,
                 DEFAULT_RANGES.PROCESSED
             );
         }
