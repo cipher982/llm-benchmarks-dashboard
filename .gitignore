@@ -65,10 +65,8 @@ yarn-error.log*
 next-env.d.ts
 
 backend/.backup
-backend/package-lock.json
 backend/.next
 backend/.gitignore
-frontend/package-lock.json
 frontend/build
 
 pagespeed/
