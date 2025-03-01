@@ -7,7 +7,7 @@ const redisClient = new Redis({
   host: process.env.REDIS_HOST,
   port: Number(process.env.REDIS_PORT),
   password: process.env.REDIS_PASSWORD,
-  db: 0 // Explicitly use database 0 where existing cached metrics are stored
+  db: Number(process.env.REDIS_DB),
 });
 
 async function populateCache() {
