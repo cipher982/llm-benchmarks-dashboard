@@ -2,10 +2,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy only package files first to leverage caching
+# Copy package files for dependency installation
 COPY package*.json ./
 
-# Use npm ci for reliable, faster installs based on package-lock.json
+# Use npm ci for reliable, reproducible installs based on package-lock.json
 RUN npm ci
 
 # Copy source files
