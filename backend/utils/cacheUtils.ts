@@ -88,7 +88,7 @@ async function updateCache(cacheKey: string, processedMetrics: any) {
 }
 
 export async function refreshCache(
-    req: NextApiRequest,
+    req: NextApiRequest & { forceRefresh?: boolean },
     res: NextApiResponse,
     model: { find: (query?: any) => any },
     cleanTransform: (rawData: any[]) => Promise<any[] | { raw: any[]; [key: string]: any }> | any[] | { raw: any[]; [key: string]: any },
@@ -102,11 +102,11 @@ export async function refreshCache(
     }
 
     try {
-        const days = req.query.days ? parseInt(req.query.days as string) : defaultDays;
+        const days = req.query?.days ? parseInt(req.query.days as string) : defaultDays;
         const cacheKey = getCacheKey(baseKey, days);
 
-        // Check if we should refresh the cache
-        if (!await shouldRefreshCache(cacheKey)) {
+        // Check if we should refresh the cache, bypassing the check if forceRefresh is true
+        if (!req.forceRefresh && !await shouldRefreshCache(cacheKey)) {
             logger.info('Cache is still fresh');
             return res.status(200).json({ message: 'Cache is fresh' });
         }

@@ -6,7 +6,12 @@ import { daysAgo } from './cloud';
 import { CACHE_KEYS } from '../../utils/cacheUtils';
 
 const refreshCloudCacheHandler = async (req: NextApiRequest, res: NextApiResponse) => {
-    await refreshCache(req, res, CloudMetrics, cleanTransformCloud, CACHE_KEYS.CLOUD_METRICS, daysAgo);
+    // Modify the request to force a refresh
+    const modifiedReq = {
+        ...req,
+        forceRefresh: true
+    };
+    await refreshCache(modifiedReq, res, CloudMetrics, cleanTransformCloud, CACHE_KEYS.CLOUD_METRICS, daysAgo);
 };
 
 export default refreshCloudCacheHandler;
