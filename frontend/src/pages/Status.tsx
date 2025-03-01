@@ -92,7 +92,10 @@ const StatusPage: React.FC = () => {
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
+            if (!process.env.REACT_APP_API_URL) {
+                throw new Error("REACT_APP_API_URL environment variable is not set");
+            }
+            const apiUrl = process.env.REACT_APP_API_URL;
             const response = await fetch(`${apiUrl}/api/status`);
             const data = await response.json();
             setData(data);

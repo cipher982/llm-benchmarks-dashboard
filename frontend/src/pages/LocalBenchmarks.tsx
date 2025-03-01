@@ -35,7 +35,10 @@ const LocalBenchmarks: FC = () => {
         // Fetch local benchmarks
         const fetchLocalBenchmarks = async () => {
             try {
-                const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
+                if (!process.env.REACT_APP_API_URL) {
+                    throw new Error("REACT_APP_API_URL environment variable is not set");
+                }
+                const apiUrl = process.env.REACT_APP_API_URL;
                 const res = await fetch(`${apiUrl}/api/local`);
                 const response = await res.json();
                 const data: LocalBenchmark[] = response.raw; // Extract the raw array from the response
