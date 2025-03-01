@@ -96,12 +96,21 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
         origin,
         nodeEnv: process.env.NODE_ENV,
         vercelEnv: process.env.VERCEL_ENV,
+        disableCors: process.env.DISABLE_CORS,
         method: req.method,
         url: req.url
     });
     
+    // If DISABLE_CORS env var is set to true, allow all origins regardless of environment
+    if (process.env.DISABLE_CORS === 'true') {
+        console.log(`DISABLE_CORS is set: allowing all origins`);
+        res.setHeader('Access-Control-Allow-Origin', origin || '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
     // In development mode, allow all origins
-    if (process.env.NODE_ENV !== 'production') {
+    else if (process.env.NODE_ENV !== 'production') {
         if (origin) {
             console.log(`Development mode: allowing origin ${origin}`);
             res.setHeader('Access-Control-Allow-Origin', origin);

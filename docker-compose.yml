@@ -14,6 +14,7 @@ services:
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - REDIS_DB=${REDIS_DB}
+      - DISABLE_CORS=${DISABLE_CORS}
   llm-bench-frontend:
     build:
       context: ./frontend

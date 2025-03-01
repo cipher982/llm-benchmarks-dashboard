@@ -3,10 +3,11 @@ import { CloudMetrics } from '../../models/BenchmarkMetrics';
 import { processSpeedDistData, processTimeSeriesData, processRawTableData } from '../../utils/dataProcessing';
 import { cleanTransformCloud } from '../../utils/processCloud';
 import { corsMiddleware, fetchAndProcessMetrics } from '../../utils/apiMiddleware';
-import { CACHE_KEYS, DEFAULT_RANGES } from '../../utils/cacheUtils';
+import { CACHE_KEYS, DEFAULT_RANGES, getCacheKey, getLastUpdateKey } from '../../utils/cacheUtils';
 import { handleCachedApiResponse } from '../../utils/cacheUtils';
 import logger from '../../utils/logger';
 import { roundNumbers } from '../../utils/dataUtils';
+import redisClient from '../../utils/redisClient';
 
 // Default time range in days
 const DEFAULT_DAYS = 3;
@@ -82,40 +83,58 @@ async function handler(
     }
 
     try {
+        // Parse time range
+        const timeRange = parseTimeRange(req);
+        const days = timeRange.days;
+        const cacheKey = getCacheKey(CACHE_KEYS.CLOUD_METRICS, days);
+        
         // Check if bypass_cache parameter is present
         const bypassCache = req.query.bypass_cache === "true";
         
-        if (bypassCache) {
-            // Bypass cache and fetch directly from MongoDB
-            const timeRange = parseTimeRange(req);
-            logger.info(`Bypassing cache for days=${timeRange.days}`);
-            
-            const rawMetrics = await fetchAndProcessMetrics(
-                CloudMetrics,
-                timeRange.days,
-                (rawData: any[]) => rawData
-            );
-            
-            // Process the raw metrics
-            const metricsArray = Array.isArray(rawMetrics) ? rawMetrics : (rawMetrics.raw || []);
-            const processedData = await processAllMetrics(metricsArray, timeRange.days);
-            return res.status(200).json(processedData);
-        } else {
-            // Use the regular cached approach
-            await handleCachedApiResponse(
-                req,
-                res,
-                CloudMetrics,
-                (rawMetrics: any[]) => {
-                    const timeRange = parseTimeRange(req);
-                    return processAllMetrics(rawMetrics, timeRange.days);
-                },
-                CACHE_KEYS.CLOUD_METRICS,
-                DEFAULT_RANGES.PROCESSED
-            );
+        // Try to get from cache first (unless bypassing cache)
+        if (!bypassCache) {
+            const cachedData = await redisClient.get(cacheKey);
+            if (cachedData) {
+                logger.info(`Serving processed data from cache for days=${days}`);
+                res.setHeader("Content-Type", "application/json");
+                res.write(cachedData);
+                res.end();
+                return;
+            }
         }
+        
+        // If we reach here, either cache bypass was requested or cache missed
+        logger.info(`Cache ${bypassCache ? 'bypass' : 'miss'} for days=${days}`);
+        
+        // Fetch raw data from MongoDB
+        const rawData = await fetchAndProcessMetrics(
+            CloudMetrics,
+            days,
+            (data: any[]) => data
+        );
+        
+        // Process the data
+        const metricsArray = Array.isArray(rawData) ? rawData : (rawData.raw || []);
+        
+        if (!metricsArray.length) {
+            logger.warn(`No metrics found for days=${days}`);
+            return res.status(404).json({ message: 'No metrics found' });
+        }
+        
+        logger.info(`Processing ${metricsArray.length} metrics`);
+        const processedData = await processAllMetrics(metricsArray, days);
+        
+        // Cache the processed data (unless bypass was requested)
+        if (!bypassCache) {
+            await redisClient.set(cacheKey, JSON.stringify(processedData));
+            await redisClient.set(getLastUpdateKey(cacheKey, days), Date.now().toString());
+            logger.info(`Cached ${metricsArray.length} metrics to ${cacheKey}`);
+        }
+        
+        // Return the processed data
+        return res.status(200).json(processedData);
     } catch (error) {
-        console.error('Error processing metrics:', error);
+        logger.error(`Error processing metrics: ${error}`);
         return res.status(500).json({ error: 'Failed to process metrics' });
     }
 }
