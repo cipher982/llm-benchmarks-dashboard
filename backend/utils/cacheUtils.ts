@@ -54,7 +54,9 @@ async function serveCachedData(res: NextApiResponse, cacheKey: string) {
 async function updateCache(cacheKey: string, processedMetrics: any) {
     // Validate that we have enough models before caching
     if (
-        processedMetrics.speedDistribution && 
+        processedMetrics && 
+        typeof processedMetrics === 'object' &&
+        'speedDistribution' in processedMetrics &&
         Array.isArray(processedMetrics.speedDistribution) && 
         processedMetrics.speedDistribution.length <= 1
     ) {
@@ -74,7 +76,15 @@ async function updateCache(cacheKey: string, processedMetrics: any) {
     
     // Execute the pipeline
     await pipeline.exec();
-    logger.info(`Cache updated successfully for ${cacheKey} with ${processedMetrics.speedDistribution?.length || 0} models`);
+    
+    // Safely log model count if speedDistribution exists
+    const modelCount = processedMetrics && 
+        typeof processedMetrics === 'object' && 
+        'speedDistribution' in processedMetrics && 
+        Array.isArray(processedMetrics.speedDistribution) ? 
+        processedMetrics.speedDistribution.length : 'N/A';
+    
+    logger.info(`Cache updated successfully for ${cacheKey} with ${modelCount} models`);
 }
 
 export async function refreshCache(
@@ -147,9 +157,16 @@ export async function handleCachedApiResponse(
         // If no cache exists, fetch and cache data synchronously for first request
         logger.info('No cache exists, fetching data synchronously');
         const processedMetrics = await fetchAndUpdateCache(model, days, cleanTransform, cacheKey);
-        if (!processedMetrics.raw?.length) {
+        
+        // Fixed TypeScript error with safe type checking
+        const hasNoData = Array.isArray(processedMetrics) 
+            ? processedMetrics.length === 0
+            : !processedMetrics?.raw || !Array.isArray(processedMetrics.raw) || processedMetrics.raw.length === 0;
+            
+        if (hasNoData) {
             return res.status(404).json({ message: 'No metrics found' });
         }
+        
         res.status(200).json(processedMetrics);
     } else {
         // Always trigger a background refresh after serving from cache
@@ -189,10 +206,14 @@ async function fetchAndUpdateCache(
                 ? processedMetrics 
                 : { raw: [] };
         
-        // Additional validation for processed metrics
+        // Additional validation for processed metrics - fixed TypeScript error
         if (cacheKey.includes('processedMetrics') && 
-            processedMetrics.speedDistribution && 
+            typeof processedMetrics === 'object' &&
+            !Array.isArray(processedMetrics) &&
+            'speedDistribution' in processedMetrics && 
+            Array.isArray(processedMetrics.speedDistribution) &&
             processedMetrics.speedDistribution.length <= 1) {
+            
             logger.warn(`Not caching processed metrics with only ${processedMetrics.speedDistribution.length} models`);
             return processedMetrics; // Return but don't cache
         }
