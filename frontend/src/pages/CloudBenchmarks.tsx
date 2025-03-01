@@ -157,7 +157,7 @@ const CloudBenchmarks: React.FC = () => {
                 </div>
             </TableContainer>
 
-            {timeSeriesData.timestamps.length > 0 && (
+            {timeSeriesData?.timestamps && timeSeriesData.timestamps.length > 0 && (
                 <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                     <h4>📈 Time Series 📈</h4>
                     <div style={{ padding: "0 5px 20px 5px" }}>
