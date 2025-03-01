@@ -17,6 +17,15 @@ RUN npm run build
 # Production stage - use nginx to serve static files
 FROM nginx:alpine
 
+# Copy built files from builder stage to nginx serve directory
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Add a simple script to inject environment variables at runtime
+RUN echo '#!/bin/sh\n\
+echo "window.env = { REACT_APP_API_URL: \"$REACT_APP_API_URL\" };" > /usr/share/nginx/html/env-config.js\n\
+nginx -g "daemon off;"\n\
+' > /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
+
 # Create custom nginx config to listen on port 3000
 RUN echo 'server { \
     listen 3000; \
@@ -27,10 +36,7 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-# Copy built files from builder stage to nginx serve directory
-COPY --from=builder /app/build /usr/share/nginx/html
-
 EXPOSE 3000
 
-# nginx container starts the server automatically
-CMD ["nginx", "-g", "daemon off;"] 
+# Use the entrypoint script
+CMD ["/docker-entrypoint.sh"] 
