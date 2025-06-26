@@ -27,8 +27,7 @@ COPY --from=builder /app/build /usr/share/nginx/html
 # Copy optimized nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Install brotli module (if available) for better compression
-RUN apk add --no-cache nginx-mod-http-brotli || true
+# Note: Standard nginx:alpine doesn't include brotli module
 
 EXPOSE 3000
 
