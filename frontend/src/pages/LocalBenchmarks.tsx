@@ -4,7 +4,7 @@ import SpeedGpuScatterChart from '../charts/local/SpeedGpuScatterChart';
 import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
 import CircularProgress from '@mui/material/CircularProgress';
-import { useMediaQuery } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { FastestFrameworks, getComparisonAndFastestFrameworks } from '../transformations';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
 import { calculateMB } from '../utils/stats';

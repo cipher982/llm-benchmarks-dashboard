@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { lazy, Suspense } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
-import { useMediaQuery } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from "../styles";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
 import { createModelUrl } from "../utils/seoUtils";

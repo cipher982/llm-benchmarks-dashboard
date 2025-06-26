@@ -1,10 +1,11 @@
 // Libraries/Modules
 import { FC } from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AppBar, ThemeProvider } from '@mui/material';
+import AppBar from '@mui/material/AppBar';
+import { ThemeProvider } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
-import { useMediaQuery } from '@mui/material';
 
 // Theme
 import theme from './theme/theme';

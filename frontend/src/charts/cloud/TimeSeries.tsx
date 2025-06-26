@@ -10,7 +10,8 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import { useTheme } from '@mui/material/styles';
-import { CircularProgress, Box } from '@mui/material';
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
 import { Provider, providerColors } from '../../theme/theme';
 import { TimeSeriesData, TimeSeriesModel } from '../../types/ProcessedData';
 import { Virtuoso } from 'react-virtuoso';

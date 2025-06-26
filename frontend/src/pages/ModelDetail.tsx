@@ -2,7 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import CircularProgress from "@mui/material/CircularProgress";
-import { useMediaQuery, Typography, Box, Button, Breadcrumbs, Link } from "@mui/material";
+import useMediaQuery from '@mui/material/useMediaQuery';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Link from '@mui/material/Link';
 import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from "../styles";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
 import { 

@@ -24,15 +24,11 @@ FROM nginx:alpine
 # Copy built files to nginx
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Configure nginx
-RUN echo 'server { \
-    listen 3000; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html index.htm; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Copy optimized nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Install brotli module (if available) for better compression
+RUN apk add --no-cache nginx-mod-http-brotli || true
 
 EXPOSE 3000
 

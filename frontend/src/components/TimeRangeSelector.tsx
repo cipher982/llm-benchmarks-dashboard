@@ -1,5 +1,6 @@
 import React from 'react';
-import { ToggleButton, ToggleButtonGroup } from '@mui/material';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 export interface TimeRange {
   days: number;
