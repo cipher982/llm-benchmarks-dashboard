@@ -33,21 +33,21 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
     const [speedDistData, timeSeriesData, tableData] = await Promise.all([
         (async () => {
             const start = process.hrtime.bigint();
-            const result = processSpeedDistData(transformedData);
+            const result = await processSpeedDistData(transformedData);
             const end = process.hrtime.bigint();
             logger.info(`processSpeedDistData took ${(end - start) / 1000000n}ms`);
             return result;
         })(),
         (async () => {
             const start = process.hrtime.bigint();
-            const result = processTimeSeriesData(transformedData, days);
+            const result = await processTimeSeriesData(transformedData, days);
             const end = process.hrtime.bigint();
             logger.info(`processTimeSeriesData took ${(end - start) / 1000000n}ms`);
             return result;
         })(),
         (async () => {
             const start = process.hrtime.bigint();
-            const result = processRawTableData(transformedData);
+            const result = await processRawTableData(transformedData);
             const end = process.hrtime.bigint();
             logger.info(`processRawTableData took ${(end - start) / 1000000n}ms`);
             return result;

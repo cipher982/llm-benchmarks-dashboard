@@ -1,6 +1,6 @@
 import { CloudBenchmark } from '../types/CloudData';
 import { Provider } from '../types/common';
-import { mapModelNames } from './modelMapping';
+import { mapModelNames } from './modelMappingDB';
 
 const SAMPLE_SIZE = 100; // Number of points to sample for speed distribution
 const PRECISION = 2; // Number of decimal places to keep
@@ -52,12 +52,13 @@ const findClosestTimestamp = (
     return closest;
 };
 
-export const processTimeSeriesData = (data: CloudBenchmark[], days: number = 14) => {
+export const processTimeSeriesData = async (data: CloudBenchmark[], days: number = 14) => {
     const latestTimestamps = generateTimestampRange(days);
     const nRuns = latestTimestamps.length;
     
-    // First, apply model mapping
-    const mappedData = mapModelNames(data);
+    // First, apply model mapping with feature flag
+    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
+    const mappedData = await mapModelNames(data, useDbModels);
 
     // Group by mapped model name
     const modelGroups = mappedData.reduce((groups, benchmark) => {
@@ -150,9 +151,10 @@ function calculateKernelDensity(data: number[], points: number = 100, bandwidth:
     });
 }
 
-export const processSpeedDistData = (data: CloudBenchmark[]) => {
-    // Apply model mapping and filter data
-    const processedData = mapModelNames(data)
+export const processSpeedDistData = async (data: CloudBenchmark[]) => {
+    // Apply model mapping and filter data with feature flag
+    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
+    const processedData = (await mapModelNames(data, useDbModels))
         .map(d => ({
             ...d,
             model_name: `${d.provider}-${d.model_name}`,
@@ -189,9 +191,10 @@ export const processSpeedDistData = (data: CloudBenchmark[]) => {
     });
 };
 
-export const processRawTableData = (data: CloudBenchmark[]) => {
-    // Apply model mapping and return summary statistics
-    const mappedData = mapModelNames(data);
+export const processRawTableData = async (data: CloudBenchmark[]) => {
+    // Apply model mapping and return summary statistics with feature flag
+    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
+    const mappedData = await mapModelNames(data, useDbModels);
     return mappedData.map(benchmark => ({
         provider: benchmark.provider,
         model_name: benchmark.model_name,
