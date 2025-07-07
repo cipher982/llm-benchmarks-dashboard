@@ -44,24 +44,10 @@ async function getModelDisplayName(provider: string, modelId: string): Promise<s
       ]);
     }
 
-    // Try exact match first
-    let cacheKey = `${provider}:${modelId}`;
+    // Try cache again after refresh
+    const cacheKey = `${provider}:${modelId}`;
     if (modelMappingCache && modelMappingCache[cacheKey]) {
       return modelMappingCache[cacheKey];
-    }
-
-    // QUICK FIX: Try fuzzy matching for old benchmark data
-    if (modelMappingCache) {
-      for (const [key, displayName] of Object.entries(modelMappingCache)) {
-        const [keyProvider, keyModelId] = key.split(':');
-        if (keyProvider === provider) {
-          // Check if benchmark model_name is a variant of the database model_id
-          if (modelId.includes(keyModelId) || keyModelId.includes(modelId)) {
-            console.log(`Fuzzy matched ${modelId} -> ${displayName} via ${keyModelId}`);
-            return displayName;
-          }
-        }
-      }
     }
 
     // Fallback: return original model name if not found
