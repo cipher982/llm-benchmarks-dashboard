@@ -40,6 +40,36 @@ const CloudBenchmarks: React.FC = () => {
             
             const data = await res.json();
             
+            // DEBUG: Log models with meta-llama to identify the issue
+            const metaLlamaModels = data.timeSeries?.models?.filter((m: any) => 
+                (m.model_name || '').includes('meta-llama') || 
+                (m.display_name || '').includes('meta-llama')
+            ) || [];
+            console.log('🔍 Meta-llama models found:', metaLlamaModels.length, metaLlamaModels.map((m: any) => ({
+                model_name: m.model_name,
+                display_name: m.display_name
+            })));
+            
+            // DEBUG: Search for the specific ugly model name
+            const uglyModel = data.timeSeries?.models?.find((m: any) => 
+                (m.model_name || '').includes('meta-llama-3.1-405b-instruct') ||
+                (m.display_name || '').includes('meta-llama-3.1-405b-instruct')
+            );
+            if (uglyModel) {
+                console.log('🚨 FOUND THE UGLY MODEL:', {
+                    model_name: uglyModel.model_name,
+                    display_name: uglyModel.display_name,
+                    providers: uglyModel.providers?.map((p: any) => p.provider)
+                });
+            }
+            
+            // DEBUG: Log first 5 model names to see what we're getting
+            const first5Models = data.timeSeries?.models?.slice(0, 5).map((m: any) => ({
+                model_name: m.model_name,
+                display_name: m.display_name || m.model_name
+            })) || [];
+            console.log('🔍 First 5 models:', first5Models);
+            
             if (!data || !data.speedDistribution || !data.timeSeries || !data.table) {
                 throw new Error('Invalid data format received from API');
             }
