@@ -18,9 +18,12 @@ export default async function debugPipeline(req: NextApiRequest, res: NextApiRes
         
         // Step 1: Fetch raw data
         steps.push("🔄 Step 1: Fetching raw metrics from MongoDB...");
+        const days = req.query.days ? parseInt(req.query.days as string) : 3;
+        steps.push(`🔧 Using ${days} days of data`);
+        
         const rawData = await fetchAndProcessMetrics(
             CloudMetrics,
-            3, // Just 3 days for testing
+            days,
             (data: any[]) => data
         );
         const metricsArray = Array.isArray(rawData) ? rawData : (rawData.raw || []);
