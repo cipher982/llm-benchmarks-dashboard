@@ -102,17 +102,17 @@ async function handler(
         console.log(`🚀 QUERY PARAMS:`, req.query);
         console.log(`🚀 BYPASS CACHE:`, bypassCache);
         
-        // Try to get from cache first (unless bypassing cache)
-        if (!bypassCache) {
-            const cachedData = await redisClient.get(cacheKey);
-            if (cachedData) {
-                logger.info(`Serving processed data from cache for days=${days}`);
-                res.setHeader("Content-Type", "application/json");
-                res.write(cachedData);
-                res.end();
-                return;
-            }
-        }
+        // CACHE TEMPORARILY DISABLED FOR TESTING
+        // if (!bypassCache) {
+        //     const cachedData = await redisClient.get(cacheKey);
+        //     if (cachedData) {
+        //         logger.info(`Serving processed data from cache for days=${days}`);
+        //         res.setHeader("Content-Type", "application/json");
+        //         res.write(cachedData);
+        //         res.end();
+        //         return;
+        //     }
+        // }
         
         // If we reach here, either cache bypass was requested or cache missed
         logger.info(`Cache ${bypassCache ? 'bypass' : 'miss'} for days=${days}`);
