@@ -29,10 +29,28 @@ const CloudBenchmarks: React.FC = () => {
                 throw new Error("REACT_APP_API_URL environment variable is not set");
             }
             const apiUrl = process.env.REACT_APP_API_URL;
-            console.time('fetchCloudBenchmarks');
             const queryParams = days ? `?days=${days}` : '';
-            const res = await fetch(`${apiUrl}/api/processed${queryParams}`);
+            const fullUrl = `${apiUrl}/api/processed${queryParams}`;
+            
+            console.log('🌐 EXACT HTTP CALL:', fullUrl);
+            console.log('🌐 API_URL from env:', apiUrl);
+            console.log('🌐 Query params:', queryParams);
+            
+            console.time('fetchCloudBenchmarks');
+            const res = await fetch(fullUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
             console.timeEnd('fetchCloudBenchmarks');
+            
+            console.log('🌐 RESPONSE STATUS:', res.status);
+            console.log('🌐 RESPONSE HEADERS:', Object.fromEntries(res.headers.entries()));
+            console.log('🌐 CACHE STATUS:', res.headers.get('x-cache') || 'No cache header');
             
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
@@ -40,35 +58,31 @@ const CloudBenchmarks: React.FC = () => {
             
             const data = await res.json();
             
-            // DEBUG: Log models with meta-llama to identify the issue
-            const metaLlamaModels = data.timeSeries?.models?.filter((m: any) => 
-                (m.model_name || '').includes('meta-llama') || 
-                (m.display_name || '').includes('meta-llama')
-            ) || [];
-            console.log('🔍 Meta-llama models found:', metaLlamaModels.length, metaLlamaModels.map((m: any) => ({
-                model_name: m.model_name,
-                display_name: m.display_name
-            })));
+            // DEBUG: Log ALL model data comprehensively
+            console.log('📊 TOTAL MODELS RECEIVED:', data.timeSeries?.models?.length || 0);
             
-            // DEBUG: Search for the specific ugly model name
-            const uglyModel = data.timeSeries?.models?.find((m: any) => 
-                (m.model_name || '').includes('meta-llama-3.1-405b-instruct') ||
-                (m.display_name || '').includes('meta-llama-3.1-405b-instruct')
-            );
-            if (uglyModel) {
-                console.log('🚨 FOUND THE UGLY MODEL:', {
-                    model_name: uglyModel.model_name,
-                    display_name: uglyModel.display_name,
-                    providers: uglyModel.providers?.map((p: any) => p.provider)
-                });
-            }
-            
-            // DEBUG: Log first 5 model names to see what we're getting
-            const first5Models = data.timeSeries?.models?.slice(0, 5).map((m: any) => ({
+            // Log ALL model names (not just first 5)
+            const allModelNames = data.timeSeries?.models?.map((m: any, index: number) => ({
+                index,
                 model_name: m.model_name,
-                display_name: m.display_name || m.model_name
+                display_name: m.display_name,
+                final_display: m.display_name || m.model_name,
+                provider_count: m.providers?.length || 0
             })) || [];
-            console.log('🔍 First 5 models:', first5Models);
+            console.log('📊 ALL MODEL NAMES:', allModelNames);
+            
+            // Search for ANY models containing meta-llama, meta, llama variations
+            const suspiciousModels = data.timeSeries?.models?.filter((m: any) => {
+                const modelName = (m.model_name || '').toLowerCase();
+                const displayName = (m.display_name || '').toLowerCase();
+                return modelName.includes('meta-llama') || displayName.includes('meta-llama') ||
+                       modelName.includes('meta/') || displayName.includes('meta/') ||
+                       modelName.includes('405b-instruct') || displayName.includes('405b-instruct');
+            }) || [];
+            console.log('🚨 SUSPICIOUS MODELS:', suspiciousModels.length, suspiciousModels);
+            
+            // Log what will actually be rendered
+            console.log('🎨 WHAT WILL BE DISPLAYED:', allModelNames.map(m => m.final_display));
             
             if (!data || !data.speedDistribution || !data.timeSeries || !data.table) {
                 throw new Error('Invalid data format received from API');
