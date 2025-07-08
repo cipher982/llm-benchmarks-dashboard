@@ -31,10 +31,11 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
     // Apply model mapping to ALL data BEFORE processing (not just timeSeriesData)
     const mappingStartTime = process.hrtime.bigint();
     const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
+    logger.info(`🔧 APPLYING MODEL MAPPING: useDbModels=${useDbModels}, transformedDataLength=${transformedData.length}`);
     const { mapModelNames } = await import('../../utils/modelMappingDB');
     const mappedData = await mapModelNames(transformedData, useDbModels);
     const mappingEndTime = process.hrtime.bigint();
-    logger.info(`Model mapping took ${(mappingEndTime - mappingStartTime) / 1000000n}ms, useDbModels=${useDbModels}`);
+    logger.info(`🔧 Model mapping took ${(mappingEndTime - mappingStartTime) / 1000000n}ms, mappedDataLength=${mappedData.length}`);
 
     // Run the processing operations in parallel
     const startTimeParallel = process.hrtime.bigint();
