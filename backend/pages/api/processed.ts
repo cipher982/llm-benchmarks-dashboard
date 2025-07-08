@@ -90,6 +90,8 @@ async function handler(
         
         // Check if bypass_cache parameter is present
         const bypassCache = req.query.bypass_cache === "true";
+        console.log(`🚀 QUERY PARAMS:`, req.query);
+        console.log(`🚀 BYPASS CACHE:`, bypassCache);
         
         // Try to get from cache first (unless bypassing cache)
         if (!bypassCache) {

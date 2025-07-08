@@ -46,12 +46,22 @@ async function getModelDisplayName(provider: string, modelId: string): Promise<s
 
     // Try cache again after refresh
     const cacheKey = `${provider}:${modelId}`;
+    
+    // DEBUG: Log cache lookup details
+    console.log(`🔍 CACHE LOOKUP: Provider="${provider}", ModelId="${modelId}"`);
+    console.log(`🔍 CACHE KEY: "${cacheKey}"`);
+    console.log(`🔍 CACHE HAS KEY: ${modelMappingCache ? Object.keys(modelMappingCache).includes(cacheKey) : 'No cache'}`);
+    if (modelMappingCache) {
+      console.log(`🔍 AVAILABLE KEYS: ${Object.keys(modelMappingCache).filter(k => k.includes(provider)).slice(0, 3)}`);
+    }
+    
     if (modelMappingCache && modelMappingCache[cacheKey]) {
+      console.log(`✅ FOUND MAPPING: "${modelId}" → "${modelMappingCache[cacheKey]}"`);
       return modelMappingCache[cacheKey];
     }
 
     // Fallback: return original model name if not found
-    console.warn(`Model mapping not found for ${provider}/${modelId}, using original name`);
+    console.warn(`❌ Model mapping not found for ${provider}/${modelId}, using original name`);
     return modelId;
 
   } catch (error) {
