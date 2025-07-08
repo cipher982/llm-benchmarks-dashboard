@@ -49,7 +49,7 @@ const CloudBenchmarks: React.FC = () => {
             console.timeEnd('fetchCloudBenchmarks');
             
             console.log('🌐 RESPONSE STATUS:', res.status);
-            console.log('🌐 RESPONSE HEADERS:', Object.fromEntries(res.headers.entries()));
+            console.log('🌐 RESPONSE HEADERS:', Object.fromEntries([...res.headers]));
             console.log('🌐 CACHE STATUS:', res.headers.get('x-cache') || 'No cache header');
             
             if (!res.ok) {
@@ -82,7 +82,7 @@ const CloudBenchmarks: React.FC = () => {
             console.log('🚨 SUSPICIOUS MODELS:', suspiciousModels.length, suspiciousModels);
             
             // Log what will actually be rendered
-            console.log('🎨 WHAT WILL BE DISPLAYED:', allModelNames.map(m => m.final_display));
+            console.log('🎨 WHAT WILL BE DISPLAYED:', allModelNames.map((m: any) => m.final_display));
             
             if (!data || !data.speedDistribution || !data.timeSeries || !data.table) {
                 throw new Error('Invalid data format received from API');
