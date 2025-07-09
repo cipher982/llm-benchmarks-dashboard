@@ -8,9 +8,45 @@ import { handleCachedApiResponse } from '../../utils/cacheUtils';
 import logger from '../../utils/logger';
 import { roundNumbers } from '../../utils/dataUtils';
 import redisClient from '../../utils/redisClient';
+import fs from 'fs/promises';
+import path from 'path';
 
 // Default time range in days
 const DEFAULT_DAYS = 3;
+
+// Static file serving
+async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<boolean> {
+    try {
+        const filename = `processed-${days}days.json`;
+        const filepath = path.join(process.cwd(), 'public', 'api', filename);
+        
+        // Check if file exists and get its stats
+        const stats = await fs.stat(filepath);
+        const ageMinutes = (Date.now() - stats.mtime.getTime()) / (1000 * 60);
+        
+        // Serve file if it's less than 2 hours old
+        if (ageMinutes < 120) {
+            const data = await fs.readFile(filepath, 'utf8');
+            const parsedData = JSON.parse(data);
+            
+            // Add headers to indicate static file serving
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('X-Cache-Status', 'STATIC-FILE');
+            res.setHeader('X-File-Age-Minutes', Math.floor(ageMinutes).toString());
+            res.setHeader('X-Processing-Time', '1ms'); // Static files are instant
+            
+            logger.info(`📄 Served static file: ${filename} (${Math.floor(ageMinutes)}min old)`);
+            return res.status(200).json(parsedData);
+        } else {
+            logger.info(`⏰ Static file ${filename} is stale (${Math.floor(ageMinutes)}min old), using dynamic`);
+        }
+    } catch (error) {
+        // File doesn't exist or other error - fall back to dynamic
+        logger.info(`📄 No static file for ${days} days, using dynamic processing`);
+    }
+    
+    return false;
+}
 
 function parseTimeRange(req: NextApiRequest) {
     const days = req.query.days ? parseInt(req.query.days as string) : DEFAULT_DAYS;
@@ -106,6 +142,15 @@ async function handler(
         // Check cache control parameters
         const bypassCache = req.query.bypass_cache === "true";
         const useCache = req.query.use_cache === "true";
+        const useStatic = req.query.bypass_static !== "true"; // Static enabled by default
+        
+        // First priority: Try to serve static file (unless bypassed)
+        if (useStatic && !bypassCache) {
+            const staticServed = await tryServeStaticFile(days, res);
+            if (staticServed) {
+                return; // Response already sent
+            }
+        }
         console.log(`🚀 QUERY PARAMS:`, req.query);
         console.log(`🚀 BYPASS CACHE:`, bypassCache, 'USE CACHE:', useCache);
         
