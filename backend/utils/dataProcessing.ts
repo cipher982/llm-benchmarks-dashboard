@@ -52,6 +52,9 @@ const findClosestTimestamp = (
     return closest;
 };
 
+// Process time series data - creates ONE chart per unique model name
+// Each chart shows multiple provider lines for that model
+// Result: fewer items than speed distribution (unique models vs provider-model combos)
 export const processTimeSeriesData = async (data: CloudBenchmark[], days: number = 14) => {
     const latestTimestamps = generateTimestampRange(days);
     const nRuns = latestTimestamps.length;
@@ -151,6 +154,9 @@ function calculateKernelDensity(data: number[], points: number = 100, bandwidth:
     });
 }
 
+// Process speed distribution data - creates ONE curve per provider-model combination
+// Each provider-model combo gets its own distribution curve in the chart
+// Result: more items than time series (provider-model combos vs unique models)
 export const processSpeedDistData = async (data: CloudBenchmark[]) => {
     // Apply model mapping and filter data with feature flag
     const useDbModels = process.env.USE_DATABASE_MODELS === 'true';

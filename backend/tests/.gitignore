@@ -1,0 +1,2 @@
+# Ignore Jest snapshots - they change with live data
+__snapshots__/

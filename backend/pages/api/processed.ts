@@ -38,6 +38,10 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
     logger.info(`🔧 Model mapping took ${(mappingEndTime - mappingStartTime) / 1000000n}ms, mappedDataLength=${mappedData.length}`);
 
     // Run the processing operations in parallel
+    // IMPORTANT: These three data structures serve different UI purposes:
+    // - speedDistData: ALL provider-model combinations - each gets own distribution curve
+    // - timeSeriesData: UNIQUE models only - each gets chart with multiple provider lines  
+    // - tableData: ALL provider-model combinations - raw data table with clean names
     const startTimeParallel = process.hrtime.bigint();
     const [speedDistData, timeSeriesData, tableData] = await Promise.all([
         (async () => {
