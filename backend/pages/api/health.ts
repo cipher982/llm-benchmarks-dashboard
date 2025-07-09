@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import mongoose from 'mongoose';
 import redisClient from '../../utils/redisClient';
+import connectToMongoDB from '../../utils/connectToMongoDB';
 import logger from '../../utils/logger';
 
 interface HealthStatus {
@@ -42,9 +43,13 @@ export default async function handler(
 
   // Check MongoDB
   try {
+    // Actually attempt to connect to MongoDB
+    await connectToMongoDB();
+    
+    // Now check the connection state
     const mongoState = mongoose.connection.readyState;
-    if (mongoState === 1) {
-      // Test with a simple ping
+    if (mongoState === 1 && mongoose.connection.db) {
+      // Test with a simple ping to verify the connection works
       await mongoose.connection.db.admin().ping();
       healthStatus.services.mongodb = { status: 'up' };
     } else {
