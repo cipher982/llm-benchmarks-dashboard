@@ -31,4 +31,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3000
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/ || exit 1
+
+RUN apk add --no-cache curl
+
 CMD ["nginx", "-g", "daemon off;"] 

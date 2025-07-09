@@ -15,6 +15,12 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - REDIS_DB=${REDIS_DB}
       - DISABLE_CORS=${DISABLE_CORS}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
   llm-bench-frontend:
     build:
       context: ./frontend
@@ -27,4 +33,11 @@ services:
     environment:
       - REACT_APP_API_URL=${BACKEND_URL}
     depends_on:
-      - llm-bench-backend
+      llm-bench-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

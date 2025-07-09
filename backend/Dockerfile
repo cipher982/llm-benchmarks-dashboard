@@ -22,8 +22,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Install only production dependencies and curl for health checks
+RUN npm ci --only=production && \
+    apk add --no-cache curl
 
 # Copy built application from builder stage
 COPY --from=builder /app/.next ./.next
@@ -36,5 +37,8 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 
 EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:5000/api/health || exit 1
 
 CMD ["npm", "start"] 
