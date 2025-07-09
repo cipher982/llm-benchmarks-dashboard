@@ -36,7 +36,8 @@ async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<b
             res.setHeader('X-Processing-Time', '1ms'); // Static files are instant
             
             logger.info(`📄 Served static file: ${filename} (${Math.floor(ageMinutes)}min old)`);
-            return res.status(200).json(parsedData);
+            res.status(200).json(parsedData);
+            return true;
         } else {
             logger.info(`⏰ Static file ${filename} is stale (${Math.floor(ageMinutes)}min old), using dynamic`);
         }
