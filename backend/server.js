@@ -25,7 +25,7 @@ async function generateStaticData() {
     console.log(`📁 Created directories: ${apiDir}`);
     
     // Generate data for different time ranges by calling our own API
-    const timeRanges = [3, 7, 14];
+    const timeRanges = [3, 7, 12, 14];
     
     for (const days of timeRanges) {
       console.log(`📊 Generating data for ${days} days...`);
