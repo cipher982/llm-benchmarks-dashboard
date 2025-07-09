@@ -95,28 +95,32 @@ async function handler(
         return res.status(405).json({ error: "Method not allowed" });
     }
 
+    const requestStartTime = Date.now();
+    
     try {
         // Parse time range
         const timeRange = parseTimeRange(req);
         const days = timeRange.days;
         const cacheKey = getCacheKey(CACHE_KEYS.CLOUD_METRICS, days);
         
-        // Check if bypass_cache parameter is present
+        // Check cache control parameters
         const bypassCache = req.query.bypass_cache === "true";
+        const useCache = req.query.use_cache === "true";
         console.log(`🚀 QUERY PARAMS:`, req.query);
-        console.log(`🚀 BYPASS CACHE:`, bypassCache);
+        console.log(`🚀 BYPASS CACHE:`, bypassCache, 'USE CACHE:', useCache);
         
-        // CACHE TEMPORARILY DISABLED FOR TESTING
-        // if (!bypassCache) {
-        //     const cachedData = await redisClient.get(cacheKey);
-        //     if (cachedData) {
-        //         logger.info(`Serving processed data from cache for days=${days}`);
-        //         res.setHeader("Content-Type", "application/json");
-        //         res.write(cachedData);
-        //         res.end();
-        //         return;
-        //     }
-        // }
+        // Smart caching: enabled when explicitly requested, disabled by default for testing
+        if (useCache && !bypassCache) {
+            const cachedData = await redisClient.get(cacheKey);
+            if (cachedData) {
+                logger.info(`Serving processed data from cache for days=${days}`);
+                res.setHeader("Content-Type", "application/json");
+                res.setHeader("X-Cache-Status", "HIT");
+                res.write(cachedData);
+                res.end();
+                return;
+            }
+        }
         
         // If we reach here, either cache bypass was requested or cache missed
         logger.info(`Cache ${bypassCache ? 'bypass' : 'miss'} for days=${days}`);
@@ -139,12 +143,17 @@ async function handler(
         logger.info(`Processing ${metricsArray.length} metrics`);
         const processedData = await processAllMetrics(metricsArray, days);
         
-        // Cache the processed data (unless bypass was requested)
-        if (!bypassCache) {
+        // Cache the processed data (when explicitly requested and not bypassed)
+        if (useCache && !bypassCache) {
             await redisClient.set(cacheKey, JSON.stringify(processedData));
             await redisClient.set(getLastUpdateKey(cacheKey, days), Date.now().toString());
             logger.info(`Cached ${metricsArray.length} metrics to ${cacheKey}`);
         }
+        
+        // Add debugging headers
+        res.setHeader("X-Cache-Status", useCache ? (bypassCache ? "BYPASS" : "MISS") : "DISABLED");
+        res.setHeader("X-Model-Mapping", process.env.USE_DATABASE_MODELS === 'true' ? "database" : "hardcoded");
+        res.setHeader("X-Processing-Time", `${Date.now() - requestStartTime}ms`);
         
         // Return the processed data
         return res.status(200).json(processedData);

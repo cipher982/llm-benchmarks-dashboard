@@ -1,6 +1,5 @@
 import { CloudBenchmark } from '../types/CloudData';
 import { Provider } from '../types/common';
-import { mapModelNames } from './modelMappingDB';
 
 const SAMPLE_SIZE = 100; // Number of points to sample for speed distribution
 const PRECISION = 2; // Number of decimal places to keep
@@ -59,9 +58,8 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
     const latestTimestamps = generateTimestampRange(days);
     const nRuns = latestTimestamps.length;
     
-    // First, apply model mapping with feature flag
-    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
-    const mappedData = await mapModelNames(data, useDbModels);
+    // Data is already mapped at processed.ts:36 - no need to re-map!
+    const mappedData = data;
 
     // Group by mapped model name
     const modelGroups = mappedData.reduce((groups, benchmark) => {
@@ -158,9 +156,8 @@ function calculateKernelDensity(data: number[], points: number = 100, bandwidth:
 // Each provider-model combo gets its own distribution curve in the chart
 // Result: more items than time series (provider-model combos vs unique models)
 export const processSpeedDistData = async (data: CloudBenchmark[]) => {
-    // Apply model mapping and filter data with feature flag
-    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
-    const processedData = (await mapModelNames(data, useDbModels))
+    // Data is already mapped at processed.ts:36 - no need to re-map!
+    const processedData = data
         .map(d => ({
             ...d,
             model_name: `${d.provider}-${d.model_name}`,
@@ -198,9 +195,8 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
 };
 
 export const processRawTableData = async (data: CloudBenchmark[]) => {
-    // Apply model mapping and return summary statistics with feature flag
-    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
-    const mappedData = await mapModelNames(data, useDbModels);
+    // Data is already mapped at processed.ts:36 - no need to re-map!
+    const mappedData = data;
     return mappedData.map(benchmark => ({
         provider: benchmark.provider,
         model_name: benchmark.model_name,

@@ -15,7 +15,6 @@ export async function fetchAndProcessMetrics(
         dateFilter.setDate(dateFilter.getDate() - daysAgo);
         logger.info(`Fetching metrics since: ${dateFilter}`);
         
-        // Optimized query: select only needed fields and use lean() for better memory efficiency
         const metrics = await model.find({ run_ts: { $gte: dateFilter } })
             .select("model_name provider tokens_per_second time_to_first_token run_ts display_name gpu_mem_usage framework quantization_method quantization_bits model_dtype")
             .lean()
@@ -53,6 +52,7 @@ export async function fetchAndProcessMetrics(
         return { raw: [] };
     }
 }
+
 
 export async function setupApiEndpoint(
     req: NextApiRequest,
