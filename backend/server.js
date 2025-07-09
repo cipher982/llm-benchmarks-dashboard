@@ -9,17 +9,12 @@ const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
 const port = parseInt(process.env.PORT || '5000', 10);
 
-// Static data generation
+// Static data generation using internal API calls
 async function generateStaticData() {
   console.log('🔄 Starting static data generation...');
   const startTime = Date.now();
   
   try {
-    // Import modules dynamically to avoid issues with Next.js compilation
-    const { CloudMetrics } = require('./models/BenchmarkMetrics');
-    const { fetchAndProcessMetrics } = require('./utils/apiMiddleware');
-    const { processAllMetrics } = require('./pages/api/processed');
-    
     // Ensure public/api directory exists
     const publicDir = path.join(__dirname, 'public');
     const apiDir = path.join(publicDir, 'api');
@@ -27,39 +22,38 @@ async function generateStaticData() {
     await fs.mkdir(publicDir, { recursive: true });
     await fs.mkdir(apiDir, { recursive: true });
     
-    // Generate data for different time ranges
+    console.log(`📁 Created directories: ${apiDir}`);
+    
+    // Generate data for different time ranges by calling our own API
     const timeRanges = [3, 7, 14];
     
     for (const days of timeRanges) {
       console.log(`📊 Generating data for ${days} days...`);
       
-      // Fetch raw data (same logic as processed.ts)
-      const rawData = await fetchAndProcessMetrics(
-        CloudMetrics,
-        days,
-        (data) => data
-      );
-      
-      const metricsArray = Array.isArray(rawData) ? rawData : (rawData.raw || []);
-      
-      if (metricsArray.length === 0) {
-        console.warn(`⚠️  No metrics found for ${days} days`);
-        continue;
+      try {
+        // Make internal HTTP call to our own API (bypass static file check)
+        const response = await fetch(`http://localhost:${port}/api/processed?days=${days}&bypass_static=true`);
+        
+        if (!response.ok) {
+          throw new Error(`API call failed: ${response.status}`);
+        }
+        
+        const processedData = await response.json();
+        
+        // Write static file
+        const filename = `processed-${days}days.json`;
+        const filepath = path.join(apiDir, filename);
+        
+        console.log(`📝 Writing to: ${filepath}`);
+        await fs.writeFile(filepath, JSON.stringify(processedData));
+        
+        // Verify file was written
+        const stats = await fs.stat(filepath);
+        console.log(`✅ Generated ${filename} (${Math.round(stats.size/1024)}KB)`);
+        
+      } catch (dayError) {
+        console.error(`❌ Failed to generate ${days}-day data:`, dayError.message);
       }
-      
-      // Process the data (same logic as processed.ts)
-      const processedData = await processAllMetrics(metricsArray, days);
-      
-      // Write static file
-      const filename = `processed-${days}days.json`;
-      const filepath = path.join(apiDir, filename);
-      
-      console.log(`📝 Writing to: ${filepath}`);
-      await fs.writeFile(filepath, JSON.stringify(processedData));
-      
-      // Verify file was written
-      const stats = await fs.stat(filepath);
-      console.log(`✅ Generated ${filename} (${metricsArray.length} metrics, ${Math.round(stats.size/1024)}KB)`);
     }
     
     const duration = Date.now() - startTime;
@@ -84,6 +78,23 @@ app.prepare().then(() => {
       generateStaticData();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'triggered', timestamp: new Date() }));
+      return;
+    }
+    
+    // Diagnostic endpoint
+    if (parsedUrl.pathname === '/admin/debug' && req.method === 'GET') {
+      const diagnostics = {
+        cwd: process.cwd(),
+        publicPath: path.join(process.cwd(), 'public'),
+        apiPath: path.join(process.cwd(), 'public', 'api'),
+        env: {
+          NODE_ENV: process.env.NODE_ENV,
+          MONGODB_URI: process.env.MONGODB_URI ? 'SET' : 'NOT_SET'
+        }
+      };
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(diagnostics, null, 2));
       return;
     }
     
