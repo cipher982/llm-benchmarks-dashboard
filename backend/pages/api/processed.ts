@@ -16,13 +16,20 @@ const DEFAULT_DAYS = 3;
 
 // Static file serving
 async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<boolean> {
+    const filename = `processed-${days}days.json`;
+    const filepath = path.join(process.cwd(), 'public', 'api', filename);
+    
+    // Add debug header with file path attempt
+    res.setHeader('X-Static-Path-Attempted', filepath);
+    
     try {
-        const filename = `processed-${days}days.json`;
-        const filepath = path.join(process.cwd(), 'public', 'api', filename);
-        
         // Check if file exists and get its stats
         const stats = await fs.stat(filepath);
         const ageMinutes = (Date.now() - stats.mtime.getTime()) / (1000 * 60);
+        
+        // Add debug headers
+        res.setHeader('X-Static-File-Found', 'true');
+        res.setHeader('X-Static-File-Age-Minutes', Math.floor(ageMinutes).toString());
         
         // Serve file if it's less than 2 hours old
         if (ageMinutes < 120) {
@@ -32,18 +39,20 @@ async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<b
             // Add headers to indicate static file serving
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('X-Cache-Status', 'STATIC-FILE');
-            res.setHeader('X-File-Age-Minutes', Math.floor(ageMinutes).toString());
             res.setHeader('X-Processing-Time', '1ms'); // Static files are instant
             
             logger.info(`📄 Served static file: ${filename} (${Math.floor(ageMinutes)}min old)`);
             res.status(200).json(parsedData);
             return true;
         } else {
+            res.setHeader('X-Static-File-Status', 'STALE');
             logger.info(`⏰ Static file ${filename} is stale (${Math.floor(ageMinutes)}min old), using dynamic`);
         }
-    } catch (error) {
+    } catch (error: any) {
         // File doesn't exist or other error - fall back to dynamic
-        logger.info(`📄 No static file for ${days} days, using dynamic processing`);
+        res.setHeader('X-Static-File-Found', 'false');
+        res.setHeader('X-Static-File-Error', error.code || 'UNKNOWN');
+        logger.info(`📄 Static file error for ${days} days: ${error.message}`);
     }
     
     return false;

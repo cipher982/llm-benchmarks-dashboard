@@ -54,8 +54,12 @@ async function generateStaticData() {
       const filename = `processed-${days}days.json`;
       const filepath = path.join(apiDir, filename);
       
+      console.log(`📝 Writing to: ${filepath}`);
       await fs.writeFile(filepath, JSON.stringify(processedData));
-      console.log(`✅ Generated ${filename} (${metricsArray.length} metrics)`);
+      
+      // Verify file was written
+      const stats = await fs.stat(filepath);
+      console.log(`✅ Generated ${filename} (${metricsArray.length} metrics, ${Math.round(stats.size/1024)}KB)`);
     }
     
     const duration = Date.now() - startTime;
