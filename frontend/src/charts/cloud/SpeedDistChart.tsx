@@ -138,7 +138,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             .attr("x", width / 2)
             .attr("y", height + margin.bottom / 2 + 10)
             .attr("fill", theme.palette.text.primary)
-            .style("font-weight", theme.typography.fontWeightMedium)
+            .style("font-weight", theme.typography.fontWeightMedium || 500)
             .text("Tokens per Second");
 
         svg.append("text")
@@ -148,7 +148,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             .attr("y", -margin.left + 20)  
             .attr("x", -height / 2)
             .attr("fill", theme.palette.text.primary)
-            .style("font-weight", theme.typography.fontWeightMedium)
+            .style("font-weight", theme.typography.fontWeightMedium || 500)
             .text("Density");
     }, [width, height, margin, theme]);
 
@@ -216,7 +216,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             }
             tooltip.remove();
         };
-    }, [data, setupChart, setupScales, drawAxes, drawDensityPaths, drawLabels, drawLegend]);
+    }, [data, setupChart, setupScales, drawAxes, drawDensityPaths, drawLabels, drawLegend, theme.palette.background.paper, theme.palette.divider, theme.palette.text.primary]);
 
     return <div ref={d3Container} style={{ width: '100%', height: '100%' }} />;
 };

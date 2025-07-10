@@ -4,7 +4,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 import AppBar from '@mui/material/AppBar';
 import { ThemeProvider } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 
@@ -24,8 +23,7 @@ import { MainContainer } from './styles';
 
 // Main App Component
 const App: FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   return (
     <ThemeProvider theme={theme}>

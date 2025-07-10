@@ -187,18 +187,18 @@ const CloudBenchmarks: React.FC = () => {
             </StyledTableContainer>
 
             {timeSeriesData?.timestamps && timeSeriesData.timestamps.length > 0 && (
-                <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
-                    <h4>📈 Time Series 📈</h4>
-                    <div style={{ padding: "0 5px 20px 5px" }}>
-                        <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
+                <StyledChartContainer isMobile={isMobile}>
+                    <SectionHeader>📈 Time Series 📈</SectionHeader>
+                    <ChartContentContainer>
+                        <Suspense fallback={<StyledCircularProgress />}>
                             <TimeSeriesChart 
                                 data={timeSeriesData} 
                                 onTimeRangeChange={handleTimeRangeChange}
                                 selectedDays={selectedDays}
                             />
                         </Suspense>
-                    </div>
-                </ChartContainer>
+                    </ChartContentContainer>
+                </StyledChartContainer>
             )}
         </MainContainer>
     );

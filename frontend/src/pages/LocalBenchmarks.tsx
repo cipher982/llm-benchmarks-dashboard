@@ -117,10 +117,9 @@ const LocalBenchmarks: FC = () => {
                     <p>CPU: Intel Core i9-12900K</p>
                 </CenteredContentContainer>
             </StyledDescriptionSection>
-            <TableContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
-                <div style={{ maxWidth: "1200px", margin: "auto" }}>
-
-                    <h3>🏆 Comparisons 🏆</h3>
+            <StyledTableContainer isMobile={isMobile}>
+                <CenteredContentContainer>
+                    <SectionHeader>🏆 Comparisons 🏆</SectionHeader>
                     <p>
                         I try and compare frameworks with similar model support. GGUF/llama-cpp has specialized conversion
                         scripts for some models, but not nearly as wide of support as Transformers/HF based models.
@@ -132,16 +131,11 @@ const LocalBenchmarks: FC = () => {
                         so many quant levels that it is hard to compare to the others. So for now I just have no quantization
                         for this comparison.
                     </p>
-                </div>
-                <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between" }}>
-                    <div style={{
-                        flex: 0.35,
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                    }}>
-                        <h4>Leaderboard </h4>
+                </CenteredContentContainer>
+                <FlexContainer isMobile={isMobile}>
+                    <FlexItem flex={0.35} isMobile={isMobile}>
+                        <LeaderboardContainer>
+                            <SectionHeader>Leaderboard</SectionHeader>
                         {
                             ["🥇 1st", "🥈 2nd", "🥉 3rd"].map((place, index) => {
                                 const [framework = "transformers", score = "0"] = Object.entries(fastestFrameworks)[index] || [];
@@ -150,16 +144,10 @@ const LocalBenchmarks: FC = () => {
                                 );
                             })
                         }
-                    </div>
-                    <div style={{
-                        flex: 0.8,
-                        paddingLeft: isMobile ? "0px" : "20px",
-                        paddingRight: isMobile ? "0px" : "20px", paddingBottom: "20px",
-                        maxWidth: isMobile ? '100%' : '1050px',
-                        margin: 'auto',
-                        overflowX: 'auto'
-                    }}>
-                        <h4>Comparison Table</h4>
+                        </LeaderboardContainer>
+                    </FlexItem>
+                    <FlexItem flex={0.65} isMobile={isMobile}>
+                        <SectionHeader>Comparison Table</SectionHeader>
                         <ComparisonTable comparisonData={comparisonData} />
                     </FlexItem>
                 </FlexContainer>

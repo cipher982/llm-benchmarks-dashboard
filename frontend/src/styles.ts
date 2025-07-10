@@ -1,51 +1,43 @@
-import { CSSObject, styled, useTheme } from '@mui/system';
+import { styled } from '@mui/material/styles';
 
 interface MainContainerProps {
     isMobile: boolean;
 }
 
-// Styles
-const MainContainer = styled('div')<MainContainerProps>(({ isMobile }): CSSObject => {
-    const theme = useTheme();
-    return {
-        paddingTop: isMobile ? '70px' : '30px',
-        margin: isMobile ? '2px' : '10px',
-        backgroundColor: theme.palette.background.default, // Using theme for backgroundColor
-    };
-});
+// Styles - Updated to use theme parameter properly
+const MainContainer = styled('div')<MainContainerProps>(({ theme, isMobile }) => ({
+    paddingTop: isMobile ? '70px' : '30px',
+    margin: isMobile ? '2px' : '10px',
+    backgroundColor: theme.palette.background.default,
+}));
 
-const DescriptionSection = styled('section')<MainContainerProps>(({ isMobile }): CSSObject => {
-    const theme = useTheme();
-    return {
-        textAlign: 'center',
-        padding: '20px',
-        color: theme.palette.text.primary, // Using theme for text color
-        backgroundColor: theme.palette.background.paper, // Using theme for backgroundColor
-    };
-});
+const DescriptionSection = styled('section')<MainContainerProps>(({ theme, isMobile }) => ({
+    textAlign: 'center',
+    padding: theme.spacing(3),
+    color: theme.palette.text.primary,
+    backgroundColor: theme.palette.background.paper,
+    borderRadius: theme.shape.borderRadius,
+    border: `1px solid ${theme.palette.divider}`,
+}));
 
-const ChartContainer = styled('section')<MainContainerProps>(({ isMobile }): CSSObject => {
-    const theme = useTheme();
-    return {
-        textAlign: 'center',
-        border: `1px solid ${theme.palette.divider}`, // Using theme for border color
-        borderRadius: '4px',
-        padding: '20px',
-        marginTop: '20px',
-        color: theme.palette.text.primary, // Using theme for text color
-        backgroundColor: theme.palette.background.paper, // Using theme for backgroundColor
-    };
-});
+const ChartContainer = styled('section')<MainContainerProps>(({ theme, isMobile }) => ({
+    textAlign: 'center',
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    padding: theme.spacing(3),
+    marginTop: theme.spacing(3),
+    color: theme.palette.text.primary,
+    backgroundColor: theme.palette.background.paper,
+}));
 
-const TableContainer = styled('section')<MainContainerProps>(({ isMobile }): CSSObject => {
-    const theme = useTheme();
-    return {
-        textAlign: 'center',
-        border: `1px solid ${theme.palette.divider}`, // Using theme for border color
-        marginTop: '20px',
-        width: '100%',
-        backgroundColor: theme.palette.background.paper, // Using theme for backgroundColor
-    };
-});
+const TableContainer = styled('section')<MainContainerProps>(({ theme, isMobile }) => ({
+    textAlign: 'center',
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    marginTop: theme.spacing(3),
+    width: '100%',
+    backgroundColor: theme.palette.background.paper,
+    padding: theme.spacing(2),
+}));
 
 export { MainContainer, DescriptionSection, ChartContainer, TableContainer };
