@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import CircularProgress from "@mui/material/CircularProgress";
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -38,7 +39,8 @@ const ModelDetail: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [selectedDays, setSelectedDays] = useState<number>(14);
-    const isMobile = useMediaQuery("(max-width:500px)");
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     // Update SEO metadata when model data loads
     useEffect(() => {

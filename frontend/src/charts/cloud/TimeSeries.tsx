@@ -12,7 +12,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
-import { Provider, providerColors } from '../../theme/theme';
+import { Provider, getProviderColor } from '../../theme/theme';
 import { TimeSeriesData, TimeSeriesModel } from '../../types/ProcessedData';
 import { Virtuoso } from 'react-virtuoso';
 import { TimeRangeSelector } from '../../components/TimeRangeSelector';
@@ -96,14 +96,14 @@ const ModelChart = memo(({
                                 // For longer ranges, show MM/DD
                                 return `${date.getMonth() + 1}/${date.getDate()}`;
                             }}
-                            tick={{ fontSize: 12, fill: theme.palette.common.white }}
+                            tick={{ fontSize: 12, fill: theme.palette.text.primary }}
                             interval={getTickInterval()}
                         />
                         <YAxis 
                             tickFormatter={(value) => value.toFixed(1)}
                             domain={['auto', 'auto']}
-                            stroke={theme.palette.common.white}
-                            tick={{ fontSize: 12, fill: theme.palette.common.white }}
+                            stroke={theme.palette.text.secondary}
+                            tick={{ fontSize: 12, fill: theme.palette.text.primary }}
                         />
                         <Tooltip 
                             labelFormatter={(timestamp: string) => {
@@ -119,7 +119,7 @@ const ModelChart = memo(({
                                 type="monotone"
                                 dataKey={`${model.model_name}-${provider.provider}`}
                                 name={provider.provider}
-                                stroke={providerColors[provider.provider as Provider] || '#000000'}
+                                stroke={getProviderColor(theme, provider.provider as Provider)}
                                 dot={false}
                                 connectNulls
                             />

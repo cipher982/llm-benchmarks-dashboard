@@ -3,12 +3,27 @@ import { useState, useEffect, FC } from 'react';
 import SpeedGpuScatterChart from '../charts/local/SpeedGpuScatterChart';
 import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
-import CircularProgress from '@mui/material/CircularProgress';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import { FastestFrameworks, getComparisonAndFastestFrameworks } from '../transformations';
-import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from '../styles';
+import { MainContainer } from '../styles';
 import { calculateMB } from '../utils/stats';
 import { LocalBenchmark } from '../types/LocalData';
+import {
+    LoadingContainer,
+    StyledCircularProgress,
+    CenteredContentContainer,
+    PageTitle,
+    StyledDescriptionSection,
+    StyledChartContainer,
+    StyledTableContainer,
+    SectionHeader,
+    FlexContainer,
+    FlexItem,
+    LeaderboardContainer,
+    ChartWrapper,
+    TableContentContainer,
+} from '../components/StyledComponents';
 
 
 
@@ -22,6 +37,7 @@ import { LocalBenchmark } from '../types/LocalData';
 
 const LocalBenchmarks: FC = () => {
     // console.log('Component rendering');
+    const theme = useTheme();
     const [benchmarks, setBenchmarks] = useState<LocalBenchmark[]>([]);
     const [comparisonData, setComparisonData] = useState<any[]>([]); // Consider defining a more specific type
     const [fastestFrameworks, setFastestFrameworks] = useState<FastestFrameworks>({});
@@ -29,7 +45,7 @@ const LocalBenchmarks: FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     // console.log('Current state:', { loading, error, benchmarksLength: benchmarks.length });
     const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
-    const isMobile = useMediaQuery('(max-width:500px)');
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     useEffect(() => {
         // Fetch local benchmarks
@@ -64,15 +80,9 @@ const LocalBenchmarks: FC = () => {
     if (loading) {
         console.log('Rendering loading state');
         return (
-            <div style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100vh",
-                backgroundColor: "white"
-            }}>
-                <CircularProgress style={{ color: "#663399" }} size={80} />
-            </div>
+            <LoadingContainer>
+                <StyledCircularProgress size={80} />
+            </LoadingContainer>
         );
     }
 
@@ -85,9 +95,9 @@ const LocalBenchmarks: FC = () => {
     // Render the local benchmarks page
     return (
         <MainContainer isMobile={isMobile}>
-            <DescriptionSection isMobile={isMobile} style={{ borderRadius: "10px" }}>
-                <div style={{ maxWidth: "1200px", margin: "auto" }}>
-                    <h1 style={{ textAlign: "center" }}>⚡️ LLM Benchmarks ⚡️</h1>
+            <StyledDescriptionSection isMobile={isMobile}>
+                <CenteredContentContainer>
+                    <PageTitle>⚡️ LLM Benchmarks ⚡️</PageTitle>
                     <p>
                         This project aims to benchmark inference speeds for popular LLM frameworks in various configurations.
                         It uses a combination of docker containers and flask with various frameworks
@@ -105,8 +115,8 @@ const LocalBenchmarks: FC = () => {
                     <h3>System Specs ⚡️</h3>
                     <p>GPU: NVIDIA RTX 3090</p>
                     <p>CPU: Intel Core i9-12900K</p>
-                </div>
-            </DescriptionSection>
+                </CenteredContentContainer>
+            </StyledDescriptionSection>
             <TableContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
                 <div style={{ maxWidth: "1200px", margin: "auto" }}>
 
@@ -151,24 +161,21 @@ const LocalBenchmarks: FC = () => {
                     }}>
                         <h4>Comparison Table</h4>
                         <ComparisonTable comparisonData={comparisonData} />
-                    </div>
-                </div>
-            </TableContainer>
+                    </FlexItem>
+                </FlexContainer>
+            </StyledTableContainer>
 
-            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
-                <div style={{ maxWidth: "1200px", margin: "auto" }}>
-                    <h3>📊 Charts 📊</h3>
+            <StyledChartContainer isMobile={isMobile}>
+                <CenteredContentContainer>
+                    <SectionHeader>📊 Charts 📊</SectionHeader>
                     <h4>GPU Usage vs Tokens/Second</h4>
                     <p>
                         Some frameworks enable batching multiple requests more easily by loading multiple
                         sets of model weights, hence the GPU usage weirdness on the right side of this graph.
                     </p>
-                </div>
+                </CenteredContentContainer>
                 {benchmarks.length > 0 && (
-                    <div style={{
-                        maxWidth: isMobile ? '100%' : '1200px',
-                        margin: 'auto',
-                    }}>
+                    <ChartWrapper isMobile={isMobile}>
                         <SpeedGpuScatterChart
                             isMobile={isMobile}
                             data_tf={filteredBenchmarks.filter(benchmark => benchmark.framework === 'transformers')}
@@ -176,28 +183,18 @@ const LocalBenchmarks: FC = () => {
                             data_hftgi={filteredBenchmarks.filter(benchmark => benchmark.framework === 'hf-tgi')}
                             data_vllm={filteredBenchmarks.filter(benchmark => benchmark.framework === 'vllm')}
                         />
-                    </div>
+                    </ChartWrapper>
                 )}
-            </ChartContainer>
+            </StyledChartContainer>
 
-            <TableContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
-                <h4>📚 Full Results 📚</h4>
-                <div style={{
-                    height: '100%',
-                    overflow: 'auto',
-                    // padding: '20px',
-                    paddingLeft: isMobile ? "0px" : "20px",
-                    paddingRight: isMobile ? "0px" : "20px",
-                    paddingBottom: "20px",
-                    maxWidth: isMobile ? '100%' : '1100px',
-                    margin: 'auto',
-                    overflowX: 'auto'
-                }}>
-                    <div style={{ paddingBottom: "50px" }}>
+            <StyledTableContainer isMobile={isMobile}>
+                <SectionHeader>📚 Full Results 📚</SectionHeader>
+                <TableContentContainer isMobile={isMobile}>
+                    <div style={{ paddingBottom: '50px' }}>
                         <RawLocalTable benchmarks={benchmarks} />
                     </div>
-                </div>
-            </TableContainer>
+                </TableContentContainer>
+            </StyledTableContainer>
         </MainContainer>
     );
 }

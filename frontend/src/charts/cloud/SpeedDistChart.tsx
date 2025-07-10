@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import { Provider, providerColors } from '../../theme/theme';
+import { useTheme } from '@mui/material/styles';
+import { Provider, getProviderColor } from '../../theme/theme';
 import { SpeedDistributionPoint } from '../../types/ProcessedData';
 
 interface SpeedDistChartProps {
@@ -8,6 +9,7 @@ interface SpeedDistChartProps {
 }
 
 const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
+    const theme = useTheme();
     const d3Container = useRef<HTMLDivElement | null>(null);
     const svgRef = useRef<SVGSVGElement | null>(null);
     const margin = useMemo(() => ({ top: 30, right: 30, bottom: 70, left: 80 }), []);
@@ -51,18 +53,18 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             .call(d3.axisBottom(x))
             .selectAll("text")
             .style("font-size", "14px")
-            .style("fill", "white");
+            .style("fill", theme.palette.text.primary);
 
         svg.append("g")
             .attr("class", "axis")
             .call(d3.axisLeft(y))
             .selectAll("text")
             .style("font-size", "14px")
-            .style("fill", "white");
+            .style("fill", theme.palette.text.primary);
 
-        svg.selectAll(".domain").style("stroke", "white");
-        svg.selectAll(".tick line").style("stroke", "white");
-    }, [height, x, y]);
+        svg.selectAll(".domain").style("stroke", theme.palette.text.secondary);
+        svg.selectAll(".tick line").style("stroke", theme.palette.divider);
+    }, [height, x, y, theme]);
 
     const drawDensityPaths = useCallback((
         svg: d3.Selection<SVGGElement, unknown, null, undefined>,
@@ -94,7 +96,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 .attr("id", lineId)
                 .attr("d", line)
                 .style("fill", "none")
-                .style("stroke", providerColors[modelData.provider as Provider] || "#fff")
+                .style("stroke", getProviderColor(theme, modelData.provider as Provider))
                 .style("stroke-width", 2)
                 .on("mouseover", function(event) {
                     d3.select(this)
@@ -120,11 +122,11 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 .attr("y", y(maxDensityPoint.y))
                 .attr("dx", "0.5em")
                 .attr("dy", "-0.5em")
-                .style("fill", providerColors[modelData.provider as Provider] || "#fff")
+                .style("fill", getProviderColor(theme, modelData.provider as Provider))
                 .style("font-size", "12px")
                 .text(modelData.display_name);
         });
-    }, [data, x, y]);
+    }, [data, x, y, theme]);
 
     const drawLabels = useCallback((svg: d3.Selection<SVGGElement, unknown, null, undefined>) => {
         // Remove existing labels
@@ -135,7 +137,8 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             .attr("text-anchor", "middle")
             .attr("x", width / 2)
             .attr("y", height + margin.bottom / 2 + 10)
-            .attr("fill", "white")
+            .attr("fill", theme.palette.text.primary)
+            .style("font-weight", theme.typography.fontWeightMedium)
             .text("Tokens per Second");
 
         svg.append("text")
@@ -144,9 +147,10 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             .attr("transform", "rotate(-90)")
             .attr("y", -margin.left + 20)  
             .attr("x", -height / 2)
-            .attr("fill", "white")
+            .attr("fill", theme.palette.text.primary)
+            .style("font-weight", theme.typography.fontWeightMedium)
             .text("Density");
-    }, [width, height, margin]);
+    }, [width, height, margin, theme]);
 
     const drawLegend = useCallback((svg: d3.Selection<SVGGElement, unknown, null, undefined>) => {
         // Remove existing legend
@@ -169,16 +173,16 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             .attr("x", 0)
             .attr("width", 18)
             .attr("height", 18)
-            .attr("fill", d => providerColors[d]);
+            .attr("fill", d => getProviderColor(theme, d));
 
         // Add text labels
         legend.append("text")
             .attr("x", 24)
             .attr("y", 9)
             .attr("dy", "0.32em")
-            .style("fill", "white")
+            .style("fill", theme.palette.text.primary)
             .text(d => d);
-    }, [data, width]);
+    }, [data, width, theme]);
 
     useEffect(() => {
         if (!data?.length) return;
@@ -188,8 +192,9 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             .attr("class", "tooltip")
             .style("opacity", 0)
             .style("position", "absolute")
-            .style("background-color", "rgba(0, 0, 0, 0.8)")
-            .style("color", "white")
+            .style("background-color", theme.palette.background.paper)
+            .style("color", theme.palette.text.primary)
+            .style("border", `1px solid ${theme.palette.divider}`)
             .style("padding", "8px")
             .style("border-radius", "4px")
             .style("pointer-events", "none");

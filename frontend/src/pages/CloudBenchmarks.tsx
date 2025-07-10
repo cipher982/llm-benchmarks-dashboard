@@ -1,10 +1,23 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { lazy, Suspense } from "react";
-import CircularProgress from "@mui/material/CircularProgress";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from "../styles";
+import { useTheme } from "@mui/material/styles";
+import { MainContainer } from "../styles";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
 import { createModelUrl } from "../utils/seoUtils";
+import {
+    LoadingContainer,
+    ChartLoadingContainer,
+    StyledCircularProgress,
+    CenteredContentContainer,
+    ChartContentContainer,
+    TableContentContainer,
+    SectionHeader,
+    PageTitle,
+    StyledDescriptionSection,
+    StyledChartContainer,
+    StyledTableContainer,
+} from "../components/StyledComponents";
 
 const TimeSeriesChart = lazy(() => import("../charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../tables/cloud/RawCloudTable"));
@@ -12,6 +25,7 @@ const SpeedDistChart = lazy(() => import("../charts/cloud/SpeedDistChart"));
 
 const CloudBenchmarks: React.FC = () => {
     console.log('CloudBenchmarks component mounted');
+    const theme = useTheme();
     const [speedDistData, setSpeedDistData] = useState<SpeedDistributionPoint[]>([]);
     const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>({ 
         timestamps: [], 
@@ -21,7 +35,7 @@ const CloudBenchmarks: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState<boolean>(true);
     const [selectedDays, setSelectedDays] = useState<number>(12);
-    const isMobile = useMediaQuery("(max-width:500px)");
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const fetchCloudBenchmarks = useCallback(async (days?: number) => {
         try {
@@ -115,15 +129,9 @@ const CloudBenchmarks: React.FC = () => {
 
     if (initialLoading) {
         return (
-            <div style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100vh",
-                backgroundColor: "white"
-            }}>
-                <CircularProgress style={{ color: "#663399" }} size={80} />
-            </div>
+            <LoadingContainer>
+                <StyledCircularProgress size={80} />
+            </LoadingContainer>
         );
     }
 
@@ -133,9 +141,9 @@ const CloudBenchmarks: React.FC = () => {
 
     return (
         <MainContainer isMobile={isMobile}>
-            <DescriptionSection isMobile={isMobile} style={{ borderRadius: "10px", marginBottom: "20px" }}>
-                <div style={{ maxWidth: "1200px", margin: "auto" }}>
-                    <h1 style={{ textAlign: "center" }}>☁️ Cloud Benchmarks ☁️</h1>
+            <StyledDescriptionSection isMobile={isMobile}>
+                <CenteredContentContainer>
+                    <PageTitle>☁️ Cloud Benchmarks ☁️</PageTitle>
                     <p>
                         I run cron jobs to periodically test the token generation speed of different cloud LLM providers.
                         The chart helps visualize the distributions of different speeds, as they can vary somewhat depending on the loads.
@@ -146,60 +154,37 @@ const CloudBenchmarks: React.FC = () => {
                         does not require purchasing dedicated endpoints for hosting (why some models may appear
                         to be missing). If you have any more suggestions let me know on GitHub!! 😊
                     </p>
-                </div>
-            </DescriptionSection>
+                </CenteredContentContainer>
+            </StyledDescriptionSection>
 
-            <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px", maxWidth: "100%", overflowX: "auto", marginBottom: "20px" }}>
-                <h4>📊 Speed Distribution 📊</h4>
-                <div style={{ maxWidth: "1100px", maxHeight: "600px", width: "100%", height: "100%", margin: "auto", paddingBottom: "20px" }}>
+            <StyledChartContainer isMobile={isMobile}>
+                <SectionHeader>📊 Speed Distribution 📊</SectionHeader>
+                <ChartContentContainer>
                     {speedDistData.length > 0 && (
                         <Suspense fallback={
-                            <div style={{ 
-                                width: "100%", 
-                                height: "600px", 
-                                display: "flex", 
-                                alignItems: "center", 
-                                justifyContent: "center",
-                                backgroundColor: "white"
-                            }}>
-                                <CircularProgress style={{ color: "#663399" }} size={60} />
-                            </div>
+                            <ChartLoadingContainer>
+                                <StyledCircularProgress size={60} />
+                            </ChartLoadingContainer>
                         }>
                             <SpeedDistChart data={speedDistData} />
                         </Suspense>
                     )}
-                </div>
-            </ChartContainer>
+                </ChartContentContainer>
+            </StyledChartContainer>
 
-            <TableContainer isMobile={isMobile} style={{ 
-                borderRadius: "10px", 
-                display: "flex", 
-                flexDirection: "column", 
-                alignItems: "center", 
-                justifyContent: "center",
-                minHeight: "400px",
-                marginBottom: "20px"
-            }}>
-                <h4 style={{ width: "100%", textAlign: "center" }}>📚 Full Results 📚</h4>
-                <div style={{
-                    height: "100%",
-                    width: "100%",
-                    maxWidth: "850px",
-                    overflow: "auto",
-                    paddingLeft: isMobile ? "0px" : "20px",
-                    paddingRight: isMobile ? "0px" : "20px",
-                    margin: "auto"
-                }}>
-                    <div style={{ paddingBottom: "30px" }}>
-                        <Suspense fallback={<CircularProgress style={{ color: "#663399" }} />}>
+            <StyledTableContainer isMobile={isMobile}>
+                <SectionHeader>📚 Full Results 📚</SectionHeader>
+                <TableContentContainer isMobile={isMobile}>
+                    <div style={{ paddingBottom: '30px' }}>
+                        <Suspense fallback={<StyledCircularProgress />}>
                             <RawCloudTable 
                                 data={tableData} 
                                 modelLinkFn={(provider, modelName) => createModelUrl(provider, modelName)}
                             />
                         </Suspense>
                     </div>
-                </div>
-            </TableContainer>
+                </TableContentContainer>
+            </StyledTableContainer>
 
             {timeSeriesData?.timestamps && timeSeriesData.timestamps.length > 0 && (
                 <ChartContainer isMobile={isMobile} style={{ borderRadius: "10px" }}>
