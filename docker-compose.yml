@@ -23,15 +23,15 @@ services:
       start_period: 5s
   llm-bench-frontend:
     build:
-      context: ./frontend
+      context: ./frontend-lite
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=${BACKEND_URL}
+        - VITE_API_URL=${BACKEND_URL}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT}:3000"
     environment:
-      - REACT_APP_API_URL=${BACKEND_URL}
+      - VITE_API_URL=${BACKEND_URL}
     depends_on:
       llm-bench-backend:
         condition: service_healthy
