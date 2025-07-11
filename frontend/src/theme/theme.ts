@@ -94,25 +94,25 @@ const theme = createTheme({
     palette: {
         mode: 'light',
         primary: {
-            main: '#663399',
+            main: '#000080', // Windows 98 accent blue
             contrastText: '#ffffff',
         },
         secondary: {
-            main: '#663399',
+            main: '#404040', // Panel dark color
             contrastText: '#ffffff',
         },
         error: {
-            main: '#e91e63',
+            main: '#800000', // Windows 98 error red
         },
         background: {
-            default: '#ffffff',
-            paper: '#ffffff',
+            default: '#C0C0C0', // Classic Windows 98 gray
+            paper: '#FFFFFF',    // Window background
         },
         text: {
             primary: '#000000',
-            secondary: '#666666',
+            secondary: '#404040',
         },
-        divider: '#e0e0e0',
+        divider: '#404040',
         // Provider-specific colors integrated into theme
         providers: {
             anthropic: '#C07C62',
@@ -133,7 +133,7 @@ const theme = createTheme({
             lambda: '#4027ff',
         },
     },
-    spacing: 8, // Base spacing unit: 8px
+    spacing: 4, // Base spacing unit: 4px (Windows 98 style)
     breakpoints: {
         values: {
             xs: 0,
@@ -144,99 +144,138 @@ const theme = createTheme({
         },
     },
     typography: {
-        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+        fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
         h1: {
-            fontSize: '2.5rem',
-            fontWeight: 700,
+            fontSize: '1.5rem',
+            fontWeight: 400,
             lineHeight: 1.2,
         },
         h2: {
-            fontSize: '2rem',
-            fontWeight: 600,
+            fontSize: '1.25rem',
+            fontWeight: 400,
             lineHeight: 1.3,
         },
         h3: {
-            fontSize: '1.5rem',
-            fontWeight: 600,
+            fontSize: '1.125rem',
+            fontWeight: 400,
             lineHeight: 1.4,
         },
         h4: {
-            fontSize: '1.25rem',
-            fontWeight: 600,
+            fontSize: '1rem',
+            fontWeight: 400,
             lineHeight: 1.4,
         },
         h5: {
-            fontSize: '1.125rem',
-            fontWeight: 600,
+            fontSize: '0.875rem',
+            fontWeight: 400,
             lineHeight: 1.4,
         },
         h6: {
-            fontSize: '1rem',
-            fontWeight: 600,
+            fontSize: '0.75rem',
+            fontWeight: 400,
             lineHeight: 1.4,
         },
         body1: {
-            fontSize: '1rem',
-            lineHeight: 1.5,
-        },
-        body2: {
-            fontSize: '0.875rem',
-            lineHeight: 1.5,
-        },
-        caption: {
             fontSize: '0.75rem',
             lineHeight: 1.4,
         },
+        body2: {
+            fontSize: '0.6875rem',
+            lineHeight: 1.4,
+        },
+        caption: {
+            fontSize: '0.625rem',
+            lineHeight: 1.3,
+        },
     },
     shape: {
-        borderRadius: 8,
+        borderRadius: 0, // Windows 98 sharp corners
     },
     components: {
         MuiButton: {
             styleOverrides: {
                 root: {
-                    borderRadius: '8px',
+                    borderRadius: '0px',
+                    border: '2px outset #DFDFDF',
+                    backgroundColor: '#DFDFDF',
+                    color: '#000000',
+                    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
+                    fontSize: '0.75rem',
+                    textTransform: 'none',
+                    minHeight: '24px',
+                    padding: '2px 8px',
+                    '&:hover': {
+                        backgroundColor: '#DFDFDF',
+                        border: '2px outset #DFDFDF',
+                    },
+                    '&:active': {
+                        border: '2px inset #DFDFDF',
+                    },
+                },
+                containedPrimary: {
+                    backgroundColor: '#000080',
+                    color: '#FFFFFF',
+                    border: '2px outset #000080',
+                    '&:hover': {
+                        backgroundColor: '#000080',
+                        border: '2px outset #000080',
+                    },
+                    '&:active': {
+                        border: '2px inset #000080',
+                    },
                 },
             },
         },
         MuiTable: {
             styleOverrides: {
                 root: {
-                    borderColor: '#e0e0e0',
+                    borderColor: '#404040',
+                    border: '1px solid #404040',
                 },
             },
         },
         MuiTableCell: {
             styleOverrides: {
                 head: {
-                    fontWeight: '700',
-                    backgroundColor: '#f5f5f5',
+                    fontWeight: '400',
+                    backgroundColor: '#DFDFDF',
+                    borderBottom: '1px solid #404040',
+                    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
+                    fontSize: '0.75rem',
                 },
                 root: {
-                    borderBottom: '1px solid #e0e0e0',
+                    borderBottom: '1px solid #404040',
+                    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
+                    fontSize: '0.75rem',
+                    padding: '4px 8px',
                 },
             },
         },
         MuiListItemIcon: {
             styleOverrides: {
                 root: {
-                    color: '#663399',
+                    color: '#000080',
                 },
             },
         },
         MuiCssBaseline: {
             styleOverrides: `
                   .MuiDataGrid-root {
-                    border: 1px solid #e0e0e0;
+                    border: 1px solid #404040;
+                    font-family: "MS Sans Serif", Tahoma, sans-serif;
+                    font-size: 0.75rem;
+                    background-color: #FFFFFF;
                     & .MuiDataGrid-columnHeaders {
-                      background-color: #f5f5f5;
-                      border-bottom: 2px solid #e0e0e0;
+                      background-color: #DFDFDF;
+                      border-bottom: 2px solid #404040;
+                      font-weight: 400;
                     }
                     & .MuiDataGrid-cell {
-                      border-bottom: 1px solid #f0f0f0;
+                      border-bottom: 1px solid #404040;
+                      border-right: 1px solid #404040;
                     }
                     & .MuiDataGrid-columnSeparator {
-                      color: #e0e0e0;
+                      color: #404040;
                     }
                   }
                 `,

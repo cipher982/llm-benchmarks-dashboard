@@ -1,8 +1,23 @@
+/* Windows 98 Design tokens */
+:root {
+  --color-bg: #C0C0C0;
+  --color-window-bg: #FFFFFF;
+  --color-panel-light: #DFDFDF;
+  --color-panel-dark: #404040;
+  --color-border-light: #FFFFFF;
+  --color-border-dark: #000000;
+  --color-accent: #000080;
+  --color-accent-text: #FFFFFF;
+  --font-ui: "MS Sans Serif", Tahoma, sans-serif;
+  --space-unit: 4px;
+}
+
 body {
   margin: 0;
-  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg);
 }
 
 code {
@@ -34,4 +49,179 @@ code {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Windows 98 Utility Classes */
+.u-flex {
+  display: flex;
+  gap: calc(var(--space-unit) * 2);
+}
+
+.u-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-unit);
+}
+
+.u-pad-1 { padding: var(--space-unit); }
+.u-pad-2 { padding: calc(var(--space-unit) * 2); }
+.u-pad-3 { padding: calc(var(--space-unit) * 4); }
+
+.u-mt-1 { margin-top: var(--space-unit); }
+.u-mt-2 { margin-top: calc(var(--space-unit) * 2); }
+.u-mt-3 { margin-top: calc(var(--space-unit) * 4); }
+
+.u-mb-1 { margin-bottom: var(--space-unit); }
+.u-mb-2 { margin-bottom: calc(var(--space-unit) * 2); }
+.u-mb-3 { margin-bottom: calc(var(--space-unit) * 4); }
+
+/* Windows 98 Core Components */
+
+/* Window Component */
+.window {
+  border: 2px outset var(--color-panel-light);
+  background-color: var(--color-window-bg);
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  margin: calc(var(--space-unit) * 2);
+}
+
+/* Title Bar */
+.title-bar {
+  background: linear-gradient(90deg, var(--color-accent) 0%, #1084d0 100%);
+  color: var(--color-accent-text);
+  padding: calc(var(--space-unit) / 2) var(--space-unit);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 400;
+  height: 18px;
+}
+
+.title-bar-text {
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.title-bar-controls {
+  display: flex;
+  gap: 2px;
+}
+
+.title-bar-controls button {
+  width: 16px;
+  height: 14px;
+  border: 1px outset var(--color-panel-light);
+  background-color: var(--color-panel-light);
+  font-size: 8px;
+  line-height: 1;
+  padding: 0;
+  color: #000;
+  cursor: pointer;
+}
+
+.title-bar-controls button:active {
+  border: 1px inset var(--color-panel-light);
+}
+
+/* Window Body */
+.window-body {
+  padding: calc(var(--space-unit) * 2);
+  background-color: var(--color-window-bg);
+}
+
+/* Button Styles */
+.btn {
+  border: 2px outset var(--color-panel-light);
+  background-color: var(--color-panel-light);
+  color: #000000;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  padding: calc(var(--space-unit) / 2) calc(var(--space-unit) * 2);
+  cursor: pointer;
+  min-height: 24px;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn:hover {
+  background-color: var(--color-panel-light);
+}
+
+.btn:active {
+  border: 2px inset var(--color-panel-light);
+}
+
+.btn--primary {
+  background-color: var(--color-accent);
+  color: var(--color-accent-text);
+  border: 2px outset var(--color-accent);
+}
+
+.btn--primary:hover {
+  background-color: var(--color-accent);
+}
+
+.btn--primary:active {
+  border: 2px inset var(--color-accent);
+}
+
+/* Menu Bar */
+.menu-bar {
+  background-color: var(--color-panel-light);
+  border-bottom: 1px solid var(--color-panel-dark);
+  display: flex;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+}
+
+.menu-item {
+  padding: calc(var(--space-unit) / 2) var(--space-unit);
+  cursor: pointer;
+  color: #000;
+  text-decoration: none;
+}
+
+.menu-item:hover {
+  background-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+/* Status Bar */
+.status-bar {
+  background-color: var(--color-panel-light);
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-panel-dark);
+  padding: calc(var(--space-unit) / 2) var(--space-unit);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Responsive Behavior */
+@media (min-width: 768px) {
+  .window {
+    max-width: 640px;
+    margin: calc(var(--space-unit) * 4) auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .window {
+    margin: 0;
+    width: 100%;
+    height: 100vh;
+  }
+  
+  .title-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
 }
