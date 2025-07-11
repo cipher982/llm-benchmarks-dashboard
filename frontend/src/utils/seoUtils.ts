@@ -136,7 +136,7 @@ export const generateStructuredData = (
     "keywords": `${provider}, ${displayName}, ${modelName}, LLM, AI model, benchmark, performance, speed, tokens per second, latency, time to first token`,
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `https://llm-benchmarks.vercel.app/models/${createSlug(provider)}/${createSlug(modelName)}`
+      "@id": `https://llm-benchmarks.com/models/${createSlug(provider)}/${createSlug(modelName)}`
     },
     "dateModified": new Date().toISOString(),
     "author": {
@@ -148,7 +148,7 @@ export const generateStructuredData = (
       "name": "LLM Benchmarks",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://llm-benchmarks.vercel.app/logo.png"
+        "url": "https://llm-benchmarks.com/logo.png"
       }
     },
     "about": {

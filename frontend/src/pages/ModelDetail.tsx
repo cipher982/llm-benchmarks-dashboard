@@ -80,7 +80,7 @@ const ModelDetail: React.FC = () => {
 
         try {
             setLoading(true);
-            const apiUrl = process.env.REACT_APP_API_URL || 'https://llm-benchmarks-backend.vercel.app';
+            const apiUrl = process.env.REACT_APP_API_URL || 'https://api.llm-benchmarks.com';
             const queryParams = days ? `&days=${days}` : '';
             const res = await fetch(`${apiUrl}/api/model?provider=${encodeURIComponent(provider)}&model=${encodeURIComponent(model)}${queryParams}`);
             

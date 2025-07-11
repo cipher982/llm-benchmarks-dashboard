@@ -109,7 +109,7 @@ const LocalBenchmarks: FC = () => {
                         model formats unique to the framework.
                     </p>
                     <p>
-                        The dashboard is built with React and Node and is hosted through Vercel.
+                        The dashboard is built with React and Node.
                         The backend pulls from MongoDB to store all the results in present them in real-time.
                     </p>
                     <h3>System Specs ⚡️</h3>
