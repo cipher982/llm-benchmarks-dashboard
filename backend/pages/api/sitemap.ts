@@ -11,7 +11,7 @@ function createSlug(text: string): string {
 
 async function generateSitemap(req: NextApiRequest): Promise<string> {
   // Get the base URL for the website
-  const hostname = process.env.FRONTEND_URL || 'https://llm-benchmarks.vercel.app';
+  const hostname = process.env.FRONTEND_URL || 'https://llm-benchmarks.com';
   
   // Get all unique model and provider combinations
   const metrics = await CloudMetrics.find().sort({ model_name: 1 }).lean();

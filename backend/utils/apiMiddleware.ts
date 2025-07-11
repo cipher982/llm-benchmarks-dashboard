@@ -95,7 +95,6 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
     console.log('CORS Debug:', {
         origin,
         nodeEnv: process.env.NODE_ENV,
-        vercelEnv: process.env.VERCEL_ENV,
         disableCors: process.env.DISABLE_CORS,
         method: req.method,
         url: req.url
@@ -122,14 +121,13 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
         // In production, use a whitelist approach
         // List of allowed origins
         const allowedOrigins = [
-            'https://llm-benchmarks-dashboard.vercel.app',
             'https://www.llm-benchmarks.com',
             'https://llm-benchmarks.com',
             'https://api.llm-benchmarks.com'
         ];
         
         // Check if the origin is in our allowed list
-        if (origin && (allowedOrigins.includes(origin) || process.env.VERCEL_ENV === 'preview')) {
+        if (origin && allowedOrigins.includes(origin)) {
             console.log(`Setting CORS headers for origin: ${origin}`);
             res.setHeader('Access-Control-Allow-Origin', origin);
             res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

@@ -13,7 +13,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: ${process.env.FRONTEND_URL || 'https://llm-benchmarks.vercel.app'}/api/sitemap
+Sitemap: ${process.env.FRONTEND_URL || 'https://llm-benchmarks.com'}/api/sitemap
 `;
   
   // Send the response
