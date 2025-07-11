@@ -5,7 +5,6 @@ import AppBar from '@mui/material/AppBar';
 import { ThemeProvider } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Analytics } from '@vercel/analytics/react';
 
 // Theme
 import theme from './theme/theme';
@@ -41,7 +40,6 @@ const App: FC = () => {
             <Route path="/status" element={<StatusPage />} />
           </Routes>
         </MainContainer>
-        <Analytics />
       </Router>
     </ThemeProvider>
   );

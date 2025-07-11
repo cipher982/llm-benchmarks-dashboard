@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://llm-benchmarks.vercel.app/api/sitemap 
+Sitemap: https://llm-benchmarks.com/api/sitemap 
