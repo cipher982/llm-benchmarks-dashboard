@@ -23,7 +23,7 @@ services:
       start_period: 5s
   llm-bench-frontend:
     build:
-      context: ./frontend-lite
+      context: ./frontend
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=${BACKEND_URL}
