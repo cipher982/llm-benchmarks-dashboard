@@ -18,11 +18,11 @@ import ModelDetail from './pages/ModelDetail';
 
 // Styles
 import './App.css';
-import { MainContainer } from './styles';
+import { MainContainer } from './design-system/components';
 
 // Main App Component
 const App: FC = () => {
-  const isMobile = useMediaQuery('(max-width:600px)');
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <ThemeProvider theme={theme}>

@@ -17,6 +17,7 @@ export async function fetchAndProcessMetrics(
         
         const metrics = await model.find({ run_ts: { $gte: dateFilter } })
             .select("model_name provider tokens_per_second time_to_first_token run_ts display_name gpu_mem_usage framework quantization_method quantization_bits model_dtype")
+            .batchSize(50000)  // Force MongoDB to send all data in fewer batches
             .lean()
             .exec();
         

@@ -71,3 +71,4 @@ frontend/build
 
 pagespeed/
 .env*
+backend/scripts/

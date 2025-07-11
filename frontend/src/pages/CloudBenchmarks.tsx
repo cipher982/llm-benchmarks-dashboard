@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { lazy, Suspense } from "react";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
-import { MainContainer } from "../styles";
+import { Box } from "@mui/material";
+import { MainContainer } from "../design-system/components";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
 import { createModelUrl } from "../utils/seoUtils";
 import {
@@ -175,7 +176,7 @@ const CloudBenchmarks: React.FC = () => {
             <StyledTableContainer isMobile={isMobile}>
                 <SectionHeader>📚 Full Results 📚</SectionHeader>
                 <TableContentContainer isMobile={isMobile}>
-                    <div style={{ paddingBottom: '30px' }}>
+                    <Box sx={{ pb: 8 }}>
                         <Suspense fallback={<StyledCircularProgress />}>
                             {tableData && tableData.length > 0 ? (
                                 <RawCloudTable 
@@ -186,7 +187,7 @@ const CloudBenchmarks: React.FC = () => {
                                 <div>Loading table data...</div>
                             )}
                         </Suspense>
-                    </div>
+                    </Box>
                 </TableContentContainer>
             </StyledTableContainer>
 

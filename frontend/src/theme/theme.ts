@@ -1,287 +1,306 @@
-import { createTheme } from '@mui/material/styles';
+/**
+ * Material-UI Theme Configuration
+ * 
+ * Modern theme implementation using our Windows 98 design system.
+ * Integrates design tokens with Material-UI's theming system.
+ * 
+ * @fileoverview Clean Material-UI theme with design system integration
+ * @version 2.0.0
+ */
 
-// Extend MUI theme to include provider colors
+import { createTheme, Theme } from '@mui/material/styles';
+import { 
+  colors, 
+  providerColors, 
+  typography, 
+  spacing, 
+  breakpoints, 
+  sizing,
+  Provider,
+  getProviderColor as designSystemGetProviderColor,
+  type ProviderName 
+} from '../design-system';
+
+// =============================================================================
+// MATERIAL-UI THEME EXTENSIONS
+// =============================================================================
+
+/**
+ * Extend Material-UI's theme interface to include our design system
+ */
 declare module '@mui/material/styles' {
-    interface Palette {
-        providers: {
-            anthropic: string;
-            azure: string;
-            anyscale: string;
-            openai: string;
-            bedrock: string;
-            mistral: string;
-            groq: string;
-            together: string;
-            perplexity: string;
-            fireworks: string;
-            lepton: string;
-            deepinfra: string;
-            nvidia: string;
-            runpod: string;
-            google: string;
-            lambda: string;
-        };
-    }
+  interface Palette {
+    providers: Record<ProviderName, string>;
+  }
 
-    interface PaletteOptions {
-        providers?: {
-            anthropic?: string;
-            azure?: string;
-            anyscale?: string;
-            openai?: string;
-            bedrock?: string;
-            mistral?: string;
-            groq?: string;
-            together?: string;
-            perplexity?: string;
-            fireworks?: string;
-            lepton?: string;
-            deepinfra?: string;
-            nvidia?: string;
-            runpod?: string;
-            google?: string;
-            lambda?: string;
-        };
-    }
+  interface PaletteOptions {
+    providers?: Partial<Record<ProviderName, string>>;
+  }
+
+  interface Theme {
+    designSystem: {
+      colors: typeof colors;
+      providerColors: typeof providerColors;
+      typography: typeof typography;
+      spacing: typeof spacing;
+      breakpoints: typeof breakpoints;
+      sizing: typeof sizing;
+    };
+  }
+
+  interface ThemeOptions {
+    designSystem?: {
+      colors?: typeof colors;
+      providerColors?: typeof providerColors;
+      typography?: typeof typography;
+      spacing?: typeof spacing;
+      breakpoints?: typeof breakpoints;
+      sizing?: typeof sizing;
+    };
+  }
 }
 
-export enum Provider {
-    Anthropic = "anthropic",
-    Azure = "azure",
-    Anyscale = "anyscale",
-    OpenAI = "openai",
-    Bedrock = "bedrock",
-    Mistral = "mistral",
-    Groq = "groq",
-    Together = "together",
-    Perplexity = "perplexity",
-    Fireworks = "fireworks",
-    Lepton = "lepton",
-    Deepinfra = "deepinfra",
-    Nvidia = "nvidia",
-    Runpod = "runpod",
-    Google = "google",
-    Lambda = "lambda",
-}
+// =============================================================================
+// THEME UTILITIES
+// =============================================================================
 
-// Helper function to get provider color from theme
-export const getProviderColor = (theme: any, provider: Provider): string => {
-    return theme.palette.providers[provider] || theme.palette.primary.main;
+/**
+ * Type-safe provider color getter with proper theme typing
+ */
+export const getProviderColor = (theme: Theme, provider: Provider): string => {
+  return designSystemGetProviderColor(provider);
 };
 
-// Legacy export for backwards compatibility - will be removed after refactoring
-export const providerColors: Record<Provider, string> = {
-    [Provider.Anthropic]: "#C07C62",
-    [Provider.Azure]: "#0078D4",
-    [Provider.Anyscale]: "#143566",
-    [Provider.OpenAI]: "#1F1F1F",
-    [Provider.Bedrock]: "#FF9900",
-    [Provider.Mistral]: "#FD6F00",
-    [Provider.Groq]: "#D46645",
-    [Provider.Together]: "#0E6EFF",
-    [Provider.Perplexity]: "#1B818E",
-    [Provider.Fireworks]: "#C02390",
-    [Provider.Lepton]: "#467EE5",
-    [Provider.Deepinfra]: "#5798DC",
-    [Provider.Nvidia]: "#85B737",
-    [Provider.Runpod]: "#673AB7",
-    [Provider.Google]: "#33a852",
-    [Provider.Lambda]: "#4027ff",
-};
+/**
+ * Re-export Provider enum and types for convenience
+ */
+export { Provider } from '../design-system';
+export type { ProviderName } from '../design-system';
 
 
+// =============================================================================
+// MATERIAL-UI THEME CREATION
+// =============================================================================
+
+/**
+ * Create the Material-UI theme using our design system tokens
+ */
 const theme = createTheme({
-    palette: {
-        mode: 'light',
-        primary: {
-            main: '#000080', // Windows 98 accent blue
-            contrastText: '#ffffff',
-        },
-        secondary: {
-            main: '#404040', // Panel dark color
-            contrastText: '#ffffff',
-        },
-        error: {
-            main: '#800000', // Windows 98 error red
-        },
-        background: {
-            default: '#C0C0C0', // Classic Windows 98 gray
-            paper: '#FFFFFF',    // Window background
-        },
-        text: {
-            primary: '#000000',
-            secondary: '#404040',
-        },
-        divider: '#404040',
-        // Provider-specific colors integrated into theme
-        providers: {
-            anthropic: '#C07C62',
-            azure: '#0078D4',
-            anyscale: '#143566',
-            openai: '#1F1F1F',
-            bedrock: '#FF9900',
-            mistral: '#FD6F00',
-            groq: '#D46645',
-            together: '#0E6EFF',
-            perplexity: '#1B818E',
-            fireworks: '#C02390',
-            lepton: '#467EE5',
-            deepinfra: '#5798DC',
-            nvidia: '#85B737',
-            runpod: '#673AB7',
-            google: '#33a852',
-            lambda: '#4027ff',
-        },
+  // Design system integration
+  designSystem: {
+    colors,
+    providerColors,
+    typography,
+    spacing,
+    breakpoints,
+    sizing,
+  },
+  
+  // Palette using design system colors
+  palette: {
+    mode: 'light',
+    primary: {
+      main: colors.primary,
+      contrastText: colors.primaryText,
     },
-    spacing: 4, // Base spacing unit: 4px (Windows 98 style)
-    breakpoints: {
-        values: {
-            xs: 0,
-            sm: 600,
-            md: 960,
-            lg: 1280,
-            xl: 1920,
-        },
+    secondary: {
+      main: colors.borderMedium,
+      contrastText: colors.primaryText,
     },
-    typography: {
-        fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-        h1: {
-            fontSize: '1.5rem',
-            fontWeight: 400,
-            lineHeight: 1.2,
-        },
-        h2: {
-            fontSize: '1.25rem',
-            fontWeight: 400,
-            lineHeight: 1.3,
-        },
-        h3: {
-            fontSize: '1.125rem',
-            fontWeight: 400,
-            lineHeight: 1.4,
-        },
-        h4: {
-            fontSize: '1rem',
-            fontWeight: 400,
-            lineHeight: 1.4,
-        },
-        h5: {
-            fontSize: '0.875rem',
-            fontWeight: 400,
-            lineHeight: 1.4,
-        },
-        h6: {
-            fontSize: '0.75rem',
-            fontWeight: 400,
-            lineHeight: 1.4,
-        },
-        body1: {
-            fontSize: '0.75rem',
-            lineHeight: 1.4,
-        },
-        body2: {
-            fontSize: '0.6875rem',
-            lineHeight: 1.4,
-        },
-        caption: {
-            fontSize: '0.625rem',
-            lineHeight: 1.3,
-        },
+    error: {
+      main: colors.error,
+      contrastText: colors.primaryText,
     },
-    shape: {
-        borderRadius: 0, // Windows 98 sharp corners
+    background: {
+      default: colors.background,
+      paper: colors.surface,
     },
-    components: {
-        MuiButton: {
-            styleOverrides: {
-                root: {
-                    borderRadius: '0px',
-                    border: '2px outset #DFDFDF',
-                    backgroundColor: '#DFDFDF',
-                    color: '#000000',
-                    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-                    fontSize: '0.75rem',
-                    textTransform: 'none',
-                    minHeight: '24px',
-                    padding: '2px 8px',
-                    '&:hover': {
-                        backgroundColor: '#DFDFDF',
-                        border: '2px outset #DFDFDF',
-                    },
-                    '&:active': {
-                        border: '2px inset #DFDFDF',
-                    },
-                },
-                containedPrimary: {
-                    backgroundColor: '#000080',
-                    color: '#FFFFFF',
-                    border: '2px outset #000080',
-                    '&:hover': {
-                        backgroundColor: '#000080',
-                        border: '2px outset #000080',
-                    },
-                    '&:active': {
-                        border: '2px inset #000080',
-                    },
-                },
-            },
-        },
-        MuiTable: {
-            styleOverrides: {
-                root: {
-                    borderColor: '#404040',
-                    border: '1px solid #404040',
-                },
-            },
-        },
-        MuiTableCell: {
-            styleOverrides: {
-                head: {
-                    fontWeight: '400',
-                    backgroundColor: '#DFDFDF',
-                    borderBottom: '1px solid #404040',
-                    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-                    fontSize: '0.75rem',
-                },
-                root: {
-                    borderBottom: '1px solid #404040',
-                    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-                    fontSize: '0.75rem',
-                    padding: '4px 8px',
-                },
-            },
-        },
-        MuiListItemIcon: {
-            styleOverrides: {
-                root: {
-                    color: '#000080',
-                },
-            },
-        },
-        MuiCssBaseline: {
-            styleOverrides: `
-                  .MuiDataGrid-root {
-                    border: 1px solid #404040;
-                    font-family: "MS Sans Serif", Tahoma, sans-serif;
-                    font-size: 0.75rem;
-                    background-color: #FFFFFF;
-                    & .MuiDataGrid-columnHeaders {
-                      background-color: #DFDFDF;
-                      border-bottom: 2px solid #404040;
-                      font-weight: 400;
-                    }
-                    & .MuiDataGrid-cell {
-                      border-bottom: 1px solid #404040;
-                      border-right: 1px solid #404040;
-                    }
-                    & .MuiDataGrid-columnSeparator {
-                      color: #404040;
-                    }
-                  }
-                `,
-        },
+    text: {
+      primary: colors.textPrimary,
+      secondary: colors.textSecondary,
+      disabled: colors.textDisabled,
     },
+    divider: colors.borderMedium,
+    // Provider colors integrated into theme
+    providers: providerColors,
+  },
+  
+  // Spacing using design system
+  spacing: spacing.unit,
+  
+  // Breakpoints using design system
+  breakpoints: {
+    values: breakpoints,
+  },
+  
+  // Typography using design system
+  typography: {
+    fontFamily: typography.fontFamily,
+    h1: {
+      fontSize: typography.sizes['3xl'],
+      fontWeight: typography.weights.normal,
+      lineHeight: typography.lineHeights.tight,
+    },
+    h2: {
+      fontSize: typography.sizes['2xl'],
+      fontWeight: typography.weights.normal,
+      lineHeight: typography.lineHeights.tight,
+    },
+    h3: {
+      fontSize: typography.sizes.xl,
+      fontWeight: typography.weights.normal,
+      lineHeight: typography.lineHeights.normal,
+    },
+    h4: {
+      fontSize: typography.sizes.lg,
+      fontWeight: typography.weights.normal,
+      lineHeight: typography.lineHeights.normal,
+    },
+    h5: {
+      fontSize: typography.sizes.md,
+      fontWeight: typography.weights.normal,
+      lineHeight: typography.lineHeights.normal,
+    },
+    h6: {
+      fontSize: typography.sizes.base,
+      fontWeight: typography.weights.normal,
+      lineHeight: typography.lineHeights.normal,
+    },
+    body1: {
+      fontSize: typography.sizes.base,
+      lineHeight: typography.lineHeights.normal,
+    },
+    body2: {
+      fontSize: typography.sizes.sm,
+      lineHeight: typography.lineHeights.normal,
+    },
+    caption: {
+      fontSize: typography.sizes.xs,
+      lineHeight: typography.lineHeights.tight,
+    },
+  },
+  
+  // Shape using design system
+  shape: {
+    borderRadius: 0, // Windows 98 sharp corners
+  },
+  
+  // Component overrides using design system tokens
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 0,
+          border: `2px outset ${colors.surfaceElevated}`,
+          backgroundColor: colors.surfaceElevated,
+          color: colors.textPrimary,
+          fontFamily: typography.fontFamily,
+          fontSize: typography.sizes.base,
+          textTransform: 'none',
+          minHeight: `${sizing.buttonHeight.md}px`,
+          padding: `${spacing.scale[1]}px ${spacing.scale[4]}px`,
+          '&:hover': {
+            backgroundColor: colors.hover,
+            border: `2px outset ${colors.surfaceElevated}`,
+          },
+          '&:active': {
+            border: `2px inset ${colors.surfaceElevated}`,
+          },
+        },
+        containedPrimary: {
+          backgroundColor: colors.primary,
+          color: colors.primaryText,
+          border: `2px outset ${colors.primary}`,
+          '&:hover': {
+            backgroundColor: colors.primary,
+            border: `2px outset ${colors.primary}`,
+          },
+          '&:active': {
+            border: `2px inset ${colors.primary}`,
+          },
+        },
+      },
+    },
+    MuiTable: {
+      styleOverrides: {
+        root: {
+          borderColor: colors.borderMedium,
+          border: `1px solid ${colors.borderMedium}`,
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        head: {
+          fontWeight: typography.weights.normal,
+          backgroundColor: colors.surfaceElevated,
+          borderBottom: `1px solid ${colors.borderMedium}`,
+          fontFamily: typography.fontFamily,
+          fontSize: typography.sizes.base,
+        },
+        root: {
+          borderBottom: `1px solid ${colors.borderMedium}`,
+          fontFamily: typography.fontFamily,
+          fontSize: typography.sizes.base,
+          padding: `${spacing.scale[1]}px ${spacing.scale[2]}px`,
+        },
+      },
+    },
+    MuiListItemIcon: {
+      styleOverrides: {
+        root: {
+          color: colors.primary,
+        },
+      },
+    },
+    MuiCssBaseline: {
+      styleOverrides: `
+        .MuiDataGrid-root {
+          border: 1px solid ${colors.borderMedium};
+          font-family: ${typography.fontFamily};
+          font-size: ${typography.sizes.base};
+          background-color: ${colors.surface};
+          
+          & .MuiDataGrid-columnHeaders {
+            background-color: ${colors.surfaceElevated};
+            border-bottom: 2px solid ${colors.borderMedium};
+            font-weight: ${typography.weights.normal};
+          }
+          
+          & .MuiDataGrid-cell {
+            border-bottom: 1px solid ${colors.borderMedium};
+            border-right: 1px solid ${colors.borderMedium};
+          }
+          
+          & .MuiDataGrid-columnSeparator {
+            color: ${colors.borderMedium};
+          }
+        }
+      `,
+    },
+  },
 });
 
+// =============================================================================
+// EXPORTS
+// =============================================================================
+
 export default theme;
+
+/**
+ * Type-safe theme access for components
+ */
+export type AppTheme = typeof theme;
+
+/**
+ * Design system re-exports for convenience
+ */
+export {
+  colors,
+  providerColors,
+  typography,
+  spacing,
+  breakpoints,
+  sizing,
+} from '../design-system';
 

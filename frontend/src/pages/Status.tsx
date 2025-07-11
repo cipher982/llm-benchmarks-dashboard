@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { styled, useTheme } from '@mui/system';
-import { MainContainer } from '../styles';
+import { MainContainer } from '../design-system/components';
+import { PageTitle, SectionHeader } from '../design-system/components';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -202,14 +203,14 @@ const StatusPage: React.FC = () => {
     return (
         <MainContainer isMobile={isMobile}>
             <StatusPageContainer>
-                <h1 style={{ marginBottom: '8px', fontSize: '1.5rem' }}>Model Benchmarking Status</h1>
+                <PageTitle sx={{ mb: 1 }}>Model Benchmarking Status</PageTitle>
                 {isLoading ? (
                     <div>Loading model status...</div>
                 ) : (
                     <>
                         <LastRunInfo>{lastRunInfo}</LastRunInfo>
                         
-                        <h2 style={{ marginBottom: '8px', fontSize: '1.2rem' }}>Active Models</h2>
+                        <SectionHeader sx={{ mb: 1 }}>Active Models</SectionHeader>
                         {Object.entries(activeModels).map(([provider, models]) => (
                             <ProviderSection key={provider}>
                                 <ProviderHeader>{provider.toUpperCase()}</ProviderHeader>

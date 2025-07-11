@@ -11,6 +11,9 @@ import path from 'path';
 // Default time range in days
 const DEFAULT_DAYS = 3;
 
+// Request deduplication cache to prevent multiple identical expensive requests
+const requestCache = new Map<string, Promise<any>>();
+
 // Static file serving
 async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<boolean> {
     const filename = `processed-${days}days.json`;
@@ -65,20 +68,34 @@ function parseTimeRange(req: NextApiRequest) {
 // This is the shared processing function used by both processed.ts and model.ts endpoints
 // Performance optimization metrics are added here
 export async function processAllMetrics(rawMetrics: any[], days: number) {
+    const pipelineStartTime = process.hrtime.bigint();
+    logger.info(`🚀 processAllMetrics started with ${rawMetrics.length} raw metrics for ${days} days`);
+    
     // Transform data first since other operations depend on it
     const startTime = process.hrtime.bigint();
+    logger.info(`🔄 Starting cleanTransformCloud on ${rawMetrics.length} metrics...`);
     const transformedData = cleanTransformCloud(rawMetrics);
     const endTime = process.hrtime.bigint();
-    logger.info(`cleanTransformCloud took ${(endTime - startTime) / 1000000n}ms`);
+    logger.info(`✅ cleanTransformCloud took ${(endTime - startTime) / 1000000n}ms`);
+    logger.info(`📊 Transformed data length: ${transformedData.length}`);
 
     // Apply model mapping to ALL data BEFORE processing (not just timeSeriesData)
     const mappingStartTime = process.hrtime.bigint();
     const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
     logger.info(`🔧 APPLYING MODEL MAPPING: useDbModels=${useDbModels}, transformedDataLength=${transformedData.length}`);
+    
     const { mapModelNames } = await import('../../utils/modelMappingDB');
-    const mappedData = await mapModelNames(transformedData, useDbModels);
-    const mappingEndTime = process.hrtime.bigint();
-    logger.info(`🔧 Model mapping took ${(mappingEndTime - mappingStartTime) / 1000000n}ms, mappedDataLength=${mappedData.length}`);
+    logger.info(`📦 modelMappingDB module imported successfully`);
+    let mappedData;
+    try {
+        mappedData = await mapModelNames(transformedData, useDbModels);
+        const mappingEndTime = process.hrtime.bigint();
+        logger.info(`🔧 Model mapping took ${(mappingEndTime - mappingStartTime) / 1000000n}ms, mappedDataLength=${mappedData.length}`);
+    } catch (mappingError) {
+        logger.error(`❌ Model mapping failed: ${mappingError}`);
+        logger.error(`📍 Mapping error stack: ${mappingError instanceof Error ? mappingError.stack : 'No stack available'}`);
+        throw mappingError;
+    }
 
     // Run the processing operations in parallel
     // IMPORTANT: These three data structures serve different UI purposes:
@@ -86,31 +103,43 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
     // - timeSeriesData: UNIQUE models only - each gets chart with multiple provider lines  
     // - tableData: ALL provider-model combinations - raw data table with clean names
     const startTimeParallel = process.hrtime.bigint();
-    const [speedDistData, timeSeriesData, tableData] = await Promise.all([
-        (async () => {
-            const start = process.hrtime.bigint();
-            const result = await processSpeedDistData(mappedData);
-            const end = process.hrtime.bigint();
-            logger.info(`processSpeedDistData took ${(end - start) / 1000000n}ms`);
-            return result;
-        })(),
-        (async () => {
-            const start = process.hrtime.bigint();
-            const result = await processTimeSeriesData(mappedData, days);
-            const end = process.hrtime.bigint();
-            logger.info(`processTimeSeriesData took ${(end - start) / 1000000n}ms`);
-            return result;
-        })(),
-        (async () => {
-            const start = process.hrtime.bigint();
-            const result = await processRawTableData(mappedData);
-            const end = process.hrtime.bigint();
-            logger.info(`processRawTableData took ${(end - start) / 1000000n}ms`);
-            return result;
-        })()
-    ]);
-    const endTimeParallel = process.hrtime.bigint();
-    logger.info(`All parallel processing took ${(endTimeParallel - startTimeParallel) / 1000000n}ms`);
+    logger.info(`🚀 Starting parallel processing with ${mappedData.length} mapped metrics...`);
+    
+    let speedDistData, timeSeriesData, tableData;
+    try {
+        [speedDistData, timeSeriesData, tableData] = await Promise.all([
+            (async () => {
+                const start = process.hrtime.bigint();
+                logger.info(`🔄 Starting processSpeedDistData...`);
+                const result = await processSpeedDistData(mappedData);
+                const end = process.hrtime.bigint();
+                logger.info(`✅ processSpeedDistData took ${(end - start) / 1000000n}ms, result length: ${result.length}`);
+                return result;
+            })(),
+            (async () => {
+                const start = process.hrtime.bigint();
+                logger.info(`🔄 Starting processTimeSeriesData...`);
+                const result = await processTimeSeriesData(mappedData, days);
+                const end = process.hrtime.bigint();
+                logger.info(`✅ processTimeSeriesData took ${(end - start) / 1000000n}ms, models: ${result.models?.length || 0}`);
+                return result;
+            })(),
+            (async () => {
+                const start = process.hrtime.bigint();
+                logger.info(`🔄 Starting processRawTableData...`);
+                const result = await processRawTableData(mappedData);
+                const end = process.hrtime.bigint();
+                logger.info(`✅ processRawTableData took ${(end - start) / 1000000n}ms, rows: ${result.length}`);
+                return result;
+            })()
+        ]);
+        const endTimeParallel = process.hrtime.bigint();
+        logger.info(`🎯 All parallel processing took ${(endTimeParallel - startTimeParallel) / 1000000n}ms`);
+    } catch (parallelError) {
+        logger.error(`❌ Parallel processing failed: ${parallelError}`);
+        logger.error(`📍 Parallel error stack: ${parallelError instanceof Error ? parallelError.stack : 'No stack available'}`);
+        throw parallelError;
+    }
 
     // Log sizes for analysis
     if (speedDistData.length > 0) {
@@ -118,16 +147,21 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
             JSON.stringify(speedDistData[0].density_points.slice(0, 3))
         }`);
     }
-    logger.info('Data sizes (KB):');
+    logger.info('📏 Data sizes (KB):');
     logger.info(`Speed Distribution: ${(JSON.stringify(speedDistData).length / 1024).toFixed(2)}`);
     logger.info(`Time Series: ${(JSON.stringify(timeSeriesData).length / 1024).toFixed(2)}`);
     logger.info(`Table: ${(JSON.stringify(tableData).length / 1024).toFixed(2)}`);
 
-    return roundNumbers({
+    const finalResult = roundNumbers({
         speedDistribution: speedDistData,
         timeSeries: timeSeriesData,
         table: tableData
     });
+    
+    const pipelineEndTime = process.hrtime.bigint();
+    logger.info(`🏁 Total processAllMetrics pipeline took ${(pipelineEndTime - pipelineStartTime) / 1000000n}ms`);
+    
+    return finalResult;
 }
 
 async function handler(
@@ -159,23 +193,64 @@ async function handler(
         // If we reach here, static file was not available - generate dynamically
         logger.info(`Static file not available for days=${days}, generating dynamically`);
         
-        // Fetch raw data from MongoDB
-        const rawData = await fetchAndProcessMetrics(
-            CloudMetrics,
-            days,
-            (data: any[]) => data
-        );
+        // Implement request deduplication to prevent race conditions
+        const cacheKey = `processed-${days}days`;
         
-        // Process the data
-        const metricsArray = Array.isArray(rawData) ? rawData : (rawData.raw || []);
-        
-        if (!metricsArray.length) {
-            logger.warn(`No metrics found for days=${days}`);
-            return res.status(404).json({ message: 'No metrics found' });
+        if (requestCache.has(cacheKey)) {
+            logger.info(`🔄 Request deduplication: using cached promise for ${cacheKey}`);
+            const cachedPromise = requestCache.get(cacheKey)!;
+            const processedData = await cachedPromise;
+            
+            // Add debugging headers
+            res.setHeader("X-Cache-Status", "DEDUPLICATION-CACHE");
+            res.setHeader("X-Model-Mapping", process.env.USE_DATABASE_MODELS === 'true' ? "database" : "hardcoded");
+            res.setHeader("X-Processing-Time", `${Date.now() - requestStartTime}ms`);
+            
+            return res.status(200).json(processedData);
         }
         
-        logger.info(`Processing ${metricsArray.length} metrics`);
-        const processedData = await processAllMetrics(metricsArray, days);
+        // Create new request promise with timeout and cache it
+        const requestPromise = (async () => {
+            try {
+                // Add timeout for large datasets (5 minutes max)
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Request timeout after 5 minutes')), 5 * 60 * 1000);
+                });
+                
+                const dataPromise = (async () => {
+                    // Fetch raw data from MongoDB
+                    const rawData = await fetchAndProcessMetrics(
+                        CloudMetrics,
+                        days,
+                        (data: any[]) => data
+                    );
+                    
+                    // Process the data
+                    const metricsArray = Array.isArray(rawData) ? rawData : (rawData.raw || []);
+                    
+                    if (!metricsArray.length) {
+                        logger.warn(`No metrics found for days=${days}`);
+                        throw new Error('No metrics found');
+                    }
+                    
+                    logger.info(`Processing ${metricsArray.length} metrics`);
+                    return await processAllMetrics(metricsArray, days);
+                })();
+                
+                // Race between data processing and timeout
+                return await Promise.race([dataPromise, timeoutPromise]);
+            } finally {
+                // Clean up cache after processing (success or failure)
+                requestCache.delete(cacheKey);
+            }
+        })();
+        
+        // Cache the promise
+        requestCache.set(cacheKey, requestPromise);
+        logger.info(`🔄 Request deduplication: cached new promise for ${cacheKey}`);
+        
+        // Wait for the result
+        const processedData = await requestPromise;
         
         // Add debugging headers
         res.setHeader("X-Cache-Status", "DYNAMIC-GENERATION");
@@ -186,6 +261,14 @@ async function handler(
         return res.status(200).json(processedData);
     } catch (error) {
         logger.error(`Error processing metrics: ${error}`);
+        
+        // Clean up cache on error if needed
+        const timeRange = parseTimeRange(req);
+        const cacheKey = `processed-${timeRange.days}days`;
+        if (requestCache.has(cacheKey)) {
+            requestCache.delete(cacheKey);
+        }
+        
         return res.status(500).json({ error: 'Failed to process metrics' });
     }
 }

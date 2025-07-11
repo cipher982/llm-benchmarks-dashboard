@@ -5,8 +5,9 @@ import RawLocalTable from '../tables/local/RawLocalTable';
 import ComparisonTable from '../tables/local/ComparisonTable';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import { Box } from '@mui/material';
 import { FastestFrameworks, getComparisonAndFastestFrameworks } from '../transformations';
-import { MainContainer } from '../styles';
+import { MainContainer } from '../design-system/components';
 import { calculateMB } from '../utils/stats';
 import { LocalBenchmark } from '../types/LocalData';
 import {
@@ -178,9 +179,9 @@ const LocalBenchmarks: FC = () => {
             <StyledTableContainer isMobile={isMobile}>
                 <SectionHeader>📚 Full Results 📚</SectionHeader>
                 <TableContentContainer isMobile={isMobile}>
-                    <div style={{ paddingBottom: '50px' }}>
+                    <Box sx={{ pb: 12 }}>
                         <RawLocalTable benchmarks={benchmarks} />
-                    </div>
+                    </Box>
                 </TableContentContainer>
             </StyledTableContainer>
         </MainContainer>

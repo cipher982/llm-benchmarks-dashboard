@@ -1,5 +1,6 @@
 import { styled } from '@mui/material/styles';
 import { CircularProgress } from '@mui/material';
+import { colors } from '../design-system';
 
 // Loading Components
 export const LoadingContainer = styled('div')(({ theme }) => ({
@@ -70,7 +71,7 @@ export const PageTitle = styled('h1')(({ theme }) => ({
 export const StyledDescriptionSection = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
     backgroundColor: theme.palette.background.paper,
     padding: theme.spacing(8), // Windows 98 uses 4px base spacing
-    border: '2px outset #DFDFDF',
+    border: `2px outset ${colors.surfaceElevated}`,
     marginBottom: theme.spacing(8),
     boxShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)',
     fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
@@ -83,7 +84,7 @@ export const StyledDescriptionSection = styled('div')<{ isMobile?: boolean }>(({
 export const StyledChartContainer = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
     backgroundColor: theme.palette.background.paper,
     padding: theme.spacing(8),
-    border: '2px inset #DFDFDF',
+    border: `2px inset ${colors.surfaceElevated}`,
     maxWidth: '100%',
     overflowX: 'auto',
     marginBottom: theme.spacing(8),
@@ -98,7 +99,7 @@ export const StyledChartContainer = styled('div')<{ isMobile?: boolean }>(({ the
 export const StyledTableContainer = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
     backgroundColor: theme.palette.background.paper,
     padding: theme.spacing(8),
-    border: '2px inset #DFDFDF',
+    border: `2px inset ${colors.surfaceElevated}`,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -162,7 +163,7 @@ export const ChartWrapper = styled('div')<{ isMobile?: boolean }>(({ theme, isMo
 
 // Windows 98 Application Window Wrapper
 export const Win98AppWindow = styled('div')<{ title?: string; isMobile?: boolean }>(({ theme, isMobile }) => ({
-    border: '2px outset #DFDFDF',
+    border: `2px outset ${colors.surfaceElevated}`,
     backgroundColor: theme.palette.background.paper,
     boxShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)',
     margin: isMobile ? 0 : theme.spacing(4),

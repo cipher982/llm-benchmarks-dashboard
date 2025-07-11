@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { colors } from '../design-system';
 import CircularProgress from "@mui/material/CircularProgress";
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
@@ -9,7 +10,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Link from '@mui/material/Link';
-import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from "../styles";
+import { MainContainer, DescriptionSection, ChartContainer, TableContainer } from "../design-system/components";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
 import { 
     generateModelMetadata, 
@@ -239,10 +240,10 @@ const ModelDetail: React.FC = () => {
                 <Typography variant="h5" gutterBottom>Performance Summary</Typography>
                 <Box sx={{ 
                     padding: 2, 
-                    border: "1px solid rgba(255,255,255,0.2)", 
-                    borderRadius: 1, 
-                    backgroundColor: "#663399", 
-                    color: "#ffffff" 
+                    border: `1px solid ${colors.borderLight}`, 
+                    borderRadius: 0, 
+                    backgroundColor: colors.primary, 
+                    color: colors.primaryText 
                 }}>
                     <Typography variant="h6" color="white">{title}</Typography>
                     {modelData.table.length > 0 && (
