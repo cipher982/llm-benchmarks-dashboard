@@ -16,12 +16,27 @@ services:
       - REDIS_DB=${REDIS_DB}
       - DISABLE_CORS=${DISABLE_CORS}
       - ADMIN_API_KEY=${ADMIN_API_KEY}
+    volumes:
+      - static-api-cache:/app/public/api
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 5s
+
+  llm-bench-static-generator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.cron
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - NODE_ENV=production
+    volumes:
+      - static-api-cache:/app/public/api
+    depends_on:
+      - llm-bench-backend
   llm-bench-frontend:
     build:
       context: ./frontend
@@ -42,3 +57,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+
+volumes:
+  static-api-cache:
