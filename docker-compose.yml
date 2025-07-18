@@ -15,6 +15,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - REDIS_DB=${REDIS_DB}
       - DISABLE_CORS=${DISABLE_CORS}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s

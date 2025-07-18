@@ -15,6 +15,7 @@ import CloudBenchmarks from './pages/CloudBenchmarks';
 import LocalBenchmarks from './pages/LocalBenchmarks';
 import StatusPage from './pages/Status';
 import ModelDetail from './pages/ModelDetail';
+import Admin from './pages/Admin';
 
 // Styles
 import './App.css';
@@ -38,6 +39,7 @@ const App: FC = () => {
             <Route path="/cloud" element={<CloudBenchmarks />} />
             <Route path="/models/:provider/:model" element={<ModelDetail />} />
             <Route path="/status" element={<StatusPage />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
         </MainContainer>
       </Router>

@@ -14,7 +14,6 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { Provider, getProviderColor } from '../../theme/theme';
 import { TimeSeriesData, TimeSeriesModel } from '../../types/ProcessedData';
-import { Virtuoso } from 'react-virtuoso';
 import { TimeRangeSelector } from '../../components/TimeRangeSelector';
 
 interface TimeSeriesChartProps {
@@ -188,20 +187,16 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 selectedDays={selectedDays}
                 onChange={handleTimeRangeChange}
             />
-            <Virtuoso
-                useWindowScroll
-                totalCount={sortedModels.length}
-                itemContent={index => (
-                    <ModelChart
-                        key={sortedModels[index].model_name}
-                        model={sortedModels[index]}
-                        chartData={chartData}
-                        theme={theme}
-                        selectedDays={selectedDays}
-                        isLoading={isLoading}
-                    />
-                )}
-            />
+            {sortedModels.map((model) => (
+                <ModelChart
+                    key={model.model_name}
+                    model={model}
+                    chartData={chartData}
+                    theme={theme}
+                    selectedDays={selectedDays}
+                    isLoading={isLoading}
+                />
+            ))}
         </div>
     );
 };

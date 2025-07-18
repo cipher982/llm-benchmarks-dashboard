@@ -33,9 +33,8 @@ export const CenteredContentContainer = styled('div')(({ theme }) => ({
 
 export const ChartContentContainer = styled('div')(({ theme }) => ({
     maxWidth: '1100px',
-    maxHeight: '600px',
     width: '100%',
-    height: '100%',
+    height: 'auto',
     margin: 'auto',
     paddingBottom: theme.spacing(3),
 }));
