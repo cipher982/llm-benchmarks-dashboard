@@ -2,7 +2,6 @@ export interface CloudBenchmark {
     _id: string;
     provider: string;
     model_name: string;
-    run_ts?: Date;
     tokens_per_second: number[];
     time_to_first_token: number[];
     tokens_per_second_mean: number;
