@@ -16,8 +16,9 @@ async function generateStaticFiles() {
 
         // Import required modules after connection
         const { CloudMetrics } = require('../models/BenchmarkMetrics');
-        const { processAllMetrics } = require('../pages/api/processed');
-        const { fetchAndProcessMetrics } = require('../utils/apiMiddleware');
+        const { processSpeedDistData, processTimeSeriesData, processRawTableData } = require('../utils/dataProcessing');
+        const { cleanTransformCloud } = require('../utils/processCloud');
+        const { roundNumbers } = require('../utils/dataUtils');
         
         // Define the day ranges to generate
         const dayRanges = [1, 2, 3, 4, 5, 7, 10, 14, 30];
@@ -52,7 +53,26 @@ async function generateStaticFiles() {
                 
                 // Process the data using the same logic as the API
                 console.log(`  🔄 Processing data...`);
-                const processedData = await processAllMetrics(rawMetrics, days);
+                
+                // Transform data first
+                const transformedData = cleanTransformCloud(rawMetrics);
+                
+                // Apply model mapping
+                const { mapModelNames } = require('../utils/modelMappingDB');
+                const mappedData = await mapModelNames(transformedData, process.env.USE_DATABASE_MODELS === 'true');
+                
+                // Run the processing operations in parallel
+                const [speedDistData, timeSeriesData, tableData] = await Promise.all([
+                    processSpeedDistData(mappedData),
+                    processTimeSeriesData(mappedData, days),
+                    processRawTableData(mappedData)
+                ]);
+
+                const processedData = roundNumbers({
+                    speedDistribution: speedDistData,
+                    timeSeries: timeSeriesData,
+                    table: tableData
+                });
                 
                 // Save to static file
                 const filename = `processed-${days}days.json`;
