@@ -7,7 +7,7 @@ const path = require('path');
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = '0.0.0.0';
-const port = parseInt(process.env.PORT || '5000', 10);
+const port = parseInt(process.env.PORT || '3000', 10);
 
 // Static data generation using internal API calls
 async function generateStaticData() {

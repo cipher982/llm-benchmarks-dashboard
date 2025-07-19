@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { handleCachedApiResponse } from './cacheUtils';
 import connectToMongoDB from './connectToMongoDB';
 import logger from './logger';
-import { processSpeedDistData } from './dataProcessing';
 
 export async function fetchAndProcessMetrics(
     model: { find: (query?: any) => any },
@@ -55,40 +53,6 @@ export async function fetchAndProcessMetrics(
 }
 
 
-export async function setupApiEndpoint(
-    req: NextApiRequest,
-    res: NextApiResponse,
-    MetricsModel: any,
-    transformFunction: any,
-    cacheKey: any,
-    daysAgo: number,
-    useCache: boolean
-) {
-    const handled = await corsMiddleware(req, res);
-    if (handled) return;
-
-    if (req.method !== 'GET') {
-        logger.warn(`Method ${req.method} not allowed`);
-        res.setHeader('Allow', ['GET']);
-        return res.status(405).end(`Method ${req.method} Not Allowed`);
-    }
-
-    try {
-        if (useCache) {
-            await handleCachedApiResponse(req, res, MetricsModel, transformFunction, cacheKey, daysAgo);
-        } else {
-            logger.info('Cache disabled, fetching data directly');
-            const processedMetrics = await fetchAndProcessMetrics(MetricsModel, daysAgo, transformFunction);
-            if (!processedMetrics) {
-                return res.status(404).json({ message: 'No metrics found' });
-            }
-            return res.status(200).json({ raw: processedMetrics });
-        }
-    } catch (error) {
-        logger.error(`Error handling request: ${error}`);
-        res.status(500).end('Internal Server Error');
-    }
-}
 
 export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
     const origin = req.headers.origin;

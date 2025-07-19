@@ -24,9 +24,9 @@ async function generateStatusFromMongoDB(): Promise<StatusData> {
     await connectToMongoDB();
     
     // Get the last 10 runs for each model to determine status
-    const pipeline = [
+    const pipeline: any[] = [
         {
-            $sort: { timestamp: -1 }
+            $sort: { timestamp: -1 as const }
         },
         {
             $group: {
@@ -34,7 +34,7 @@ async function generateStatusFromMongoDB(): Promise<StatusData> {
                     provider: "$provider", 
                     model: "$model"
                 },
-                runs: { $push: { $ne: ["$error", null] } }, // true if error exists (failed), false if successful
+                runs: { $push: { $not: { $ifNull: ["$error", false] } } }, // true if successful, false if error
                 last_run_timestamp: { $first: "$timestamp" }
             }
         },

@@ -32,13 +32,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/server.js ./server.js
 
 # Set environment variables
-ENV PORT=5000
+ENV PORT=3000
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 
-EXPOSE 5000
+EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5000/api/health || exit 1
+  CMD curl -f http://localhost:3000/api/health || exit 1
 
 CMD ["npm", "start"] 
