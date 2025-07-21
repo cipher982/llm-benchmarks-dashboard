@@ -1,22 +1,37 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { CloudMetrics } from '../../models/BenchmarkMetrics';
 import { cleanTransformCloud } from '../../utils/processCloud';
-import { handleCachedApiResponse } from '../../utils/cacheUtils';
-import { CACHE_KEYS, DEFAULT_RANGES } from '../../utils/cacheUtils';
+import { corsMiddleware, fetchAndProcessMetrics } from '../../utils/apiMiddleware';
 
 export const daysAgo = 14;
-const debug = false;
-const useCache = !debug;
 
 const cloudHandler = async (req: NextApiRequest, res: NextApiResponse) => {
-  await handleCachedApiResponse(
-    req, 
-    res, 
-    CloudMetrics, 
-    cleanTransformCloud, 
-    CACHE_KEYS.CLOUD_METRICS,
-    DEFAULT_RANGES.CLOUD
-  );
+  // Handle CORS preflight
+  const corsHandled = await corsMiddleware(req, res);
+  if (corsHandled) return;
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    // This endpoint serves legacy cloud data (14 days) for backward compatibility
+    const processedData = await fetchAndProcessMetrics(
+      CloudMetrics,
+      daysAgo,
+      cleanTransformCloud
+    );
+
+    // Set cache headers
+    res.setHeader('Cache-Control', 'public, s-maxage=300'); // 5 minute cache
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('X-Data-Source', 'MONGODB-LEGACY');
+    
+    return res.status(200).json(processedData);
+  } catch (error) {
+    console.error('Error fetching cloud data:', error);
+    return res.status(500).json({ error: 'Failed to fetch cloud data' });
+  }
 };
 
 export default cloudHandler;

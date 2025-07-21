@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import mongoose from 'mongoose';
-import redisClient from '../../utils/redisClient';
 import connectToMongoDB from '../../utils/connectToMongoDB';
 import logger from '../../utils/logger';
 
@@ -14,7 +13,7 @@ interface HealthStatus {
       status: 'up' | 'down';
       details?: string;
     };
-    redis: {
+    staticFiles: {
       status: 'up' | 'down';
       details?: string;
     };
@@ -36,7 +35,7 @@ export default async function handler(
     url: process.env.COOLIFY_URL || 'not set',
     services: {
       mongodb: { status: 'down' },
-      redis: { status: 'down' }
+      staticFiles: { status: 'down' }
     },
     uptime: process.uptime()
   };
@@ -68,17 +67,20 @@ export default async function handler(
     logger.error('MongoDB health check failed:', error);
   }
 
-  // Check Redis
+  // Check Static Files
   try {
-    await redisClient.ping();
-    healthStatus.services.redis = { status: 'up' };
+    const fs = require('fs/promises');
+    const path = require('path');
+    const staticDir = path.join(process.cwd(), 'public', 'api');
+    await fs.access(staticDir);
+    healthStatus.services.staticFiles = { status: 'up' };
   } catch (error) {
-    healthStatus.services.redis = { 
+    healthStatus.services.staticFiles = { 
       status: 'down', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
+      details: 'Static files directory not accessible' 
     };
-    overallStatus = 'degraded';
-    logger.error('Redis health check failed:', error);
+    // Don't mark as degraded - static files will be generated automatically
+    logger.warn('Static files check failed (will be auto-generated):', error);
   }
 
   healthStatus.status = overallStatus;

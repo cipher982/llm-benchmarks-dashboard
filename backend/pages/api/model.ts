@@ -1,11 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { CloudMetrics } from '../../models/BenchmarkMetrics';
-import { corsMiddleware } from '../../utils/apiMiddleware';
-import { 
-    DEFAULT_RANGES, 
-    filterProcessedDataForModel, 
-    handleModelSpecificApiRequest 
-} from '../../utils/cacheUtils';
+import { corsMiddleware, fetchAndProcessMetrics } from '../../utils/apiMiddleware';
 import { processAllMetrics } from './processed';
 
 // Default time range in days
@@ -19,8 +14,23 @@ function parseTimeRange(req: NextApiRequest) {
 }
 
 // Filter processed data for a specific model
-function filterForModel(processedData: any, provider: string, modelName: string, days: number) {
-    return filterProcessedDataForModel(processedData, provider, modelName);
+function filterForModel(processedData: any, provider: string, modelName: string) {
+    const filteredData = {
+        speedDistribution: processedData.speedDistribution?.filter((item: any) => 
+            item.provider === provider && item.model === modelName
+        ) || [],
+        timeSeries: {
+            timestamps: processedData.timeSeries?.timestamps || [],
+            models: processedData.timeSeries?.models?.filter((model: any) => 
+                model.provider === provider && model.model === modelName
+            ) || []
+        },
+        table: processedData.table?.filter((row: any) => 
+            row.provider === provider && row.model === modelName
+        ) || []
+    };
+
+    return filteredData;
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -40,17 +50,36 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const timeRange = parseTimeRange(req);
 
     try {
-        // Use the new optimized handler for model-specific requests
-        await handleModelSpecificApiRequest(
-            req,
-            res,
+        // Fetch raw data from MongoDB
+        const rawData = await fetchAndProcessMetrics(
             CloudMetrics,
-            (rawData) => processAllMetrics(rawData, timeRange.days),
-            filterForModel,
-            providerStr,
-            modelStr,
-            timeRange.days
+            timeRange.days,
+            (data: any[]) => data
         );
+        
+        // Process the data
+        const metricsArray = Array.isArray(rawData) ? rawData : (rawData.raw || []);
+        
+        if (!metricsArray.length) {
+            return res.status(404).json({ error: 'No metrics found for this model' });
+        }
+
+        const processedData = await processAllMetrics(metricsArray, timeRange.days);
+        
+        // Filter for specific model
+        const filteredData = filterForModel(processedData, providerStr, modelStr);
+        
+        // Check if model exists
+        if (!filteredData.table?.length && !filteredData.speedDistribution?.length) {
+            return res.status(404).json({ error: `Model ${providerStr}/${modelStr} not found` });
+        }
+
+        // Set cache headers
+        res.setHeader('Cache-Control', 'public, s-maxage=300'); // 5 minute cache
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('X-Data-Source', 'MONGODB-MODEL-SPECIFIC');
+        
+        return res.status(200).json(filteredData);
     } catch (error) {
         console.error('Error processing model metrics:', error);
         return res.status(500).json({ error: 'Failed to process model metrics' });

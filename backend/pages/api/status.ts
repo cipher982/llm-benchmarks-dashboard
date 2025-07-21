@@ -1,6 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import Redis from 'ioredis';
 import { corsMiddleware } from '../../utils/apiMiddleware';
+import { CloudMetrics } from '../../models/BenchmarkMetrics';
+import connectToMongoDB from '../../utils/connectToMongoDB';
+import fs from 'fs/promises';
+import path from 'path';
 
 // Constants
 const MAX_RUNS = 10;  // Match the Python code's default
@@ -17,12 +20,49 @@ interface StatusData {
     [key: string]: ModelStatus;
 }
 
-const redis = new Redis({
-    host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT),
-    password: process.env.REDIS_PASSWORD,
-    db: Number(process.env.REDIS_DB)
-});
+async function generateStatusFromMongoDB(): Promise<StatusData> {
+    await connectToMongoDB();
+    
+    // Get the last 10 runs for each model to determine status
+    const pipeline: any[] = [
+        {
+            $sort: { timestamp: -1 as const }
+        },
+        {
+            $group: {
+                _id: {
+                    provider: "$provider", 
+                    model: "$model"
+                },
+                runs: { $push: { $not: { $ifNull: ["$error", false] } } }, // true if successful, false if error
+                last_run_timestamp: { $first: "$timestamp" }
+            }
+        },
+        {
+            $project: {
+                provider: "$_id.provider",
+                model: "$_id.model", 
+                last_run_timestamp: "$last_run_timestamp",
+                runs: { $slice: ["$runs", MAX_RUNS] } // Limit to last MAX_RUNS
+            }
+        }
+    ];
+    
+    const results = await CloudMetrics.aggregate(pipeline);
+    
+    const statusData: StatusData = {};
+    for (const result of results) {
+        const key = result.model;
+        statusData[key] = {
+            provider: result.provider,
+            model: result.model,
+            last_run_timestamp: result.last_run_timestamp?.toISOString() || new Date().toISOString(),
+            runs: result.runs.map((run: any) => Boolean(run))
+        };
+    }
+    
+    return statusData;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     corsMiddleware(req, res);
@@ -30,39 +70,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'GET') {
         try {
-            const statusData = await redis.get('cloud_log_status');
-            if (statusData) {
-                const parsedData = JSON.parse(statusData);
+            // Try to serve from static file first
+            const statusFilePath = path.join(process.cwd(), 'public', 'api', 'status.json');
+            
+            try {
+                const stats = await fs.stat(statusFilePath);
+                const ageMinutes = (Date.now() - stats.mtime.getTime()) / (1000 * 60);
                 
-                // Keep the data structure but ensure runs array is limited to last N entries
-                const optimizedData = Object.entries(parsedData).reduce((acc, [compositeKey, value]: [string, any]) => {
-                    // Handle both old and new format
-                    const isNewFormat = compositeKey.includes(':');
-                    const [provider, ...modelParts] = isNewFormat ? compositeKey.split(':') : [value.provider, compositeKey];
-                    const model = isNewFormat ? modelParts.join(':') : compositeKey;
+                // Serve static file if less than 30 minutes old
+                if (ageMinutes < 30) {
+                    const data = await fs.readFile(statusFilePath, 'utf8');
+                    const parsedData = JSON.parse(data);
                     
-                    // Ensure runs are boolean values
-                    const runs = Array.isArray(value.runs) 
-                        ? value.runs.slice(-MAX_RUNS).map((run: unknown) => Boolean(run))
-                        : [];
-                        
-                    acc[model] = {
-                        provider: provider || value.provider || 'unknown',
-                        model: value.model || model,
-                        last_run_timestamp: value.last_run_timestamp,
-                        runs
-                    };
-                    return acc;
-                }, {} as StatusData);
-
-                res.setHeader('Content-Type', 'application/json');
-                res.setHeader('Cache-Control', 'public, s-maxage=10');
-                res.status(200).json(optimizedData);
-            } else {
-                res.status(404).json({ error: 'Status data not found' });
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('Cache-Control', 'public, s-maxage=300'); // 5 minute cache
+                    res.setHeader('X-Cache-Status', 'STATIC-FILE');
+                    res.status(200).json(parsedData);
+                    return;
+                }
+            } catch {
+                // Static file doesn't exist or is inaccessible, generate from MongoDB
             }
+            
+            // Generate status from MongoDB
+            const statusData = await generateStatusFromMongoDB();
+            
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Cache-Control', 'public, s-maxage=60'); // 1 minute cache for dynamic
+            res.setHeader('X-Cache-Status', 'MONGODB-DYNAMIC');
+            res.status(200).json(statusData);
+            
         } catch (error) {
-            console.error('Failed to fetch status data from Redis:', error);
+            console.error('Failed to fetch status data:', error);
             res.status(500).json({ error: 'Internal Server Error' });
         }
     } else {

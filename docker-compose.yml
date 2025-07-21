@@ -1,44 +1,38 @@
 services:
-  llm-bench-backend:
+  llm-bench-app:
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "${BACKEND_PORT}:5000"
+      - "${PORT:-3000}:3000"
     environment:
       - MONGODB_URI=${MONGODB_URI}
-      - PORT=5000
+      - PORT=3000
       - NODE_ENV=production
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_DB=${REDIS_DB}
       - DISABLE_CORS=${DISABLE_CORS}
       - ADMIN_API_KEY=${ADMIN_API_KEY}
+    volumes:
+      - static-api-cache:/app/public/api
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 5s
-  llm-bench-frontend:
+
+  llm-bench-static-generator:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${BACKEND_URL}
+      context: ./backend
+      dockerfile: Dockerfile.cron
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT}:3000"
     environment:
-      - VITE_API_URL=${BACKEND_URL}
+      - MONGODB_URI=${MONGODB_URI}
+      - NODE_ENV=production
+    volumes:
+      - static-api-cache:/app/public/api
     depends_on:
-      llm-bench-backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
+      - llm-bench-app
+
+volumes:
+  static-api-cache:
