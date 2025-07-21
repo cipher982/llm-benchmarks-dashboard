@@ -12,9 +12,11 @@ const NavBarContainer = styled('div')(({ theme }) => ({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: theme.palette.primary.main,
+    // Windows 2000 style gradient
+    background: `linear-gradient(to bottom, ${theme.designSystem.colors.primary} 0%, ${theme.designSystem.colors.primaryLight} 100%)`,
     padding: theme.spacing(2, 3),
     boxShadow: theme.shadows[2],
+    borderBottom: `1px solid ${theme.designSystem.colors.borderDark}`,
     [theme.breakpoints.down('md')]: {
         flexDirection: 'column',
         alignItems: 'center',
@@ -50,22 +52,29 @@ const ButtonsContainer = styled('div')(({ theme }) => ({
 }));
 
 const StyledButton = styled(MuiButton)(({ theme }) => ({
-    color: theme.palette.text.primary,
-    backgroundColor: theme.palette.background.paper,
+    color: theme.designSystem.colors.textPrimary,
+    backgroundColor: theme.designSystem.colors.surfaceElevated,
     minWidth: 'auto',
-    padding: theme.spacing(1, 2),
-    border: `1px solid ${theme.palette.divider}`,
+    padding: '4px 16px',
+    border: `2px outset ${theme.designSystem.colors.surfaceElevated}`,
+    borderRadius: 0,
     gap: theme.spacing(1),
+    fontSize: '11px',
+    fontFamily: 'Tahoma, sans-serif',
+    textTransform: 'none',
     '& .MuiSvgIcon-root': {
-        color: theme.palette.text.primary,
-        fontSize: '1.1rem',
+        color: theme.designSystem.colors.textPrimary,
+        fontSize: '16px',
     },
     '&:hover': {
-        backgroundColor: theme.palette.grey[100],
-        borderColor: theme.palette.primary.main,
+        backgroundColor: theme.designSystem.colors.hover,
+        border: `2px outset ${theme.designSystem.colors.surfaceElevated}`,
+    },
+    '&:active': {
+        border: `2px inset ${theme.designSystem.colors.surfaceElevated}`,
     },
     [theme.breakpoints.down('md')]: {
-        padding: theme.spacing(1),
+        padding: '4px 8px',
     },
 }));
 
@@ -88,16 +97,19 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children }) => {
     const isActive = pathname === href;
 
     return (
-        <Link href={href} style={{ textDecoration: 'none', marginRight: '16px' }}>
+        <Link href={href} style={{ textDecoration: 'none', marginRight: '8px' }}>
             <div
                 style={{
-                    padding: '8px 16px',
+                    padding: '6px 14px',
                     color: '#000',
-                    backgroundColor: '#fff',
-                    borderRadius: '4px',
-                    boxShadow: isActive ? '0 0 0 2px #2196f3' : 'none',
-                    border: isActive ? '2px solid #1976d2' : '2px solid transparent',
-                    fontWeight: isActive ? 600 : 400,
+                    backgroundColor: isActive ? '#ECE9D8' : '#D4D0C8',
+                    borderRadius: '0',
+                    border: isActive 
+                        ? '2px inset #D4D0C8'
+                        : '2px outset #D4D0C8',
+                    fontWeight: 400,
+                    fontSize: '11px',
+                    fontFamily: 'Tahoma, sans-serif',
                     transition: 'all 0.2s ease-in-out',
                     cursor: 'pointer',
                 }}

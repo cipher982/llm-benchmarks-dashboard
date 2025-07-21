@@ -1,6 +1,7 @@
 import React from 'react';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import { colors } from './design-system';
 
 export interface TimeRange {
   days: number;
@@ -28,7 +29,30 @@ export function TimeRangeSelector({ selectedDays, onChange }: TimeRangeSelectorP
       onChange={(_, days) => days && onChange(days)}
       aria-label="time range"
       size="small"
-      sx={{ mb: 2 }}
+      sx={{ 
+        mb: 2,
+        '& .MuiToggleButton-root': {
+          backgroundColor: colors.surfaceElevated,
+          color: colors.textPrimary,
+          border: `2px outset ${colors.surfaceElevated}`,
+          borderRadius: 0,
+          padding: '4px 16px',
+          fontSize: '11px',
+          fontFamily: 'Tahoma, sans-serif',
+          textTransform: 'none',
+          '&:hover': {
+            backgroundColor: colors.hover,
+            border: `2px outset ${colors.surfaceElevated}`,
+          },
+          '&.Mui-selected': {
+            backgroundColor: colors.surface,
+            border: `2px inset ${colors.surfaceElevated}`,
+            '&:hover': {
+              backgroundColor: colors.surface,
+            },
+          },
+        },
+      }}
     >
       {timeRanges.map((range) => (
         <ToggleButton

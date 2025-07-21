@@ -66,50 +66,56 @@ export const PageTitle = styled('h1')(({ theme }) => ({
     fontWeight: theme.typography.h1.fontWeight,
 }));
 
-// Enhanced Section Containers with Windows 98 styling
+// Enhanced Section Containers with Windows 2000 styling
 export const StyledDescriptionSection = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
-    backgroundColor: theme.palette.background.paper,
-    padding: theme.spacing(8), // Windows 98 uses 4px base spacing
-    border: `2px outset ${colors.surfaceElevated}`,
-    marginBottom: theme.spacing(8),
-    boxShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)',
-    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
+    backgroundColor: colors.surface,
+    padding: theme.spacing(6),
+    border: `1px solid ${colors.borderMedium}`,
+    borderTop: `1px solid ${colors.borderLight}`,
+    borderLeft: `1px solid ${colors.borderLight}`,
+    marginBottom: theme.spacing(4),
+    boxShadow: '1px 1px 2px rgba(0, 0, 0, 0.1)',
+    fontFamily: 'Tahoma, "MS Sans Serif", sans-serif',
     [theme.breakpoints.down('md')]: {
-        padding: theme.spacing(4),
-        marginBottom: theme.spacing(4),
+        padding: theme.spacing(3),
+        marginBottom: theme.spacing(3),
     },
 }));
 
 export const StyledChartContainer = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
-    backgroundColor: theme.palette.background.paper,
-    padding: theme.spacing(8),
-    border: `2px inset ${colors.surfaceElevated}`,
+    backgroundColor: colors.surface,
+    padding: theme.spacing(4),
+    border: `1px solid ${colors.borderDark}`,
+    borderTop: `1px solid ${colors.borderMedium}`,
+    borderLeft: `1px solid ${colors.borderMedium}`,
     maxWidth: '100%',
     overflowX: 'auto',
-    marginBottom: theme.spacing(8),
-    boxShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)',
-    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
+    marginBottom: theme.spacing(4),
+    boxShadow: 'inset 1px 1px 0 rgba(0, 0, 0, 0.1)',
+    fontFamily: 'Tahoma, "MS Sans Serif", sans-serif',
     [theme.breakpoints.down('md')]: {
-        padding: theme.spacing(4),
-        marginBottom: theme.spacing(4),
+        padding: theme.spacing(2),
+        marginBottom: theme.spacing(3),
     },
 }));
 
 export const StyledTableContainer = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
-    backgroundColor: theme.palette.background.paper,
-    padding: theme.spacing(8),
-    border: `2px inset ${colors.surfaceElevated}`,
+    backgroundColor: colors.surface,
+    padding: theme.spacing(4),
+    border: `1px solid ${colors.borderDark}`,
+    borderTop: `1px solid ${colors.borderMedium}`,
+    borderLeft: `1px solid ${colors.borderMedium}`,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '400px',
-    marginBottom: theme.spacing(8),
-    boxShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)',
-    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
+    marginBottom: theme.spacing(4),
+    boxShadow: 'inset 1px 1px 0 rgba(0, 0, 0, 0.1)',
+    fontFamily: 'Tahoma, "MS Sans Serif", sans-serif',
     [theme.breakpoints.down('md')]: {
-        padding: theme.spacing(4),
-        marginBottom: theme.spacing(4),
+        padding: theme.spacing(2),
+        marginBottom: theme.spacing(3),
     },
 }));
 
@@ -181,16 +187,17 @@ export const Win98AppWindow = styled('div')<{ title?: string; isMobile?: boolean
 }));
 
 export const Win98TitleBar = styled('div')<{ title: string }>(({ title }) => ({
-    background: 'linear-gradient(90deg, #000080 0%, #1084d0 100%)',
+    background: `linear-gradient(to bottom, ${colors.primary} 0%, ${colors.primaryLight} 100%)`,
     color: '#FFFFFF',
     padding: '2px 4px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-    fontSize: '0.75rem',
-    fontWeight: 400,
-    height: '18px',
+    fontFamily: 'Tahoma, sans-serif',
+    fontSize: '13px',
+    fontWeight: 700,
+    height: '24px',
+    borderBottom: `1px solid ${colors.borderDark}`,
     '&::before': {
         content: `"${title}"`,
         whiteSpace: 'nowrap',
