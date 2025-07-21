@@ -28,7 +28,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, modelLinkFn }) => {
             renderCell: modelLinkFn ? (params: GridRenderCellParams) => (
                 <Link 
                     href={modelLinkFn(params.row.provider, params.row.model_name)}
-                    style={{ color: '#90caf9', textDecoration: 'none' }}
+                    style={{ color: '#316AC5', textDecoration: 'underline' }}
                 >
                     {params.value}
                 </Link>
