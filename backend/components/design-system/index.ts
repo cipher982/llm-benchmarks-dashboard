@@ -17,31 +17,37 @@
  * Based on authentic Windows 98 system colors
  */
 export const colors = {
-  // System Colors
-  background: '#C0C0C0',           // Classic Windows 98 gray background
-  surface: '#FFFFFF',              // Window content background
-  surfaceElevated: '#DFDFDF',      // Panel/button surface color
+  // System Colors - Updated to Windows 2000/NT style
+  background: '#3B6EA5',           // Windows 2000 desktop blue (was #C0C0C0)
+  surface: '#ECE9D8',              // Warm beige-gray for content (was #FFFFFF)
+  surfaceElevated: '#D4D0C8',      // Softer panel color (was #DFDFDF)
   
-  // Border Colors (3D effects)
+  // Border Colors (3D effects) - Softer for NT style
   borderLight: '#FFFFFF',          // Top/left highlight for 3D effect
-  borderDark: '#000000',           // Bottom/right shadow for 3D effect
-  borderMedium: '#404040',         // Medium shadow for panels
+  borderDark: '#404040',           // Softer shadow (was #000000)
+  borderMedium: '#808080',         // Medium shadow for panels (was #404040)
   
-  // Accent Colors
-  primary: '#000080',              // Windows 98 blue (title bars, selections)
+  // Accent Colors - NT style gradients
+  primary: '#0A246A',              // Darker blue for gradient start (was #000080)
+  primaryLight: '#A6CAF0',         // Light blue for gradient end (new)
   primaryText: '#FFFFFF',          // Text on primary background
-  error: '#800000',                // Windows 98 error red
+  error: '#800000',                // Windows error red (unchanged)
   
-  // Text Colors
-  textPrimary: '#000000',          // Primary text color
-  textSecondary: '#404040',        // Secondary text color
-  textDisabled: '#808080',         // Disabled text color
+  // Text Colors - Slightly softer
+  textPrimary: '#333333',          // Medium gray for Windows 2000 feel
+  textSecondary: '#5A5A5A',        // Lighter secondary text
+  textDisabled: '#999999',         // Lighter disabled text
   
-  // Interactive States
-  hover: '#E0E0E0',               // Hover state background
-  pressed: '#A0A0A0',             // Pressed state background
-  selected: '#000080',            // Selected item background
+  // Interactive States - Warmer tones
+  hover: '#E4E2DC',               // Warmer hover state (was #E0E0E0)
+  pressed: '#B8B5A6',             // Warmer pressed state (was #A0A0A0)
+  selected: '#316AC5',            // Windows 2000 selection blue (was #000080)
   selectedText: '#FFFFFF',        // Text on selected background
+  
+  // Additional NT-specific colors
+  menuBar: '#D4D0C8',             // Menu bar background
+  windowFrame: '#0A246A',         // Window frame color
+  inactiveTitle: '#7A96DF',       // Inactive title bar
 } as const;
 
 /**
@@ -284,6 +290,21 @@ export function getTypographySize(size: TypographySize): string {
  */
 export function createBreakpoint(breakpoint: BreakpointName): string {
   return `${breakpoints[breakpoint]}px`;
+}
+
+/**
+ * Creates Windows 2000 style gradient for title bars
+ * @param startColor - Start color (default: primary)
+ * @param endColor - End color (default: primaryLight)
+ * @param direction - Gradient direction (default: 'vertical')
+ */
+export function createTitleBarGradient(
+  startColor: string = colors.primary,
+  endColor: string = colors.primaryLight,
+  direction: 'vertical' | 'horizontal' = 'vertical'
+): string {
+  const dir = direction === 'vertical' ? 'to bottom' : 'to right';
+  return `linear-gradient(${dir}, ${startColor} 0%, ${endColor} 100%)`;
 }
 
 /**

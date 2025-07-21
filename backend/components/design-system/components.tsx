@@ -75,8 +75,8 @@ export const StyledCircularProgress = styled(CircularProgress)({
  * Main application container with responsive behavior
  */
 export const MainContainer = styled('div')<ResponsiveProps>(({ isMobile }) => ({
-  paddingTop: isMobile ? '70px' : '30px',
-  margin: isMobile ? `${spacing.scale[1]}px` : `${spacing.scale[3]}px`,
+  paddingTop: isMobile ? '70px' : '50px',
+  margin: 0,
   backgroundColor: colors.background,
   fontFamily: typography.fontFamily,
   minHeight: '100vh',

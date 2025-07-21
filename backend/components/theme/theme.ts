@@ -229,6 +229,28 @@ const theme = createTheme({
         },
       },
     },
+    MuiInputBase: {
+      styleOverrides: {
+        root: {
+          color: '#FFFFFF',
+          fontFamily: typography.fontFamily,
+          fontSize: typography.sizes.base,
+          '& .MuiInputBase-input': {
+            color: '#FFFFFF',
+          },
+          '& .MuiSvgIcon-root': {
+            color: '#FFFFFF',
+          },
+        },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        icon: {
+          color: '#FFFFFF',
+        },
+      },
+    },
     MuiTableCell: {
       styleOverrides: {
         head: {
@@ -255,25 +277,76 @@ const theme = createTheme({
     },
     MuiCssBaseline: {
       styleOverrides: `
+        body {
+          background-color: ${colors.background};
+          font-family: ${typography.fontFamily};
+        }
+        
         .MuiDataGrid-root {
           border: 1px solid ${colors.borderMedium};
           font-family: ${typography.fontFamily};
           font-size: ${typography.sizes.base};
           background-color: ${colors.surface};
+          color: #FFFFFF;
           
           & .MuiDataGrid-columnHeaders {
             background-color: ${colors.surfaceElevated};
             border-bottom: 2px solid ${colors.borderMedium};
             font-weight: ${typography.weights.normal};
+            color: #FFFFFF;
+          }
+          
+          & .MuiDataGrid-columnHeaderTitle {
+            color: #FFFFFF;
           }
           
           & .MuiDataGrid-cell {
             border-bottom: 1px solid ${colors.borderMedium};
             border-right: 1px solid ${colors.borderMedium};
+            color: #FFFFFF;
           }
           
           & .MuiDataGrid-columnSeparator {
             color: ${colors.borderMedium};
+          }
+          
+          & .MuiDataGrid-sortIcon {
+            color: #FFFFFF;
+          }
+          
+          & .MuiDataGrid-menuIcon {
+            color: #FFFFFF;
+          }
+          
+          & .MuiDataGrid-footerContainer {
+            background-color: ${colors.surface};
+            border-top: 1px solid ${colors.borderMedium};
+            color: #FFFFFF;
+          }
+          
+          & .MuiTablePagination-root {
+            color: #FFFFFF;
+          }
+          
+          & .MuiTablePagination-selectLabel,
+          & .MuiTablePagination-displayedRows {
+            color: #FFFFFF;
+          }
+          
+          & .MuiTablePagination-select {
+            color: #FFFFFF;
+          }
+          
+          & .MuiTablePagination-selectIcon {
+            color: #FFFFFF;
+          }
+          
+          & .MuiIconButton-root {
+            color: #FFFFFF;
+          }
+          
+          & .MuiIconButton-root.Mui-disabled {
+            color: rgba(255, 255, 255, 0.3);
           }
         }
       `,
