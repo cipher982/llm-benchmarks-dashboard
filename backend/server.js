@@ -31,16 +31,32 @@ async function generateStaticData() {
     console.log(`🎯 OPTIMIZED: Single query for ${maxDays} days, then local filtering for ${timeRanges.length} ranges`);
     
     try {
-      // Step 1: Single MongoDB query for maximum time range
+      // Step 1: Direct MongoDB query (no HTTP request)
       const queryStart = Date.now();
       console.log(`🔍 Fetching ${maxDays} days of data from MongoDB...`);
       
-      const response = await fetch(`http://localhost:${port}/api/processed?days=${maxDays}&bypass_static=true`);
-      if (!response.ok) {
-        throw new Error(`MongoDB query failed: ${response.status}`);
-      }
+      // Enable TypeScript support for requiring .ts files
+      require('ts-node').register({
+        transpileOnly: true,
+        compilerOptions: {
+          module: 'commonjs',
+          moduleResolution: 'node',
+          target: 'es2017',
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true
+        }
+      });
       
-      const maxData = await response.json();
+      // Import the raw data utility
+      const { generateRawData } = require('./utils/staticGeneration');
+      
+      // Get raw data from MongoDB
+      const rawMetrics = await generateRawData(maxDays);
+      
+      // Process using existing API logic
+      const { processAllMetrics } = require('./pages/api/processed.ts');
+      
+      const maxData = await processAllMetrics(rawMetrics, maxDays);
       const queryTime = Date.now() - queryStart;
       console.log(`✅ MongoDB query completed in ${queryTime}ms`);
       console.log(`📊 Fetched data: ${maxData.table?.length || 0} records`);
@@ -103,11 +119,8 @@ async function generateStaticData() {
       console.log(`🎯 Generation Summary: ${successful} successful, ${failed} failed`);
       
     } catch (error) {
-      console.error(`❌ Optimized generation failed:`, error.message);
-      
-      // Fallback to original parallel method if optimization fails
-      console.log(`🔄 Falling back to original parallel generation...`);
-      // ... (original code would go here as fallback)
+      console.error(`❌ Static data generation failed:`, error.message);
+      throw error; // No fallback - fix the real issue
     }
     
     const duration = Date.now() - startTime;
@@ -122,8 +135,55 @@ async function generateStaticData() {
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
-  createServer((req, res) => {
+// Verify all required static files exist
+async function verifyStaticFiles() {
+  const requiredFiles = [
+    'processed-3days.json',
+    'processed-7days.json', 
+    'processed-12days.json',
+    'processed-14days.json'
+  ];
+  
+  for (const filename of requiredFiles) {
+    const filepath = path.join(__dirname, 'public', 'api', filename);
+    try {
+      await fs.access(filepath);
+      console.log(`✅ ${filename} exists`);
+    } catch {
+      throw new Error(`❌ Required static file missing: ${filename}`);
+    }
+  }
+}
+
+// Bootstrap application - static files MUST exist before serving
+async function bootstrap() {
+  console.log('\n🚀 BOOTSTRAPPING APPLICATION...');
+  console.log('📊 Static files are the core of this application');
+  console.log('⏳ Generating static files before serving requests...\n');
+  
+  try {
+    // Generate all static files
+    await generateStaticData();
+    
+    // Verify they exist
+    await verifyStaticFiles();
+    
+    console.log('\n🎉 STATIC FILES READY - APPLICATION IS READY TO SERVE');
+    console.log('⚡ All requests will be instant (serving static files)');
+    
+    return true;
+  } catch (error) {
+    console.error('\n❌ BOOTSTRAP FAILED:', error.message);
+    console.error('🚨 Application cannot start without static files');
+    process.exit(1);
+  }
+}
+
+app.prepare().then(async () => {
+  // CRITICAL: Don't start server until static files are ready
+  await bootstrap();
+  
+  const server = createServer((req, res) => {
     // Parse the URL
     const parsedUrl = parse(req.url, true);
     
@@ -154,49 +214,18 @@ app.prepare().then(() => {
     
     // Let Next.js handle the request
     handle(req, res, parsedUrl);
-  }).listen(port, hostname, (err) => {
+  });
+  
+  server.listen(port, hostname, (err) => {
     if (err) throw err;
-    console.log(`> Ready on http://${hostname}:${port}`);
-    console.log(`> Environment: ${process.env.NODE_ENV}`);
-    console.log(`> Coolify URL: ${process.env.COOLIFY_URL || 'not set'}`);
+    console.log(`\n🌐 SERVER READY: http://${hostname}:${port}`);
+    console.log(`📦 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔄 Static files refresh every 30 minutes`);
     
     // Schedule static data generation every 30 minutes
-    console.log('📅 Scheduling data generation every 30 minutes...');
     cron.schedule('*/30 * * * *', () => {
-      console.log('⏰ Cron triggered data generation (30min interval)');
+      console.log('⏰ Refreshing static files (30min interval)');
       generateStaticData();
     });
-    
-    // Generate data on startup - more aggressively
-    console.log('🚀 Generating initial static data...');
-    
-    // Start generation immediately, but with retry logic for database connectivity
-    const startupGeneration = async () => {
-      let retries = 0;
-      const maxRetries = 5;
-      
-      while (retries < maxRetries) {
-        try {
-          console.log(`🔄 Startup generation attempt ${retries + 1}/${maxRetries}`);
-          await generateStaticData();
-          console.log('✅ Startup generation completed successfully');
-          break;
-        } catch (error) {
-          retries++;
-          console.error(`❌ Startup generation attempt ${retries} failed:`, error.message);
-          
-          if (retries < maxRetries) {
-            const delay = retries * 2000; // Progressive backoff: 2s, 4s, 6s, 8s
-            console.log(`⏳ Retrying in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-          } else {
-            console.error('❌ All startup generation attempts failed. Static files may be stale.');
-          }
-        }
-      }
-    };
-    
-    // Start generation after a brief delay to ensure server is ready
-    setTimeout(startupGeneration, 1000);
   });
 }); 
