@@ -1,23 +1,30 @@
 /**
  * Material-UI Theme Configuration
  * 
- * Modern theme implementation using our Windows 98 design system.
- * Integrates design tokens with Material-UI's theming system.
+ * Clean theme implementation using refined design principles.
+ * No more global CSS overrides or hard-coded colors!
  * 
- * @fileoverview Clean Material-UI theme with design system integration
- * @version 2.0.0
+ * @fileoverview Simplified Material-UI theme
+ * @version 3.0.0
  */
 
 import { createTheme, Theme } from '@mui/material/styles';
 import { 
-  colors, 
-  providerColors, 
-  typography, 
-  spacing, 
-  breakpoints, 
-  sizing,
+  refinedColors,
+  refinedProviderColors,
+  refinedTypography,
+  refinedSpacing,
+  refinedBreakpoints,
+  refinedElevation,
+  refinedPatterns,
+  refinedAnimation,
+} from '../design-system/refined-design-system';
+
+// Legacy imports for backwards compatibility (to be removed)
+import { 
+  colors as oldColors,
+  providerColors as oldProviderColors,
   Provider,
-  getProviderColor as designSystemGetProviderColor,
   type ProviderName 
 } from '../design-system';
 
@@ -25,9 +32,6 @@ import {
 // MATERIAL-UI THEME EXTENSIONS
 // =============================================================================
 
-/**
- * Extend Material-UI's theme interface to include our design system
- */
 declare module '@mui/material/styles' {
   interface Palette {
     providers: Record<ProviderName, string>;
@@ -38,319 +42,224 @@ declare module '@mui/material/styles' {
   }
 
   interface Theme {
+    refined: {
+      colors: typeof refinedColors;
+      providerColors: typeof refinedProviderColors;
+      typography: typeof refinedTypography;
+      spacing: typeof refinedSpacing;
+      breakpoints: typeof refinedBreakpoints;
+      elevation: typeof refinedElevation;
+      patterns: typeof refinedPatterns;
+    };
+    // Legacy design system (for backwards compatibility)
     designSystem: {
-      colors: typeof colors;
-      providerColors: typeof providerColors;
-      typography: typeof typography;
-      spacing: typeof spacing;
-      breakpoints: typeof breakpoints;
-      sizing: typeof sizing;
+      colors: typeof oldColors;
+      providerColors: typeof oldProviderColors;
     };
   }
 
   interface ThemeOptions {
+    refined?: {
+      colors?: typeof refinedColors;
+      providerColors?: typeof refinedProviderColors;
+      typography?: typeof refinedTypography;
+      spacing?: typeof refinedSpacing;
+      breakpoints?: typeof refinedBreakpoints;
+      elevation?: typeof refinedElevation;
+      patterns?: typeof refinedPatterns;
+    };
     designSystem?: {
-      colors?: typeof colors;
-      providerColors?: typeof providerColors;
-      typography?: typeof typography;
-      spacing?: typeof spacing;
-      breakpoints?: typeof breakpoints;
-      sizing?: typeof sizing;
+      colors?: typeof oldColors;
+      providerColors?: typeof oldProviderColors;
     };
   }
 }
 
 // =============================================================================
-// THEME UTILITIES
+// THEME CREATION
 // =============================================================================
 
-/**
- * Type-safe provider color getter with proper theme typing
- */
-export const getProviderColor = (theme: Theme, provider: Provider): string => {
-  return designSystemGetProviderColor(provider);
-};
-
-/**
- * Re-export Provider enum and types for convenience
- */
-export { Provider } from '../design-system';
-export type { ProviderName } from '../design-system';
-
-
-// =============================================================================
-// MATERIAL-UI THEME CREATION
-// =============================================================================
-
-/**
- * Create the Material-UI theme using our design system tokens
- */
 const theme = createTheme({
-  // Design system integration
-  designSystem: {
-    colors,
-    providerColors,
-    typography,
-    spacing,
-    breakpoints,
-    sizing,
+  // Refined design system
+  refined: {
+    colors: refinedColors,
+    providerColors: refinedProviderColors,
+    typography: refinedTypography,
+    spacing: refinedSpacing,
+    breakpoints: refinedBreakpoints,
+    elevation: refinedElevation,
+    patterns: refinedPatterns,
   },
   
-  // Palette using design system colors
+  // Legacy design system (for backwards compatibility)
+  designSystem: {
+    colors: oldColors,
+    providerColors: oldProviderColors,
+  },
+  
+  // Palette using refined colors
   palette: {
     mode: 'light',
     primary: {
-      main: colors.primary,
-      contrastText: colors.primaryText,
+      main: refinedColors.primary.main,
+      light: refinedColors.primary.light,
+      dark: refinedColors.primary.dark,
+      contrastText: refinedColors.primary.contrast,
     },
     secondary: {
-      main: colors.borderMedium,
-      contrastText: colors.primaryText,
+      main: refinedColors.neutral[500],
+      contrastText: refinedColors.text.primary,
     },
     error: {
-      main: colors.error,
-      contrastText: colors.primaryText,
+      main: refinedColors.semantic.error,
+      contrastText: '#FFFFFF',
+    },
+    warning: {
+      main: refinedColors.semantic.warning,
+      contrastText: refinedColors.text.primary,
+    },
+    success: {
+      main: refinedColors.semantic.success,
+      contrastText: '#FFFFFF',
+    },
+    info: {
+      main: refinedColors.semantic.info,
+      contrastText: '#FFFFFF',
     },
     background: {
-      default: colors.background,
-      paper: colors.surface,
+      default: refinedColors.background.primary,
+      paper: refinedColors.background.elevated,
     },
     text: {
-      primary: colors.textPrimary,
-      secondary: colors.textSecondary,
-      disabled: colors.textDisabled,
+      primary: refinedColors.text.primary,
+      secondary: refinedColors.text.secondary,
+      disabled: refinedColors.text.disabled,
     },
-    divider: colors.borderMedium,
-    // Provider colors integrated into theme
-    providers: providerColors,
+    divider: refinedColors.neutral[300],
+    providers: oldProviderColors, // Keep for backwards compatibility
   },
   
-  // Spacing using design system
-  spacing: spacing.unit,
-  
-  // Breakpoints using design system
-  breakpoints: {
-    values: breakpoints,
-  },
-  
-  // Typography using design system
+  // Typography using refined system
   typography: {
-    fontFamily: typography.fontFamily,
+    fontFamily: refinedTypography.fontFamily.sans,
     h1: {
-      fontSize: typography.sizes['3xl'],
-      fontWeight: typography.weights.normal,
-      lineHeight: typography.lineHeights.tight,
+      fontSize: refinedTypography.scale['3xl'],
+      fontWeight: refinedTypography.weight.semibold,
+      lineHeight: refinedTypography.lineHeight.tight,
+      letterSpacing: refinedTypography.letterSpacing.tight,
     },
     h2: {
-      fontSize: typography.sizes['2xl'],
-      fontWeight: typography.weights.normal,
-      lineHeight: typography.lineHeights.tight,
+      fontSize: refinedTypography.scale['2xl'],
+      fontWeight: refinedTypography.weight.semibold,
+      lineHeight: refinedTypography.lineHeight.tight,
     },
     h3: {
-      fontSize: typography.sizes.xl,
-      fontWeight: typography.weights.normal,
-      lineHeight: typography.lineHeights.normal,
+      fontSize: refinedTypography.scale.xl,
+      fontWeight: refinedTypography.weight.medium,
+      lineHeight: refinedTypography.lineHeight.snug,
     },
     h4: {
-      fontSize: typography.sizes.lg,
-      fontWeight: typography.weights.normal,
-      lineHeight: typography.lineHeights.normal,
+      fontSize: refinedTypography.scale.lg,
+      fontWeight: refinedTypography.weight.medium,
+      lineHeight: refinedTypography.lineHeight.normal,
     },
     h5: {
-      fontSize: typography.sizes.md,
-      fontWeight: typography.weights.normal,
-      lineHeight: typography.lineHeights.normal,
+      fontSize: refinedTypography.scale.md,
+      fontWeight: refinedTypography.weight.medium,
+      lineHeight: refinedTypography.lineHeight.normal,
     },
     h6: {
-      fontSize: typography.sizes.base,
-      fontWeight: typography.weights.normal,
-      lineHeight: typography.lineHeights.normal,
+      fontSize: refinedTypography.scale.base,
+      fontWeight: refinedTypography.weight.medium,
+      lineHeight: refinedTypography.lineHeight.normal,
     },
     body1: {
-      fontSize: typography.sizes.base,
-      lineHeight: typography.lineHeights.normal,
+      fontSize: refinedTypography.scale.base,
+      lineHeight: refinedTypography.lineHeight.relaxed,
     },
     body2: {
-      fontSize: typography.sizes.sm,
-      lineHeight: typography.lineHeights.normal,
+      fontSize: refinedTypography.scale.sm,
+      lineHeight: refinedTypography.lineHeight.relaxed,
     },
     caption: {
-      fontSize: typography.sizes.xs,
-      lineHeight: typography.lineHeights.tight,
+      fontSize: refinedTypography.scale.xs,
+      lineHeight: refinedTypography.lineHeight.normal,
     },
   },
   
-  // Shape using design system
+  // Spacing
+  spacing: refinedSpacing.unit,
+  
+  // Shape
   shape: {
-    borderRadius: 0, // Windows 98 sharp corners
+    borderRadius: parseInt(refinedPatterns.radius.base),
   },
   
-  // Component overrides using design system tokens
+  // Shadows
+  shadows: [
+    'none',
+    refinedElevation.shadows.sm,
+    refinedElevation.shadows.base,
+    refinedElevation.shadows.md,
+    refinedElevation.shadows.lg,
+    refinedElevation.shadows.xl,
+    // ... fill in the rest with gradual increases
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+    refinedElevation.shadows.xl,
+  ],
+  
+  // Breakpoints
+  breakpoints: {
+    values: refinedBreakpoints,
+  },
+  
+  // Component overrides - MINIMAL and CLEAN
   components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 0,
-          border: `2px outset ${colors.surfaceElevated}`,
-          backgroundColor: colors.surfaceElevated,
-          color: colors.textPrimary,
-          fontFamily: typography.fontFamily,
-          fontSize: typography.sizes.base,
-          textTransform: 'none',
-          minHeight: `${sizing.buttonHeight.md}px`,
-          padding: `${spacing.scale[1]}px ${spacing.scale[4]}px`,
-          '&:hover': {
-            backgroundColor: colors.hover,
-            border: `2px outset ${colors.surfaceElevated}`,
-          },
-          '&:active': {
-            border: `2px inset ${colors.surfaceElevated}`,
-          },
-        },
-        containedPrimary: {
-          backgroundColor: colors.primary,
-          color: colors.primaryText,
-          border: `2px outset ${colors.primary}`,
-          '&:hover': {
-            backgroundColor: colors.primary,
-            border: `2px outset ${colors.primary}`,
-          },
-          '&:active': {
-            border: `2px inset ${colors.primary}`,
-          },
-        },
-      },
-    },
-    MuiTable: {
-      styleOverrides: {
-        root: {
-          borderColor: colors.borderMedium,
-          border: `1px solid ${colors.borderMedium}`,
-        },
-      },
-    },
-    MuiInputBase: {
-      styleOverrides: {
-        root: {
-          color: '#FFFFFF',
-          fontFamily: typography.fontFamily,
-          fontSize: typography.sizes.base,
-          '& .MuiInputBase-input': {
-            color: '#FFFFFF',
-          },
-          '& .MuiSvgIcon-root': {
-            color: '#FFFFFF',
-          },
-        },
-      },
-    },
-    MuiSelect: {
-      styleOverrides: {
-        icon: {
-          color: '#FFFFFF',
-        },
-      },
-    },
-    MuiTableCell: {
-      styleOverrides: {
-        head: {
-          fontWeight: typography.weights.normal,
-          backgroundColor: colors.surfaceElevated,
-          borderBottom: `1px solid ${colors.borderMedium}`,
-          fontFamily: typography.fontFamily,
-          fontSize: typography.sizes.base,
-        },
-        root: {
-          borderBottom: `1px solid ${colors.borderMedium}`,
-          fontFamily: typography.fontFamily,
-          fontSize: typography.sizes.base,
-          padding: `${spacing.scale[1]}px ${spacing.scale[2]}px`,
-        },
-      },
-    },
-    MuiListItemIcon: {
-      styleOverrides: {
-        root: {
-          color: colors.primary,
-        },
-      },
-    },
     MuiCssBaseline: {
       styleOverrides: `
         body {
-          background-color: ${colors.background};
-          font-family: ${typography.fontFamily};
+          background-color: ${refinedColors.background.primary};
+          font-family: ${refinedTypography.fontFamily.sans};
+          color: ${refinedColors.text.primary};
+          line-height: ${refinedTypography.lineHeight.normal};
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
         
-        .MuiDataGrid-root {
-          border: 1px solid ${colors.borderMedium};
-          font-family: ${typography.fontFamily};
-          font-size: ${typography.sizes.base};
-          background-color: ${colors.surface};
-          color: #FFFFFF;
-          
-          & .MuiDataGrid-columnHeaders {
-            background-color: ${colors.surfaceElevated};
-            border-bottom: 2px solid ${colors.borderMedium};
-            font-weight: ${typography.weights.normal};
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-columnHeaderTitle {
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-cell {
-            border-bottom: 1px solid ${colors.borderMedium};
-            border-right: 1px solid ${colors.borderMedium};
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-columnSeparator {
-            color: ${colors.borderMedium};
-          }
-          
-          & .MuiDataGrid-sortIcon {
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-menuIcon {
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-footerContainer {
-            background-color: ${colors.surface};
-            border-top: 1px solid ${colors.borderMedium};
-            color: #FFFFFF;
-          }
-          
-          & .MuiTablePagination-root {
-            color: #FFFFFF;
-          }
-          
-          & .MuiTablePagination-selectLabel,
-          & .MuiTablePagination-displayedRows {
-            color: #FFFFFF;
-          }
-          
-          & .MuiTablePagination-select {
-            color: #FFFFFF;
-          }
-          
-          & .MuiTablePagination-selectIcon {
-            color: #FFFFFF;
-          }
-          
-          & .MuiIconButton-root {
-            color: #FFFFFF;
-          }
-          
-          & .MuiIconButton-root.Mui-disabled {
-            color: rgba(255, 255, 255, 0.3);
-          }
-        }
+        /* Remove all the DataGrid overrides that were causing problems! */
+        /* Tables now use RefinedTable component for styling */
       `,
     },
+    
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: refinedPatterns.radius.base,
+          textTransform: 'none',
+          fontWeight: refinedTypography.weight.medium,
+          transition: `all ${refinedAnimation.duration.fast} ${refinedAnimation.easing.inOut}`,
+        },
+      },
+    },
+    
+    // Clean up other components gradually...
   },
 });
 
@@ -358,22 +267,24 @@ const theme = createTheme({
 // EXPORTS
 // =============================================================================
 
-export default theme;
+/**
+ * Helper to get provider colors (for backwards compatibility)
+ */
+export const getProviderColor = (theme: Theme, provider: Provider): string => {
+  return oldProviderColors[provider as keyof typeof oldProviderColors] || refinedColors.neutral[500];
+};
 
 /**
- * Type-safe theme access for components
+ * Re-export Provider enum for backwards compatibility
+ */
+export { Provider } from '../design-system';
+
+/**
+ * Type-safe theme access
  */
 export type AppTheme = typeof theme;
 
-/**
- * Design system re-exports for convenience
- */
-export {
-  colors,
-  providerColors,
-  typography,
-  spacing,
-  breakpoints,
-  sizing,
-} from '../design-system';
+// Animation constants are imported from refined-design-system
+
+export default theme;
 

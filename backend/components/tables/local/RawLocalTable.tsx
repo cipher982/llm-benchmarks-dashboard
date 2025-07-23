@@ -1,7 +1,7 @@
 import React from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import { GridColDef } from '@mui/x-data-grid';
 import { LocalBenchmark } from '../../../types/LocalData';
-import Box from '@mui/material/Box';
+import { RefinedTable } from '../../design-system/refined-table';
 
 const columns: GridColDef<LocalBenchmark>[] = [
     { field: "framework", headerName: "Framework", width: 120 },
@@ -9,6 +9,7 @@ const columns: GridColDef<LocalBenchmark>[] = [
     {
         field: 'model_size',
         headerName: 'Params (M)',
+        width: 120,
         renderCell: (params: any) => params.row.formatted_model_size
     },
     { field: "tokens_per_second", headerName: "Tokens/Second", width: 120 },
@@ -22,27 +23,12 @@ interface RawLocalTableProps {
 }
 
 const RawLocalTable: React.FC<RawLocalTableProps> = ({ benchmarks }) => (
-    <Box sx={{ height: 800, width: '100%', border: "1px solid white" }}>
-        <DataGrid
-            rows={benchmarks}
-            columns={columns}
-            // pageSize={100}
-            checkboxSelection
-            sx={{
-                "& .MuiDataGrid-columnHeaders": {
-                    color: "white",
-                    borderColor: "white",
-                },
-                "& .MuiDataGrid-columnHeaderTitle": {
-                    fontWeight: "bold !important",
-                },
-                "& .MuiDataGrid-cell": {
-                    color: "white",
-                    borderColor: "white",
-                },
-            }}
-        />
-    </Box>
+    <RefinedTable
+        rows={benchmarks}
+        columns={columns}
+        height={800}
+        enableCheckboxSelection
+    />
 );
 
 export default RawLocalTable;
