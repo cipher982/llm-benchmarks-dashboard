@@ -10,27 +10,13 @@ services:
       - NODE_ENV=production
       - DISABLE_CORS=${DISABLE_CORS}
       - ADMIN_API_KEY=${ADMIN_API_KEY}
-    volumes:
-      - static-api-cache:/app/public/api
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 5s
-
-  llm-bench-static-generator:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.cron
-    restart: unless-stopped
-    environment:
-      - MONGODB_URI=${MONGODB_URI}
-      - NODE_ENV=production
-    volumes:
-      - static-api-cache:/app/public/api
-    depends_on:
-      - llm-bench-app
-
-volumes:
-  static-api-cache:
+    labels:
+      - "coolify.managed=true"
+      - "coolify.http.main.port=3000"
+      - "coolify.type=application"
