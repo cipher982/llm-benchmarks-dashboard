@@ -16,7 +16,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
-    labels:
-      - "coolify.managed=true"
-      - "coolify.http.main.port=3000"
-      - "coolify.type=application"
