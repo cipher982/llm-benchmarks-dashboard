@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       - MONGODB_URI=${MONGODB_URI}
-      - PORT=3000
+      - PORT=${PORT}
       - NODE_ENV=production
       - DISABLE_CORS=${DISABLE_CORS}
       - ADMIN_API_KEY=${ADMIN_API_KEY}
