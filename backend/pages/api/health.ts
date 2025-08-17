@@ -8,6 +8,7 @@ interface HealthStatus {
   timestamp: string;
   environment: string;
   url: string;
+  port: number;
   services: {
     mongodb: {
       status: 'up' | 'down';
@@ -19,6 +20,7 @@ interface HealthStatus {
     };
   };
   uptime: number;
+  responseTime?: number;
 }
 
 export default async function handler(
@@ -33,6 +35,7 @@ export default async function handler(
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'unknown',
     url: process.env.COOLIFY_URL || 'not set',
+    port: parseInt(process.env.PORT || '3000', 10),
     services: {
       mongodb: { status: 'down' },
       staticFiles: { status: 'down' }
@@ -86,11 +89,13 @@ export default async function handler(
   healthStatus.status = overallStatus;
   
   const responseTime = Date.now() - startTime;
+  healthStatus.responseTime = responseTime;
+  
   logger.debug(`Health check completed in ${responseTime}ms with status: ${overallStatus}`);
 
-  // Return appropriate HTTP status
+  // Return appropriate HTTP status codes based on health status
   const httpStatus = overallStatus === 'healthy' ? 200 : 
-                    overallStatus === 'degraded' ? 503 : 503;
+                    overallStatus === 'degraded' ? 200 : 503; // Allow degraded services to pass
   
   res.status(httpStatus).json(healthStatus);
 } 
