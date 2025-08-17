@@ -41,6 +41,11 @@ export async function fetchAndProcessMetrics(
                 
             logger.info(`Processed ${metricsLength} metrics`);
             
+            // Ensure consistent return format: always return {raw: [...]}
+            if (Array.isArray(processedMetrics)) {
+                return { raw: processedMetrics };
+            }
+            
             return processedMetrics;
         } catch (transformError) {
             logger.error(`Error in transformation function: ${transformError}`);
