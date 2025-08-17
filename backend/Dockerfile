@@ -8,8 +8,19 @@ COPY package*.json ./
 # Use npm ci for reliable, reproducible installs based on package-lock.json
 RUN npm ci
 
-# Copy source files
-COPY . .
+# Copy only necessary source files
+COPY components/ ./components/
+COPY pages/ ./pages/
+COPY public/ ./public/
+COPY styles/ ./styles/
+COPY utils/ ./utils/
+COPY models/ ./models/
+COPY types/ ./types/
+COPY scripts/ ./scripts/
+COPY server.js ./
+COPY next.config.mjs ./
+COPY tsconfig.json ./
+COPY next-env.d.ts ./
 
 # Build the application
 RUN npm run build
