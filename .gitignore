@@ -72,3 +72,6 @@ frontend/build
 pagespeed/
 .env*
 backend/scripts/
+
+# Docker compose override for local development
+docker-compose.override.yml
