@@ -1,48 +1,69 @@
-import React from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import React, { useMemo } from 'react';
+import { ColumnDef } from '@tanstack/react-table';
 import { LocalBenchmark } from '../../../types/LocalData';
-import Box from '@mui/material/Box';
-
-const columns: GridColDef<LocalBenchmark>[] = [
-    { field: "framework", headerName: "Framework", width: 120 },
-    { field: "model_name", headerName: "Model Name", width: 270 },
-    {
-        field: 'model_size',
-        headerName: 'Params (M)',
-        renderCell: (params: any) => params.row.formatted_model_size
-    },
-    { field: "tokens_per_second", headerName: "Tokens/Second", width: 120 },
-    { field: "gpu_mem_usage", headerName: "VRAM (GB)", width: 120 },
-    { field: "quantization_method", headerName: "Quant Method", width: 120 },
-    { field: "quantization_bits", headerName: "Quant Bits", width: 120 },
-];
+import TanStackTable from '../TanStackTable';
 
 interface RawLocalTableProps {
     benchmarks: LocalBenchmark[];
 }
 
-const RawLocalTable: React.FC<RawLocalTableProps> = ({ benchmarks }) => (
-    <Box sx={{ height: 800, width: '100%', border: "1px solid white" }}>
-        <DataGrid
-            rows={benchmarks}
+const RawLocalTable: React.FC<RawLocalTableProps> = ({ benchmarks }) => {
+    const columns = useMemo<ColumnDef<LocalBenchmark>[]>(() => [
+        {
+            accessorKey: 'framework',
+            header: 'Framework',
+            size: 120,
+        },
+        {
+            accessorKey: 'model_name',
+            header: 'Model Name',
+            size: 270,
+        },
+        {
+            accessorKey: 'formatted_model_size',
+            header: 'Params (M)',
+            size: 120,
+        },
+        {
+            accessorKey: 'tokens_per_second',
+            header: 'Tokens/Second',
+            size: 120,
+            cell: ({ getValue }) => {
+                const value = getValue() as number;
+                return typeof value === 'number' ? value.toFixed(2) : value;
+            },
+        },
+        {
+            accessorKey: 'gpu_mem_usage',
+            header: 'VRAM (GB)',
+            size: 120,
+            cell: ({ getValue }) => {
+                const value = getValue() as number;
+                return typeof value === 'number' ? value.toFixed(1) : value;
+            },
+        },
+        {
+            accessorKey: 'quantization_method',
+            header: 'Quant Method',
+            size: 120,
+        },
+        {
+            accessorKey: 'quantization_bits',
+            header: 'Quant Bits',
+            size: 120,
+        },
+    ], []);
+
+    return (
+        <TanStackTable
+            data={benchmarks}
             columns={columns}
-            // pageSize={100}
-            checkboxSelection
-            sx={{
-                "& .MuiDataGrid-columnHeaders": {
-                    color: "white",
-                    borderColor: "white",
-                },
-                "& .MuiDataGrid-columnHeaderTitle": {
-                    fontWeight: "bold !important",
-                },
-                "& .MuiDataGrid-cell": {
-                    color: "white",
-                    borderColor: "white",
-                },
-            }}
+            height={800}
+            virtualized={benchmarks.length > 100}
+            sortable={true}
+            initialSorting={[{ id: 'tokens_per_second', desc: true }]}
         />
-    </Box>
-);
+    );
+};
 
 export default RawLocalTable;
