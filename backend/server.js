@@ -110,6 +110,31 @@ async function generateStaticData() {
       // ... (original code would go here as fallback)
     }
     
+    // Generate local data static file
+    console.log(`🔄 Processing local data...`);
+    const localStartTime = Date.now();
+    
+    try {
+      const localResponse = await fetch(`http://localhost:${port}/api/local?bypass_static=true`);
+      if (!localResponse.ok) {
+        throw new Error(`Local API failed: ${localResponse.status}`);
+      }
+      
+      const localData = await localResponse.json();
+      const localFile = path.join(apiDir, 'local.json');
+      
+      console.log(`📝 Writing local.json...`);
+      await fs.writeFile(localFile, JSON.stringify(localData));
+      
+      const localStats = await fs.stat(localFile);
+      const localDuration = Date.now() - localStartTime;
+      console.log(`✅ Generated local.json (${Math.round(localStats.size/1024)}KB) in ${localDuration}ms`);
+      
+    } catch (localError) {
+      const localDuration = Date.now() - localStartTime;
+      console.error(`❌ Local data generation failed in ${localDuration}ms:`, localError.message);
+    }
+    
     const duration = Date.now() - startTime;
     console.log(`🎉 Static data generation completed in ${duration}ms`);
     
