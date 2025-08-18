@@ -6,7 +6,7 @@ import ComparisonTable from '../components/tables/local/ComparisonTable';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { Box } from '@mui/material';
-import { FastestFrameworks, getComparisonAndFastestFrameworks } from '../utils/transformations';
+import { FastestFrameworks } from '../utils/transformations';
 import { MainContainer } from '../components/design-system/components';
 import { calculateMB } from '../utils/stats';
 import { LocalBenchmark } from '../types/LocalData';
@@ -41,11 +41,16 @@ const LocalBenchmarks: FC = () => {
             try {
                 const res = await fetch(`/api/local`);
                 const response = await res.json();
+                
+                // Use preprocessed data directly from API response
                 const data: LocalBenchmark[] = response.raw;
-                console.log(`local: size: ${calculateMB(data)} MB`);
-                const { comparisonResults, fastestFrameworks } = getComparisonAndFastestFrameworks(data);
+                const comparisonResults = response.comparison;
+                const fastestFrameworks = response.fastestFrameworks;
+                
+                console.log(`local: raw size: ${calculateMB(data)} MB`);
                 console.log(`local: comparison size: ${calculateMB(comparisonResults)} MB`);
                 console.log(`local: fastest frameworks size: ${calculateMB(fastestFrameworks)} MB`);
+                
                 setBenchmarks(data);
                 setComparisonData(comparisonResults);
                 setFastestFrameworks(fastestFrameworks);
