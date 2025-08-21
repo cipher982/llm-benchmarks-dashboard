@@ -112,7 +112,15 @@ const ModelChart = memo(({
                             formatter={(value: number) => [value?.toFixed(2) || 'N/A', '']}
                         />
                         <Legend />
-                        {!isLoading && model.providers.map((provider) => (
+                        {!isLoading && model.providers
+                            .filter((provider) => {
+                                // Only show providers with at least 10% data coverage
+                                const nonNullCount = provider.values?.filter(v => v !== null).length || 0;
+                                const totalCount = provider.values?.length || 0;
+                                const coverage = totalCount > 0 ? (nonNullCount / totalCount) * 100 : 0;
+                                return coverage >= 10;
+                            })
+                            .map((provider) => (
                             <Line
                                 key={provider.provider}
                                 type="monotone"
