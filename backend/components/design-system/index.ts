@@ -72,6 +72,8 @@ export const providerColors = {
   runpod: '#673AB7',
   google: '#33a852',
   lambda: '#4027ff',
+  openrouter: '#8B5CF6',
+  vertex: '#4285F4',
 } as const;
 
 /**
@@ -194,6 +196,8 @@ export enum Provider {
   Runpod = "runpod",
   Google = "google",
   Lambda = "lambda",
+  OpenRouter = "openrouter",
+  Vertex = "vertex",
 }
 
 /**
