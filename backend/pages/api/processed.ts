@@ -141,6 +141,28 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
         throw parallelError;
     }
 
+    // Centralized data validation: ensure timestamps and values align
+    const validateTimeSeriesData = (ts: any) => {
+        const timestamps = ts?.timestamps || [];
+        const expected = timestamps.length;
+        const errors: string[] = [];
+        (ts?.models || []).forEach((model: any) => {
+            (model?.providers || []).forEach((provider: any) => {
+                const actual = (provider?.values || []).length;
+                if (actual !== expected) {
+                    errors.push(`${model.model_name}/${provider.provider}: values=${actual}, timestamps=${expected}`);
+                }
+            });
+        });
+        if (errors.length) {
+            logger.error('❌ Time series validation failed. Mismatches:');
+            errors.forEach(e => logger.error(`  ${e}`));
+            throw new Error(`Time series validation failed with ${errors.length} mismatches`);
+        }
+    };
+
+    validateTimeSeriesData(timeSeriesData);
+
     // Log sizes for analysis
     if (speedDistData.length > 0) {
         logger.info(`First model density points sample: ${
