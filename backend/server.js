@@ -5,12 +5,26 @@ const cron = require('node-cron');
 const fs = require('fs').promises;
 const path = require('path');
 
-const dev = process.env.NODE_ENV !== 'production';
+// Enforce explicit environment via NODE_ENV only
+const NODE_ENV = process.env.NODE_ENV;
+if (!NODE_ENV || !['production', 'development'].includes(NODE_ENV)) {
+  console.error('NODE_ENV must be set to "production" or "development". Refusing to start.');
+  process.exit(1);
+}
+
+// In production, require ADMIN_API_KEY to be set
+if (NODE_ENV === 'production' && !process.env.ADMIN_API_KEY) {
+  console.error('ADMIN_API_KEY must be set in production. Refusing to start.');
+  process.exit(1);
+}
+
+// Drive Next dev mode from NODE_ENV
+const dev = NODE_ENV === 'development';
 
 function isAuthorizedAdmin(req) {
   if (dev) return true; // allow in development
-  const token = req.headers['x-admin-token'] || req.headers['x-api-key'];
-  const expected = process.env.ADMIN_TOKEN;
+  const token = req.headers['x-admin-key'];
+  const expected = process.env.ADMIN_API_KEY;
   return Boolean(expected && token === expected);
 }
 const hostname = '0.0.0.0';
@@ -159,7 +173,7 @@ app.prepare().then(() => {
   }).listen(port, hostname, (err) => {
     if (err) throw err;
     console.log(`> Ready on http://${hostname}:${port}`);
-    console.log(`> Environment: ${process.env.NODE_ENV}`);
+    console.log(`> Environment: NODE_ENV=${process.env.NODE_ENV}`);
     console.log(`> Coolify URL: ${process.env.COOLIFY_URL || 'not set'}`);
     console.log(`> Node version: ${process.versions.node}`);
     console.log(`> fetch available: ${typeof fetch !== 'undefined'}`);

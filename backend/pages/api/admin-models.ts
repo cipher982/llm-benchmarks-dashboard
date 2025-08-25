@@ -9,8 +9,8 @@ function checkAuth(req: NextApiRequest): boolean {
     console.error('ADMIN_API_KEY not set');
     return false;
   }
-  
-  const providedKey = req.query.key || req.headers['x-admin-key'];
+  // Only accept header to avoid leaking secrets in URLs
+  const providedKey = req.headers['x-admin-key'];
   return providedKey === adminKey;
 }
 
@@ -120,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (process.env.NODE_ENV !== 'production') {
+  } else if (process.env.NODE_ENV === 'development') {
     // Allow any origin in development
     res.setHeader('Access-Control-Allow-Origin', '*');
   }

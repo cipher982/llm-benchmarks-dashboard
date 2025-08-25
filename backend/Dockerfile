@@ -43,7 +43,7 @@ COPY --from=builder /app/server.js ./server.js
 
 # Set environment variables
 ENV PORT=3000
-ENV NODE_ENV=production
+# NODE_ENV should be provided by the environment; server.js validates it
 ENV HOST=0.0.0.0
 
 EXPOSE 3000

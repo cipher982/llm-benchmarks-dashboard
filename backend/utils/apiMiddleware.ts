@@ -79,7 +79,7 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
         res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     // In development mode, allow all origins
-    else if (process.env.NODE_ENV !== 'production') {
+    else if (process.env.NODE_ENV === 'development') {
         if (origin) {
             console.log(`Development mode: allowing origin ${origin}`);
             res.setHeader('Access-Control-Allow-Origin', origin);
