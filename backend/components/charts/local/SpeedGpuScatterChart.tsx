@@ -1,6 +1,6 @@
-// BenchScatterChart.js
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
+import { colors } from '../../design-system';
 
 interface DataItem {
     tokens_per_second: number;
@@ -88,22 +88,22 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
                     dy={10}
                     angle={0}
                     ticks={logTicks}
-                    stroke="white"
-                    tick={{ fill: 'white' }}
+                    stroke={colors.textPrimary}
+                    tick={{ fill: colors.textPrimary }}
                 >
                     <Label
                         value="GPU Memory Usage (GB)"
                         offset={-20}
                         position="insideBottom"
-                        fill="white"
+                        fill={colors.textPrimary}
                     />
                 </XAxis>
                 <YAxis
                     dataKey="tokens_per_second"
                     type="number"
                     domain={[0, 400]}
-                    stroke="white"
-                    tick={{ fill: 'white' }}
+                    stroke={colors.textPrimary}
+                    tick={{ fill: colors.textPrimary }}
                 >
                     <Label
                         value="Tokens/Second"
@@ -111,7 +111,7 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
                         dy={50}
                         position="insideLeft"
                         angle={-90}
-                        fill="white"
+                        fill={colors.textPrimary}
                     />
                 </YAxis>
                 <Tooltip content={<CustomTooltip />} />
