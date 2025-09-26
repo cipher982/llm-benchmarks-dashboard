@@ -74,6 +74,7 @@ export const providerColors = {
   lambda: '#4027ff',
   openrouter: '#8B5CF6',
   vertex: '#4285F4',
+  cerebras: '#FF6B00',
 } as const;
 
 /**
@@ -187,6 +188,7 @@ export enum Provider {
   Bedrock = "bedrock",
   Mistral = "mistral",
   Groq = "groq",
+  Cerebras = "cerebras",
   Together = "together",
   Perplexity = "perplexity",
   Fireworks = "fireworks",
