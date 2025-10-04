@@ -13,7 +13,7 @@ import { useTheme } from '@mui/material/styles';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { Provider, getProviderColor } from '../../theme/theme';
-import { TimeSeriesData, TimeSeriesModel } from '../../../types/ProcessedData';
+import { TimeSeriesData, TimeSeriesModel, TimeSeriesProvider } from '../../../types/ProcessedData';
 import { TimeRangeSelector } from '../../TimeRangeSelector';
 
 interface TimeSeriesChartProps {
@@ -27,19 +27,33 @@ interface ChartDataPoint {
     [key: string]: string | number | null;
 }
 
+const COVERAGE_THRESHOLD = 10;
+
+const getProviderCoverage = (provider: TimeSeriesProvider): number => {
+    const values = provider.values || [];
+    const nonNullCount = values.filter((value) => value !== null && value !== undefined).length;
+    const totalCount = values.length;
+    return totalCount > 0 ? (nonNullCount / totalCount) * 100 : 0;
+};
+
+const getVisibleProviders = (model: TimeSeriesModel): TimeSeriesProvider[] =>
+    model.providers.filter((provider) => getProviderCoverage(provider) >= COVERAGE_THRESHOLD);
+
 // Memoized individual chart component
 const ModelChart = memo(({ 
     model, 
     chartData, 
     theme,
     selectedDays,
-    isLoading 
+    isLoading,
+    visibleProviders
 }: { 
     model: TimeSeriesModel; 
     chartData: ChartDataPoint[]; 
     theme: any;
     selectedDays: number;
     isLoading: boolean;
+    visibleProviders: TimeSeriesProvider[];
 }) => {
     // Calculate tick interval based on selected days
     const getTickInterval = () => {
@@ -112,15 +126,7 @@ const ModelChart = memo(({
                             formatter={(value: number) => [value?.toFixed(2) || 'N/A', '']}
                         />
                         <Legend />
-                        {!isLoading && model.providers
-                            .filter((provider) => {
-                                // Only show providers with at least 10% data coverage
-                                const nonNullCount = provider.values?.filter(v => v !== null).length || 0;
-                                const totalCount = provider.values?.length || 0;
-                                const coverage = totalCount > 0 ? (nonNullCount / totalCount) * 100 : 0;
-                                return coverage >= 10;
-                            })
-                            .map((provider) => (
+                        {!isLoading && visibleProviders.map((provider) => (
                             <Line
                                 key={provider.provider}
                                 type="monotone"
@@ -175,17 +181,38 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         });
     }, [data.timestamps, data.models]);
 
-    // Sort models by number of providers
-    const sortedModels = useMemo(() => {
-        return [...data.models].sort((a, b) => {
-            // Count providers with actual values
-            const aProviderCount = a.providers.filter(p => p.values && p.values.length > 0).length;
-            const bProviderCount = b.providers.filter(p => p.values && p.values.length > 0).length;
-            return bProviderCount - aProviderCount;
+    // Precompute visible providers for each model (applies the same coverage rule used during rendering)
+    const modelsWithVisibility = useMemo(() => {
+        return data.models.map((model) => {
+            const visibleProviders = getVisibleProviders(model);
+            const totalProvidersWithValues = model.providers.filter(p => p.values && p.values.length > 0).length;
+            return {
+                model,
+                visibleProviders,
+                visibleCount: visibleProviders.length,
+                totalProvidersWithValues,
+            };
         });
     }, [data.models]);
 
-    if (!data.timestamps.length || !sortedModels.length) {
+    // Sort models by number of visible providers (lines), then fall back to total providers and name
+    const sortedModelsWithVisibility = useMemo(() => {
+        return [...modelsWithVisibility].sort((a, b) => {
+            if (b.visibleCount !== a.visibleCount) {
+                return b.visibleCount - a.visibleCount;
+            }
+
+            if (b.totalProvidersWithValues !== a.totalProvidersWithValues) {
+                return b.totalProvidersWithValues - a.totalProvidersWithValues;
+            }
+
+            const aLabel = a.model.display_name || a.model.model_name;
+            const bLabel = b.model.display_name || b.model.model_name;
+            return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+        });
+    }, [modelsWithVisibility]);
+
+    if (!data.timestamps.length || !sortedModelsWithVisibility.length) {
         return <div>No data available</div>;
     }
 
@@ -195,7 +222,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 selectedDays={selectedDays}
                 onChange={handleTimeRangeChange}
             />
-            {sortedModels.map((model) => (
+            {sortedModelsWithVisibility.map(({ model, visibleProviders }) => (
                 <ModelChart
                     key={model.model_name}
                     model={model}
@@ -203,6 +230,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                     theme={theme}
                     selectedDays={selectedDays}
                     isLoading={isLoading}
+                    visibleProviders={visibleProviders}
                 />
             ))}
         </div>
