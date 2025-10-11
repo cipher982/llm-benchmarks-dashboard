@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "node server.js",
     "lint": "next lint",
+    "smoke:model-pages": "node scripts/smoke-model-pages.js",
     "test": "jest --testTimeout=30000",
     "test:watch": "jest --watch --testTimeout=30000",
     "test:baseline": "jest tests/api.baseline.test.js --testTimeout=30000",

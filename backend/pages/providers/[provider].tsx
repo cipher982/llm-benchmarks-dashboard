@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import Head from "next/head";
 import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import ModelPageLayout from "../../components/model/ModelPageLayout";
@@ -97,6 +97,18 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
             answer: `This provider summary aggregates ${data.summary.sampleCount} individual prompts measured across ${data.summary.runCount} monitoring runs over the past month.`,
         },
     ];
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const tracker = (window as unknown as { umami?: { track?: (event: string, payload?: Record<string, unknown>) => void } })
+            .umami?.track;
+        if (tracker) {
+            tracker("provider_page_view", {
+                provider: data.provider,
+                modelsTracked: data.models.length,
+            });
+        }
+    }, [data.provider, data.models.length]);
 
     return (
         <>

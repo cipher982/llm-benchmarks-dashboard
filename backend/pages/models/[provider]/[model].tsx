@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
@@ -113,6 +113,18 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
     }, [data]);
 
     const providerHubHref = `/providers/${data.providerSlug}`;
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const tracker = (window as unknown as { umami?: { track?: (event: string, payload?: Record<string, unknown>) => void } })
+            .umami?.track;
+        if (tracker) {
+            tracker("model_page_view", {
+                provider: data.provider,
+                model: data.model,
+            });
+        }
+    }, [data.provider, data.model]);
 
     return (
         <>
