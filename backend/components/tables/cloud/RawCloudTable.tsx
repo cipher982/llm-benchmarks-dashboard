@@ -8,14 +8,29 @@ import { colors } from '../../../components/design-system';
 interface RawCloudTableProps {
     data: TableRow[];
     modelLinkFn?: (provider: string, modelName: string) => string;
+    providerLinkFn?: (provider: string) => string;
 }
 
-const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, modelLinkFn }) => {
+const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, modelLinkFn, providerLinkFn }) => {
     const columns = useMemo<ColumnDef<TableRow>[]>(() => [
         {
             accessorKey: 'provider',
             header: 'Provider',
             size: 150,
+            cell: ({ getValue }) => {
+                const provider = getValue() as string;
+                if (providerLinkFn) {
+                    return (
+                        <Link
+                            href={providerLinkFn(provider)}
+                            style={{ color: colors.link, textDecoration: 'underline' }}
+                        >
+                            {provider}
+                        </Link>
+                    );
+                }
+                return provider;
+            },
         },
         {
             accessorKey: 'model_name',
@@ -78,7 +93,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, modelLinkFn }) => {
                 return Number(value).toFixed(2);
             },
         },
-    ], [modelLinkFn]);
+    ], [modelLinkFn, providerLinkFn]);
 
     const tableData = useMemo(() => 
         data.map((row, index) => ({

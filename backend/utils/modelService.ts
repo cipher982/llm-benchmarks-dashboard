@@ -311,6 +311,10 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
                 modelSlug,
                 displayName: row.model_name,
                 latestRunAt,
+                tokensPerSecondMean: row.tokens_per_second_mean,
+                timeToFirstTokenMean: row.time_to_first_token_mean,
+                tokensPerSecondMin: row.tokens_per_second_min,
+                tokensPerSecondMax: row.tokens_per_second_max,
             };
         });
 
@@ -318,10 +322,8 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
 
     const fastestModels = [...providerModels]
         .sort((a, b) => {
-            const aRow = providerTable.find((row) => row.model_name === a.model);
-            const bRow = providerTable.find((row) => row.model_name === b.model);
-            const aSpeed = aRow?.tokens_per_second_mean ?? 0;
-            const bSpeed = bRow?.tokens_per_second_mean ?? 0;
+            const aSpeed = a.tokensPerSecondMean ?? 0;
+            const bSpeed = b.tokensPerSecondMean ?? 0;
             return bSpeed - aSpeed;
         })
         .slice(0, 6);

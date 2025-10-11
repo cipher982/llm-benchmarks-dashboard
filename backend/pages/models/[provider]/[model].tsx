@@ -1,12 +1,16 @@
 import React, { useMemo } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
+import { Typography } from "@mui/material";
 import ModelPageLayout from "../../../components/model/ModelPageLayout";
 import Section from "../../../components/model/Section";
 import MetricSummaryGrid from "../../../components/model/MetricSummaryGrid";
 import PageBreadcrumbs from "../../../components/model/PageBreadcrumbs";
 import FAQAccordion from "../../../components/model/FAQAccordion";
 import RelatedLinks from "../../../components/model/RelatedLinks";
+import ModelMetricTable from "../../../components/model/ModelMetricTable";
+import InsightList from "../../../components/model/InsightList";
 import { buildModelSeoMetadata } from "../../../utils/seoUtils";
 import { getFeaturedStaticPaths, getModelPageData } from "../../../utils/modelService";
 import type { ModelPageData, ProviderModelEntry } from "../../../types/ModelPages";
@@ -88,6 +92,28 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
         [data.providerSlug, data.relatedModels, data.alternatives]
     );
 
+    const insights = useMemo(() => {
+        const items: string[] = [];
+        if (data.summary.tokensPerSecondMean) {
+            items.push(
+                `${data.displayName} streams at ${formatNumber(data.summary.tokensPerSecondMean)} tokens/second on average across the last ${data.summary.runCount} benchmark runs.`
+            );
+        }
+        if (data.summary.tokensPerSecondMax && data.summary.tokensPerSecondMin) {
+            const spread = data.summary.tokensPerSecondMax - data.summary.tokensPerSecondMin;
+            if (!Number.isNaN(spread)) {
+                items.push(`Performance fluctuated by roughly ${formatNumber(spread)} tokens/second between the slowest and fastest samples.`);
+            }
+        }
+        if (data.summary.timeToFirstTokenMean) {
+            items.push(`Average time to first token is ${formatNumber(data.summary.timeToFirstTokenMean)} ms, useful for latency-sensitive workloads.`);
+        }
+        items.push(`Latest measurements landed on ${formatTimestamp(data.summary.latestRunAt)}.`);
+        return items;
+    }, [data]);
+
+    const providerHubHref = `/providers/${data.providerSlug}`;
+
     return (
         <>
             <Head>
@@ -111,16 +137,31 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                 title={`${data.displayName} Benchmarks`}
                 subtitle={`Provider: ${data.provider}`}
                 intro={
-                    <p>
-                        Explore real-world latency and throughput results for {data.displayName}. These numbers come from automated
-                        benchmarking runs against the provider APIs using the same prompts and measurement harness that power the
-                        public cloud dashboard.
-                    </p>
+                    <>
+                        <Typography variant="body1" paragraph>
+                            Explore real-world latency and throughput results for {data.displayName}. These measurements come from
+                            automated benchmarking runs against the provider APIs using the same harness that powers the public
+                            cloud dashboard.
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            Want a broader view of this vendor? Visit the {" "}
+                            <Link href={providerHubHref} style={{ color: "inherit", textDecoration: "underline" }}>
+                                {data.provider} provider hub
+                            </Link>{" "}
+                            to compare every tracked model side-by-side.
+                        </Typography>
+                    </>
                 }
                 breadcrumbs={<PageBreadcrumbs items={breadcrumbs} />}
             >
                 <Section title="Benchmark Overview">
                     <MetricSummaryGrid items={metrics} />
+                </Section>
+                <Section title="Key Insights">
+                    <InsightList items={insights} />
+                </Section>
+                <Section title="Benchmark Samples">
+                    <ModelMetricTable rows={data.tableRows} />
                 </Section>
                 <Section title="Frequently Asked Questions">
                     <FAQAccordion items={faqItems} />

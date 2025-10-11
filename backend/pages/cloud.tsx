@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 import { MainContainer } from "../components/design-system/components";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
-import { createModelUrl } from "../utils/seoUtils";
+import { createModelUrl, createSlug } from "../utils/seoUtils";
 import {
     LoadingContainer,
     ChartLoadingContainer,
@@ -119,6 +119,10 @@ const CloudBenchmarks: React.FC = () => {
                         For readability not all models are shown, but you can see the full results in the table below.
                     </p>
                     <p>
+                        Every provider and model now has a dedicated landing page with narrative insights, SEO-friendly metadata,
+                        and structured data for search engines. Click any provider or model in the table to explore performance in depth.
+                    </p>
+                    <p>
                         I am working daily to add more providers and models, looking anywhere that
                         does not require purchasing dedicated endpoints for hosting (why some models may appear
                         to be missing). If you have any more suggestions let me know on GitHub!! 😊
@@ -150,6 +154,7 @@ const CloudBenchmarks: React.FC = () => {
                                 <RawCloudTable 
                                     data={tableData} 
                                     modelLinkFn={(provider, modelName) => createModelUrl(provider, modelName)}
+                                    providerLinkFn={(provider) => `/providers/${createSlug(provider)}`}
                                 />
                             ) : (
                                 <div>Loading table data...</div>

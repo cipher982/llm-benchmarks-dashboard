@@ -5,6 +5,10 @@ export interface ProviderModelEntry {
     modelSlug: string;
     displayName: string;
     latestRunAt?: string;
+    tokensPerSecondMean?: number;
+    timeToFirstTokenMean?: number;
+    tokensPerSecondMin?: number;
+    tokensPerSecondMax?: number;
 }
 
 export interface SummaryMetrics {

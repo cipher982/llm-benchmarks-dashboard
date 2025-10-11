@@ -7,6 +7,9 @@ import MetricSummaryGrid from "../../components/model/MetricSummaryGrid";
 import PageBreadcrumbs from "../../components/model/PageBreadcrumbs";
 import RelatedLinks from "../../components/model/RelatedLinks";
 import FAQAccordion from "../../components/model/FAQAccordion";
+import ModelMetricTable from "../../components/model/ModelMetricTable";
+import InsightList from "../../components/model/InsightList";
+import { Typography } from "@mui/material";
 import { getProviderModelInventory, getProviderPageData } from "../../utils/modelService";
 import { buildProviderSeoMetadata } from "../../utils/seoUtils";
 import type { ProviderPageData } from "../../types/ModelPages";
@@ -58,6 +61,29 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
         href: `/models/${model.providerSlug}/${model.modelSlug}`,
     }));
 
+    const insights = useMemo(() => {
+        const items: string[] = [];
+        items.push(`${data.models.length} ${data.provider} models are actively benchmarked in this environment.`);
+        if (data.fastestModels[0]?.tokensPerSecondMean) {
+            items.push(
+                `${data.fastestModels[0].displayName} currently leads with ${formatNumber(data.fastestModels[0].tokensPerSecondMean)} tokens/second.`
+            );
+        }
+        if (data.summary.timeToFirstTokenMean) {
+            items.push(`Median time to first token across the fleet is ${formatNumber(data.summary.timeToFirstTokenMean)} ms.`);
+        }
+        return items;
+    }, [data]);
+
+    const fastestTableRows = data.fastestModels.map((model) => ({
+        provider: model.provider,
+        modelName: model.model,
+        tokensPerSecondMean: model.tokensPerSecondMean ?? 0,
+        tokensPerSecondMin: model.tokensPerSecondMin ?? model.tokensPerSecondMean ?? 0,
+        tokensPerSecondMax: model.tokensPerSecondMax ?? model.tokensPerSecondMean ?? 0,
+        timeToFirstTokenMean: model.timeToFirstTokenMean ?? 0,
+    }));
+
     const faqItems = [
         {
             question: `Which ${data.provider} model is fastest?`,
@@ -95,16 +121,22 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
                 title={`${data.provider} Provider Benchmarks`}
                 subtitle={`Comprehensive performance summary covering ${data.models.length} models.`}
                 intro={
-                    <p>
-                        This provider hub highlights throughput and latency trends across every {data.provider} model monitored by LLM
-                        Benchmarks. Use it to compare hosting tiers, track regressions, and discover the fastest variants in the
+                    <Typography variant="body1">
+                        This provider hub highlights throughput and latency trends across every {data.provider} model monitored by
+                        LLM Benchmarks. Use it to compare hosting tiers, track regressions, and discover the fastest variants in the
                         catalogue.
-                    </p>
+                    </Typography>
                 }
                 breadcrumbs={<PageBreadcrumbs items={breadcrumbs} />}
             >
                 <Section title="Provider Snapshot">
                     <MetricSummaryGrid items={metrics} />
+                </Section>
+                <Section title="Key Takeaways">
+                    <InsightList items={insights} />
+                </Section>
+                <Section title="Fastest Models">
+                    <ModelMetricTable rows={fastestTableRows} />
                 </Section>
                 <Section title="Featured Models">
                     <RelatedLinks items={modelLinks} />
