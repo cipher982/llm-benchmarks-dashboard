@@ -177,4 +177,185 @@ export const addStructuredData = (structuredData: string): void => {
   script.setAttribute('type', 'application/ld+json');
   script.textContent = structuredData;
   document.head.appendChild(script);
-}; 
+};
+
+interface SeoBaseArgs {
+  title: string;
+  description: string;
+  canonical: string;
+  keywords: string;
+  baseUrl?: string;
+}
+
+export interface SeoMetadata extends SeoBaseArgs {
+  openGraph: {
+    title: string;
+    description: string;
+    type: string;
+    url: string;
+  };
+  twitter: {
+    card: string;
+    title: string;
+    description: string;
+  };
+  jsonLd?: Record<string, any>;
+}
+
+const DEFAULT_BASE_URL = "https://llm-benchmarks.com";
+
+function formatNumber(value: number | null | undefined, digits = 2): string | undefined {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return undefined;
+  }
+  return Number(value).toFixed(digits);
+}
+
+export interface ModelSeoArgs {
+  baseUrl?: string;
+  providerName: string;
+  providerSlug: string;
+  modelName: string;
+  modelSlug: string;
+  displayName: string;
+  summary: {
+    tokensPerSecondMean: number | null;
+    timeToFirstTokenMean: number | null;
+    runCount: number;
+    latestRunAt?: string;
+  };
+}
+
+export function buildModelSeoMetadata({
+  baseUrl = DEFAULT_BASE_URL,
+  providerName,
+  providerSlug,
+  modelName,
+  modelSlug,
+  displayName,
+  summary,
+}: ModelSeoArgs): SeoMetadata {
+  const canonicalPath = `/models/${providerSlug}/${modelSlug}`;
+  const canonical = `${baseUrl}${canonicalPath}`;
+  const speed = formatNumber(summary.tokensPerSecondMean);
+  const ttft = formatNumber(summary.timeToFirstTokenMean);
+  const title = `${displayName} by ${providerName} Benchmarks – LLM Benchmarks`;
+  const descriptionParts = [
+    `Benchmarks for ${displayName} by ${providerName}.`,
+  ];
+  if (speed) {
+    descriptionParts.push(`Average throughput ${speed} tokens/sec`);
+  }
+  if (ttft) {
+    descriptionParts.push(`time to first token ${ttft} ms`);
+  }
+  descriptionParts.push(`based on ${summary.runCount} recent runs.`);
+  const description = descriptionParts.join(" ");
+  const keywords = `${providerName}, ${displayName}, ${modelName}, LLM benchmark, latency, tokens per second`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: `${displayName} Benchmarks`,
+    description,
+    keywords,
+    dateModified: summary.latestRunAt ?? new Date().toISOString(),
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": canonical,
+    },
+    author: {
+      "@type": "Organization",
+      name: "LLM Benchmarks",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "LLM Benchmarks",
+      logo: {
+        "@type": "ImageObject",
+        url: `${baseUrl}/logo.png`,
+      },
+    },
+  };
+
+  return {
+    title,
+    description,
+    canonical,
+    keywords,
+    openGraph: {
+      title,
+      description,
+      type: "article",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+    jsonLd,
+  };
+}
+
+export interface ProviderSeoArgs {
+  baseUrl?: string;
+  providerName: string;
+  providerSlug: string;
+  summary: {
+    tokensPerSecondMean: number | null;
+    timeToFirstTokenMean: number | null;
+    modelCount: number;
+    latestRunAt?: string;
+  };
+}
+
+export function buildProviderSeoMetadata({
+  baseUrl = DEFAULT_BASE_URL,
+  providerName,
+  providerSlug,
+  summary,
+}: ProviderSeoArgs): SeoMetadata {
+  const canonicalPath = `/providers/${providerSlug}`;
+  const canonical = `${baseUrl}${canonicalPath}`;
+  const speed = formatNumber(summary.tokensPerSecondMean);
+  const ttft = formatNumber(summary.timeToFirstTokenMean);
+  const title = `${providerName} LLM Benchmarks – Performance & Latency`;
+  const descriptionParts = [`Performance benchmarks covering ${summary.modelCount} ${providerName} models.`];
+  if (speed) {
+    descriptionParts.push(`Median throughput ${speed} tokens/sec`);
+  }
+  if (ttft) {
+    descriptionParts.push(`time to first token ${ttft} ms.`);
+  }
+  const description = descriptionParts.join(" ");
+  const keywords = `${providerName}, LLM provider benchmarks, model speed, latency, AI performance`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: providerName,
+    description,
+    url: canonical,
+    dateModified: summary.latestRunAt ?? new Date().toISOString(),
+  };
+
+  return {
+    title,
+    description,
+    canonical,
+    keywords,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+    jsonLd,
+  };
+}
