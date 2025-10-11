@@ -21,4 +21,4 @@ _(Update after each commit)_
 - 2025-10-11 – `fix: add model page placeholder` (adds `/models/[provider]/[model]` placeholder to complete IA scaffold)
 - 2025-10-11 – `feat: wire data services and seo metadata` (introduces model/provider data service, static props, sitemap refresh)
 - 2025-10-11 – `feat: build model/provider ui and linking` (adds detail-page components, provider hub enhancements, table linking)
-- _Pending commit_ – `chore: add analytics + smoke checks` (Umami tracking and CLI smoke validation script)
+- 2025-10-11 – `chore: add analytics and smoke checks` (Umami tracking hooks plus CLI smoke validation script)
