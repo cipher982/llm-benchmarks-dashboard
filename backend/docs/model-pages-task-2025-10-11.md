@@ -22,3 +22,4 @@ _(Update after each commit)_
 - 2025-10-11 – `feat: wire data services and seo metadata` (introduces model/provider data service, static props, sitemap refresh)
 - 2025-10-11 – `feat: build model/provider ui and linking` (adds detail-page components, provider hub enhancements, table linking)
 - 2025-10-11 – `chore: add analytics and smoke checks` (Umami tracking hooks plus CLI smoke validation script)
+- 2025-10-11 – `fix: aggregate provider metrics and restore model api compatibility` (provider summaries aggregate correctly, speed distributions hydrate, API accepts both raw names and slugs)

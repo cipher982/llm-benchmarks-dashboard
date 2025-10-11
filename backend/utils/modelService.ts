@@ -34,6 +34,25 @@ function toIsoDate(value?: Date | string | null): string | undefined {
     return date.toISOString();
 }
 
+function computeAverage(values: Array<number | null | undefined>): number | null {
+    const filtered = values.filter((value): value is number => value !== null && value !== undefined && !Number.isNaN(value));
+    if (!filtered.length) return null;
+    const sum = filtered.reduce((acc, value) => acc + value, 0);
+    return sum / filtered.length;
+}
+
+function computeMin(values: Array<number | null | undefined>): number | null {
+    const filtered = values.filter((value): value is number => value !== null && value !== undefined && !Number.isNaN(value));
+    if (!filtered.length) return null;
+    return Math.min(...filtered);
+}
+
+function computeMax(values: Array<number | null | undefined>): number | null {
+    const filtered = values.filter((value): value is number => value !== null && value !== undefined && !Number.isNaN(value));
+    if (!filtered.length) return null;
+    return Math.max(...filtered);
+}
+
 function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, runCount: number, latestRunAt?: string): SummaryMetrics {
     if (!tableRows.length) {
         return {
@@ -47,12 +66,16 @@ function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, ru
         };
     }
 
-    const row = tableRows[0];
+    const tokensPerSecondMean = computeAverage(tableRows.map((row) => row.tokens_per_second_mean));
+    const tokensPerSecondMin = computeMin(tableRows.map((row) => row.tokens_per_second_min));
+    const tokensPerSecondMax = computeMax(tableRows.map((row) => row.tokens_per_second_max));
+    const timeToFirstTokenMean = computeAverage(tableRows.map((row) => row.time_to_first_token_mean));
+
     return {
-        tokensPerSecondMean: row.tokens_per_second_mean ?? null,
-        tokensPerSecondMin: row.tokens_per_second_min ?? null,
-        tokensPerSecondMax: row.tokens_per_second_max ?? null,
-        timeToFirstTokenMean: row.time_to_first_token_mean ?? null,
+        tokensPerSecondMean,
+        tokensPerSecondMin,
+        tokensPerSecondMax,
+        timeToFirstTokenMean,
         sampleCount: rawSampleCount,
         runCount,
         latestRunAt,
@@ -60,7 +83,12 @@ function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, ru
 }
 
 function extractModelSpeedDistribution(data: ProcessedDataBundle["speedDistribution"], provider: string, model: string) {
-    const entry = data.find((item) => item.provider === provider && item.model_name === model);
+    const compositeKey = `${provider}-${model}`;
+    const entry = data.find(
+        (item) =>
+            item.provider === provider &&
+            (item.model_name === compositeKey || item.model_name === model || item.display_name === model)
+    );
     if (!entry) return undefined;
 
     return {

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { corsMiddleware } from "../../utils/apiMiddleware";
+import { createSlug } from "../../utils/seoUtils";
 import { getModelPageData } from "../../utils/modelService";
 
 const DEFAULT_DAYS = 30;
@@ -22,14 +23,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ error: "Provider and model parameters are required" });
     }
 
-    const providerSlug = Array.isArray(provider) ? provider[0] : provider;
-    const modelSlug = Array.isArray(model) ? model[0] : model;
+    const providerParam = Array.isArray(provider) ? provider[0] : provider;
+    const modelParam = Array.isArray(model) ? model[0] : model;
     const { days } = parseTimeRange(req);
 
     try {
-        const data = await getModelPageData(providerSlug, modelSlug, days);
+        let providerKey = providerParam;
+        let modelKey = modelParam;
+        let data = await getModelPageData(providerKey, modelKey, days);
+
         if (!data) {
-            return res.status(404).json({ error: `Model ${providerSlug}/${modelSlug} not found` });
+            const normalizedProvider = createSlug(providerParam);
+            const normalizedModel = createSlug(modelParam);
+
+            if (normalizedProvider !== providerKey || normalizedModel !== modelKey) {
+                const normalizedData = await getModelPageData(normalizedProvider, normalizedModel, days);
+                if (normalizedData) {
+                    data = normalizedData;
+                    providerKey = normalizedProvider;
+                    modelKey = normalizedModel;
+                }
+            }
+        }
+
+        if (!data) {
+            return res.status(404).json({ error: `Model ${providerParam}/${modelParam} not found` });
         }
 
         res.setHeader("Cache-Control", "public, s-maxage=300");
