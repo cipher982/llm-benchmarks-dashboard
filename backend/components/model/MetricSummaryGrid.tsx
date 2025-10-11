@@ -15,7 +15,7 @@ const MetricSummaryGrid: React.FC<MetricSummaryGridProps> = ({ items }) => {
     return (
         <Grid container spacing={3}>
             {items.map((item) => (
-                <Grid item xs={12} sm={6} md={3} key={item.label}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.label}>
                     <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", height: "100%" }}>
                         <CardContent>
                             <Typography variant="overline" sx={{ color: "text.secondary" }}>

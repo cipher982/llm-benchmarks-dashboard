@@ -20,7 +20,7 @@ const RelatedLinks: React.FC<RelatedLinksProps> = ({ items }) => {
     return (
         <Grid container spacing={3}>
             {items.map((item) => (
-                <Grid item xs={12} md={6} key={item.href}>
+                <Grid size={{ xs: 12, md: 6 }} key={item.href}>
                     <Link href={item.href} style={{ textDecoration: "none" }}>
                         <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", height: "100%" }}>
                             <CardContent>

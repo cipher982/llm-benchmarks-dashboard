@@ -156,7 +156,7 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
         };
     });
     inventoryCacheFetchedAt = Date.now();
-    return inventoryCache;
+    return inventoryCache as ProviderModelEntry[];
 }
 
 export async function getProviderModelInventory(): Promise<ProviderModelEntry[]> {
@@ -224,11 +224,11 @@ async function fetchProcessedBundle(provider: string, model: string | null, days
 
     const runCount = new Set(rawMetrics.map((metric: any) => String(metric.run_ts))).size;
     const latestRunAt = toIsoDate(
-        rawMetrics.reduce<Date | undefined>((latest, metric: any) => {
+        rawMetrics.reduce((latest: Date | undefined, metric: any) => {
             const run = metric.run_ts instanceof Date ? metric.run_ts : new Date(metric.run_ts);
             if (!latest) return run;
             return run > latest ? run : latest;
-        }, undefined)
+        }, undefined as Date | undefined)
     );
 
     const processed = await processAllMetrics(rawMetrics, days);
