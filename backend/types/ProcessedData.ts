@@ -25,10 +25,12 @@ export interface TimeSeriesData {
 }
 
 export interface TableRow {
-    provider: string;
-    providerSlug: string;
-    model_name: string;
-    modelSlug: string;
+    provider: string;               // Provider label shown in UI
+    providerCanonical: string;      // Canonical provider identifier
+    providerSlug: string;           // Slug for provider routes
+    model_name: string;             // Model label shown in UI
+    modelCanonical: string;         // Canonical model identifier
+    modelSlug: string;              // Slug for model routes
     tokens_per_second_mean: number;
     tokens_per_second_min: number;
     tokens_per_second_max: number;

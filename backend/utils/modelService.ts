@@ -3,6 +3,7 @@ import { createSlug } from "./seoUtils";
 import { processAllMetrics } from "../pages/api/processed";
 import type { ModelPageData, ProviderModelEntry, ProviderPageData, SummaryMetrics } from "../types/ModelPages";
 import type { ProcessedData as ProcessedDataBundle, TableRow } from "../types/ProcessedData";
+import { getProviderDisplayName } from "./providerMetadata";
 
 // BenchmarkMetrics is authored in CommonJS
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -144,14 +145,19 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
     ]);
 
     inventoryCache = results.map((entry: any) => {
-        const providerSlug = createSlug(entry.provider);
-        const modelSlug = createSlug(entry.model);
+        const providerCanonical = entry.provider;
+        const providerDisplay = getProviderDisplayName(providerCanonical);
+        const providerSlug = createSlug(providerCanonical);
+        const modelCanonical = entry.model;
+        const modelSlug = createSlug(modelCanonical);
         return {
-            provider: entry.provider,
+            provider: providerDisplay,
+            providerCanonical,
             providerSlug,
-            model: entry.model,
+            model: modelCanonical,
+            modelCanonical,
             modelSlug,
-            displayName: entry.displayName || entry.model,
+            displayName: entry.displayName || modelCanonical,
             latestRunAt: toIsoDate(entry.latestRunAt),
         };
     });
@@ -181,7 +187,7 @@ async function resolveBySlug(providerSlug: string, modelSlug: string): Promise<P
     return inventory.find((entry) => entry.providerSlug === providerSlug && entry.modelSlug === modelSlug);
 }
 
-async function resolveProviderBySlug(providerSlug: string): Promise<{ provider: string; providerSlug: string; latestRunAt?: string; displayName: string } | undefined> {
+async function resolveProviderBySlug(providerSlug: string): Promise<{ provider: string; providerCanonical: string; providerSlug: string; latestRunAt?: string; displayName: string } | undefined> {
     const inventory = await fetchInventory(false);
     const matches = inventory.filter((entry) => entry.providerSlug === providerSlug);
     if (!matches.length) return undefined;
@@ -194,6 +200,7 @@ async function resolveProviderBySlug(providerSlug: string): Promise<{ provider: 
 
     return {
         provider: matches[0].provider,
+        providerCanonical: matches[0].providerCanonical,
         providerSlug,
         displayName: matches[0].provider,
         latestRunAt,
@@ -246,7 +253,7 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         return null;
     }
 
-    const processedBundle = await fetchProcessedBundle(resolved.provider, resolved.model, days);
+    const processedBundle = await fetchProcessedBundle(resolved.providerCanonical, resolved.modelCanonical, days);
     if (!processedBundle) {
         return null;
     }
@@ -254,8 +261,11 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
     const { filtered, rawSampleCount, runCount, latestRunAt } = processedBundle;
     const tableData = (filtered.table ?? []) as TableRow[];
     const matchingTableRows = tableData.filter(
-        (row) => row.provider === resolved.provider && row.model_name === resolved.model
+        (row) => row.providerCanonical === resolved.providerCanonical && row.modelCanonical === resolved.modelCanonical
     );
+
+    const providerDisplay = matchingTableRows[0]?.provider ?? resolved.provider;
+    const modelDisplay = matchingTableRows[0]?.model_name ?? resolved.displayName;
 
     const tableRows = matchingTableRows.map((row) => ({
         provider: row.provider,
@@ -267,16 +277,16 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
     }));
 
     const summary = buildSummaryFromTable(matchingTableRows, rawSampleCount, runCount, latestRunAt);
-    const speedDistribution = extractModelSpeedDistribution(filtered.speedDistribution ?? [], resolved.provider, resolved.model);
-    const timeSeries = extractModelTimeSeries(filtered.timeSeries, resolved.model, resolved.displayName);
+    const speedDistribution = extractModelSpeedDistribution(filtered.speedDistribution ?? [], resolved.provider, modelDisplay);
+    const timeSeries = extractModelTimeSeries(filtered.timeSeries, modelDisplay, resolved.displayName);
 
     const inventory = await fetchInventory(false);
     const relatedModels = inventory
-        .filter((entry) => entry.provider === resolved.provider && entry.modelSlug !== resolved.modelSlug)
+        .filter((entry) => entry.providerCanonical === resolved.providerCanonical && entry.modelSlug !== resolved.modelSlug)
         .slice(0, 6);
 
     const alternatives = inventory
-        .filter((entry) => entry.provider !== resolved.provider)
+        .filter((entry) => entry.providerCanonical !== resolved.providerCanonical)
         .sort((a, b) => {
             const aTime = a.latestRunAt ? Date.parse(a.latestRunAt) : 0;
             const bTime = b.latestRunAt ? Date.parse(b.latestRunAt) : 0;
@@ -285,11 +295,13 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         .slice(0, 6);
 
     return {
-        provider: resolved.provider,
+        provider: providerDisplay,
+        providerCanonical: resolved.providerCanonical,
         providerSlug,
-        model: resolved.model,
+        model: modelDisplay,
+        modelCanonical: resolved.modelCanonical,
         modelSlug,
-        displayName: resolved.displayName,
+        displayName: modelDisplay,
         summary,
         speedDistribution,
         timeSeries,
@@ -305,10 +317,11 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
         return null;
     }
 
-    const processedBundle = await fetchProcessedBundle(resolvedProvider.provider, null, days);
+    const processedBundle = await fetchProcessedBundle(resolvedProvider.providerCanonical, null, days);
     if (!processedBundle) {
         return {
             provider: resolvedProvider.provider,
+            providerCanonical: resolvedProvider.providerCanonical,
             providerSlug,
             displayName: resolvedProvider.displayName,
             summary: {
@@ -329,11 +342,13 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
     const { filtered, rawSampleCount, runCount, latestRunAt } = processedBundle;
     const providerTable = (filtered.table ?? []) as TableRow[];
     const providerModels = providerTable
-        .filter((row) => row.provider === resolvedProvider.provider)
+        .filter((row) => row.providerCanonical === resolvedProvider.providerCanonical)
         .map((row) => ({
-            provider: resolvedProvider.provider,
+            provider: row.provider,
+            providerCanonical: row.providerCanonical,
             providerSlug: row.providerSlug ?? providerSlug,
             model: row.model_name,
+            modelCanonical: row.modelCanonical,
             modelSlug: row.modelSlug,
             displayName: row.model_name,
             latestRunAt,
@@ -355,6 +370,7 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
 
     return {
         provider: resolvedProvider.provider,
+        providerCanonical: resolvedProvider.providerCanonical,
         providerSlug,
         displayName: resolvedProvider.displayName,
         summary,

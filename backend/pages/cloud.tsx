@@ -5,7 +5,6 @@ import { useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 import { MainContainer } from "../components/design-system/components";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
-import { createModelUrl, createSlug } from "../utils/seoUtils";
 import {
     LoadingContainer,
     ChartLoadingContainer,
@@ -151,11 +150,7 @@ const CloudBenchmarks: React.FC = () => {
                     <Box sx={{ pb: 8 }}>
                         <Suspense fallback={<StyledCircularProgress />}>
                             {tableData && tableData.length > 0 ? (
-                                <RawCloudTable 
-                                    data={tableData} 
-                                    modelLinkFn={(provider, modelName) => createModelUrl(provider, modelName)}
-                                    providerLinkFn={(provider) => `/providers/${createSlug(provider)}`}
-                                />
+                                <RawCloudTable data={tableData} />
                             ) : (
                                 <div>Loading table data...</div>
                             )}

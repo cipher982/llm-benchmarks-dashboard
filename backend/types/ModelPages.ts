@@ -1,7 +1,9 @@
 export interface ProviderModelEntry {
     provider: string;
+    providerCanonical: string;
     providerSlug: string;
     model: string;
+    modelCanonical: string;
     modelSlug: string;
     displayName: string;
     latestRunAt?: string;
@@ -50,8 +52,10 @@ export interface ModelTimeSeries {
 
 export interface ModelPageData {
     provider: string;
+    providerCanonical: string;
     providerSlug: string;
     model: string;
+    modelCanonical: string;
     modelSlug: string;
     displayName: string;
     summary: SummaryMetrics;
@@ -71,6 +75,7 @@ export interface ModelPageData {
 
 export interface ProviderPageData {
     provider: string;
+    providerCanonical: string;
     providerSlug: string;
     displayName: string;
     summary: SummaryMetrics;

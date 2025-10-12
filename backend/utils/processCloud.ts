@@ -23,7 +23,9 @@ export interface RawData {
 interface AggregatedData {
     _id: string;
     provider: string;
+    providerCanonical: string;
     model_name: string;
+    modelCanonical: string;
     display_name?: string;
     tokens_per_second: number[];
     time_to_first_token: number[];
@@ -35,7 +37,9 @@ interface AggregatedData {
 export interface ProcessedData {
     _id: string;
     provider: string;
+    providerCanonical: string;
     model_name: string;
+    modelCanonical: string;
     display_name?: string;
     tokens_per_second: number[];
     time_to_first_token: number[];
@@ -64,6 +68,10 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
     // Single pass through data
     for (const benchmark of data) {
         // Skip invalid entries
+        if (!benchmark.provider || !benchmark.model_name) {
+            logger.warn(`Skipping benchmark ${benchmark._id} due to missing provider or model_name`);
+            continue;
+        }
         if (benchmark.tokens_per_second < 1) continue;
         
         const key = `${benchmark.model_name}-${benchmark.provider}`;
@@ -72,7 +80,9 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             benchmarkMap.set(key, {
                 _id: benchmark._id,
                 provider: benchmark.provider,
+                providerCanonical: benchmark.provider,
                 model_name: benchmark.model_name,
+                modelCanonical: benchmark.model_name,
                 display_name: benchmark.display_name,
                 tokens_per_second: [],
                 time_to_first_token: []
@@ -101,7 +111,9 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         return {
             _id: benchmark._id,
             provider: benchmark.provider,
+            providerCanonical: benchmark.providerCanonical,
             model_name: benchmark.model_name,
+            modelCanonical: benchmark.modelCanonical,
             display_name: benchmark.display_name,
             tokens_per_second: benchmark.tokens_per_second,
             time_to_first_token: benchmark.time_to_first_token,

@@ -198,12 +198,14 @@ export const processRawTableData = async (data: CloudBenchmark[]) => {
     // Data is already mapped at processed.ts:87 - slugs should be populated by mapModelNames
     return data.map(benchmark => {
         if (!benchmark.providerSlug || !benchmark.modelSlug) {
-            throw new Error(`Missing slugs for ${benchmark.provider}/${benchmark.model_name}`);
+            throw new Error(`Missing slugs for ${benchmark.provider}/${benchmark.modelCanonical}`);
         }
         return {
             provider: benchmark.provider,
+            providerCanonical: benchmark.providerCanonical,
             providerSlug: benchmark.providerSlug,
             model_name: benchmark.model_name,
+            modelCanonical: benchmark.modelCanonical,
             modelSlug: benchmark.modelSlug,
             tokens_per_second_mean: Number(calculateMean(benchmark.tokens_per_second).toFixed(PRECISION)),
             tokens_per_second_min: Number(Math.min(...benchmark.tokens_per_second).toFixed(PRECISION)),

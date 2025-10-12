@@ -15,7 +15,10 @@
     "test:watch": "jest --watch --testTimeout=30000",
     "test:baseline": "jest tests/api.baseline.test.js --testTimeout=30000",
     "test:performance": "jest tests/performance.test.js --testTimeout=30000",
-    "test:snapshots": "jest tests/data.snapshot.test.js --testTimeout=30000"
+    "test:snapshots": "jest tests/data.snapshot.test.js --testTimeout=30000",
+    "test:pipeline": "jest tests/pipeline.canonical.test.js --testTimeout=30000",
+    "test:contract": "jest tests/api.canonical-contract.test.js --testTimeout=30000",
+    "test:canonical": "jest tests/pipeline.canonical.test.js tests/api.canonical-contract.test.js --testTimeout=30000"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

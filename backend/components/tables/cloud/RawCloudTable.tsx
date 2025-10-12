@@ -7,29 +7,30 @@ import { colors } from '../../../components/design-system';
 
 interface RawCloudTableProps {
     data: TableRow[];
-    modelLinkFn?: (provider: string, modelName: string) => string;
-    providerLinkFn?: (provider: string) => string;
 }
 
-const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, modelLinkFn, providerLinkFn }) => {
+const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
     const columns = useMemo<ColumnDef<TableRow>[]>(() => [
         {
             accessorKey: 'provider',
             header: 'Provider',
             size: 150,
-            cell: ({ getValue }) => {
-                const provider = getValue() as string;
-                if (providerLinkFn) {
-                    return (
-                        <Link
-                            href={providerLinkFn(provider)}
-                            style={{ color: colors.link, textDecoration: 'underline' }}
-                        >
-                            {provider}
-                        </Link>
-                    );
+            cell: ({ row, getValue }) => {
+                const providerName = getValue() as string;
+                const providerSlug = row.original.providerSlug;
+
+                if (!providerSlug) {
+                    return providerName;
                 }
-                return provider;
+
+                return (
+                    <Link
+                        href={`/providers/${providerSlug}`}
+                        style={{ color: colors.link, textDecoration: 'underline' }}
+                    >
+                        {providerName}
+                    </Link>
+                );
             },
         },
         {
@@ -41,7 +42,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, modelLinkFn, provid
                 const providerSlug = row.original.providerSlug;
                 const modelSlug = row.original.modelSlug;
 
-                if (modelLinkFn && providerSlug && modelSlug) {
+                if (providerSlug && modelSlug) {
                     return (
                         <Link
                             href={`/models/${providerSlug}/${modelSlug}`}
@@ -94,7 +95,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, modelLinkFn, provid
                 return Number(value).toFixed(2);
             },
         },
-    ], [modelLinkFn, providerLinkFn]);
+    ], []);
 
     const tableData = useMemo(() => 
         data.map((row, index) => ({

@@ -1,8 +1,10 @@
 import { CloudBenchmark } from '../types/CloudData';
+import type { ProcessedData } from './processCloud';
 import { createSlug } from './seoUtils';
+import { getProviderDisplayName } from './providerMetadata';
 
 
-export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
+export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] => {
     const modelNameMapping: { [key: string]: string } = {
         // llama 2 7b
         "meta-llama/Llama-2-7b-chat-hf": "llama-2-7b",
@@ -326,35 +328,47 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
     };
 
-    data = data.filter(item => item.provider !== "openrouter");
-    data = data.filter(item => item.model_name !== "anthropic.claude-v1" && item.model_name !== "anthropic.claude-v2");
+    const sanitizedData = data
+        .filter(item => item.provider !== "openrouter")
+        .filter(item => item.model_name !== "anthropic.claude-v1" && item.model_name !== "anthropic.claude-v2")
+        .filter(item => !!item.provider && !!item.model_name);
 
-    data.forEach(item => {
-        if (item.provider === "vertex") {
-            item.provider = "google";
-        }
+    const groupedData = new Map<string, ProcessedData[]>();
+
+    sanitizedData.forEach((item: ProcessedData) => {
+        const providerCanonical = item.providerCanonical ?? item.provider;
+        const modelCanonical = item.modelCanonical ?? item.model_name;
+        const mappedName = modelNameMapping[modelCanonical] || modelNameMapping[item.model_name] || item.model_name;
+
+        const key = JSON.stringify({
+            providerCanonical,
+            modelDisplay: mappedName,
+        });
+
+        const group = groupedData.get(key) ?? [];
+        group.push({
+            ...item,
+            providerCanonical,
+            modelCanonical,
+        });
+        groupedData.set(key, group);
     });
 
-    const groupedData: { [key: string]: CloudBenchmark[] } = {};
+    const mergedData: CloudBenchmark[] = [];
 
-    data.forEach((item: CloudBenchmark) => {
-        const mappedName = modelNameMapping[item.model_name] || item.model_name;
-        const groupKey = `${item.provider}_${mappedName}`;
-        if (!groupedData[groupKey]) {
-            groupedData[groupKey] = [];
-        }
-        groupedData[groupKey].push(item);
-    });
+    groupedData.forEach((items, key) => {
+        const { providerCanonical, modelDisplay } = JSON.parse(key) as { providerCanonical: string; modelDisplay: string };
+        const providerDisplay = getProviderDisplayName(providerCanonical);
+        const canonicalModel = items[0].modelCanonical ?? items[0].model_name;
 
-    const mergedData: CloudBenchmark[] = Object.entries(groupedData).map(([groupKey, items]) => {
-        const [provider, modelName] = groupKey.split('_');
-        const originalModelId = items[0].model_name; // Canonical model_id BEFORE mapping
         const mergedItem: CloudBenchmark = {
             _id: items[0]._id,
-            provider: provider,
-            providerSlug: createSlug(provider),
-            model_name: modelName,
-            modelSlug: createSlug(originalModelId), // Slug from canonical ID
+            provider: providerDisplay,
+            providerCanonical,
+            providerSlug: createSlug(providerCanonical),
+            model_name: modelDisplay,
+            modelCanonical: canonicalModel,
+            modelSlug: createSlug(canonicalModel),
             tokens_per_second: [],
             time_to_first_token: [],
             tokens_per_second_mean: 0,
@@ -365,6 +379,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
             time_to_first_token_min: Infinity,
             time_to_first_token_max: -Infinity,
             time_to_first_token_quartiles: [0, 0, 0],
+            display_name: modelDisplay,
         };
 
         items.forEach((item) => {
@@ -376,8 +391,7 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
             mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
             mergedItem.tokens_per_second_max = Math.max(mergedItem.tokens_per_second_max, item.tokens_per_second_max);
             mergedItem.time_to_first_token_mean += item.time_to_first_token_mean;
-            
-            // Safely handle optional time_to_first_token min/max values
+
             if (item.time_to_first_token_min !== undefined) {
                 mergedItem.time_to_first_token_min = Math.min(
                     mergedItem.time_to_first_token_min ?? Infinity,
@@ -395,8 +409,10 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
         mergedItem.tokens_per_second_mean /= items.length;
         mergedItem.time_to_first_token_mean /= items.length;
 
-        return mergedItem;
+        mergedData.push(mergedItem);
     });
 
     return mergedData;
 };
+
+export default mapModelNamesHardcoded;

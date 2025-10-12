@@ -16,5 +16,11 @@ module.exports = {
   // Handle ES modules and Next.js specific imports
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1'
-  }
+  },
+  // Transform TypeScript files using Next.js built-in transformation
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['next/dist/build/swc/jest-transformer', {}]
+  },
+  // Add file extensions to resolve
+  moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json']
 };

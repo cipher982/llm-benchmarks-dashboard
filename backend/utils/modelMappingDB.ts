@@ -1,7 +1,9 @@
 import { CloudBenchmark } from '../types/CloudData';
+import type { ProcessedData } from './processCloud';
 import connectToMongoDB from './connectToMongoDB';
 import mongoose from 'mongoose';
 import { createSlug } from './seoUtils';
+import { getProviderDisplayName } from './providerMetadata';
 
 // Model schema for the models collection
 const ModelSchema = new mongoose.Schema({
@@ -100,7 +102,7 @@ async function refreshModelMappingCache(): Promise<void> {
  * New database-powered version of mapModelNames
  * Replaces the old hardcoded mapping function
  */
-export const mapModelNamesDB = async (data: CloudBenchmark[]): Promise<CloudBenchmark[]> => {
+export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBenchmark[]> => {
   try {
     // Ensure cache is loaded
     if (!modelMappingCache) {
@@ -108,34 +110,45 @@ export const mapModelNamesDB = async (data: CloudBenchmark[]): Promise<CloudBenc
     }
 
     // Group data by provider-model combination for processing
-    const modelGroups: { [key: string]: CloudBenchmark[] } = {};
-    
+    const modelGroups = new Map<string, ProcessedData[]>();
+
     for (const item of data) {
       // Skip invalid data
       if (!item.provider || !item.model_name) {
         continue;
       }
 
-      const displayName = await getModelDisplayName(item.provider, item.model_name);
-      const groupKey = `${item.provider}_${displayName}`;
-      
-      if (!modelGroups[groupKey]) {
-        modelGroups[groupKey] = [];
-      }
-      
-      modelGroups[groupKey].push(item);
+      const providerCanonical = item.providerCanonical ?? item.provider;
+      const modelCanonical = item.modelCanonical ?? item.model_name;
+      const displayName = await getModelDisplayName(providerCanonical, modelCanonical);
+
+      const groupKey = JSON.stringify({
+        providerCanonical,
+        modelDisplay: displayName,
+      });
+
+      const group = modelGroups.get(groupKey) ?? [];
+      group.push({
+        ...item,
+        providerCanonical,
+        modelCanonical,
+      });
+      modelGroups.set(groupKey, group);
     }
 
     // Merge groups into aggregated results (same logic as original mapModelNames)
-    const mergedData: CloudBenchmark[] = Object.entries(modelGroups).map(([groupKey, items]) => {
-      const [provider, modelName] = groupKey.split('_');
-      const originalModelId = items[0].model_name; // The canonical model_id from MongoDB
+    const mergedData: CloudBenchmark[] = Array.from(modelGroups.entries()).map(([groupKey, items]) => {
+      const { providerCanonical, modelDisplay } = JSON.parse(groupKey) as { providerCanonical: string; modelDisplay: string };
+      const originalProviderCanonical = providerCanonical;
+      const originalModelCanonical = items[0].modelCanonical ?? items[0].model_name; // The canonical model_id from MongoDB
       const mergedItem: CloudBenchmark = {
         _id: items[0]._id,
-        provider: provider,
-        providerSlug: createSlug(provider),
-        model_name: modelName, // This is now the display name
-        modelSlug: createSlug(originalModelId), // Use the original model_id for the slug
+        provider: getProviderDisplayName(providerCanonical),
+        providerCanonical: originalProviderCanonical,
+        providerSlug: createSlug(originalProviderCanonical),
+        model_name: modelDisplay, // This is now the display name
+        modelCanonical: originalModelCanonical,
+        modelSlug: createSlug(originalModelCanonical), // Use the original model_id for the slug
         tokens_per_second: [],
         time_to_first_token: [],
         tokens_per_second_mean: 0,
@@ -146,6 +159,7 @@ export const mapModelNamesDB = async (data: CloudBenchmark[]): Promise<CloudBenc
         time_to_first_token_min: Infinity,
         time_to_first_token_max: -Infinity,
         time_to_first_token_quartiles: [0, 0, 0],
+        display_name: modelDisplay,
       };
 
       // Aggregate data from all items in the group
@@ -185,8 +199,7 @@ export const mapModelNamesDB = async (data: CloudBenchmark[]): Promise<CloudBenc
 
   } catch (error) {
     console.error('Error in mapModelNamesDB:', error);
-    // Fallback: return original data without mapping
-    return data;
+    throw error;
   }
 };
 
@@ -194,7 +207,7 @@ export const mapModelNamesDB = async (data: CloudBenchmark[]): Promise<CloudBenc
  * Feature flag function - allows switching between old and new mapping
  * Includes automatic fallback if database system fails
  */
-export const mapModelNames = async (data: CloudBenchmark[], useDatabase: boolean = false): Promise<CloudBenchmark[]> => {
+export const mapModelNames = async (data: ProcessedData[], useDatabase: boolean = false): Promise<CloudBenchmark[]> => {
   if (useDatabase) {
     try {
       // Try database-powered mapping first
@@ -202,13 +215,13 @@ export const mapModelNames = async (data: CloudBenchmark[], useDatabase: boolean
     } catch (error) {
       console.error('Database mapping failed, falling back to hardcoded mapping:', error);
       // Automatic fallback to old system if database fails
-      const { mapModelNames: originalMapModelNames } = await import('./modelMapping');
-      return originalMapModelNames(data);
+      const { mapModelNamesHardcoded } = await import('./modelMapping');
+      return mapModelNamesHardcoded(data);
     }
   } else {
     // Import and use original mapping function
-    const { mapModelNames: originalMapModelNames } = await import('./modelMapping');
-    return originalMapModelNames(data);
+    const { mapModelNamesHardcoded } = await import('./modelMapping');
+    return mapModelNamesHardcoded(data);
   }
 };
 

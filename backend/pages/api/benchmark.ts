@@ -6,6 +6,7 @@ import { corsMiddleware } from '../../utils/apiMiddleware';
 import connectToMongoDB from '../../utils/connectToMongoDB';
 import logger from '../../utils/logger';
 import { roundNumbers } from '../../utils/dataUtils';
+import { mapModelNames } from '../../utils/modelMappingDB';
 
 /**
  * Benchmark timing utility function
@@ -88,7 +89,14 @@ async function handler(
     });
     timings.push(transformTiming);
     
-    // Step 4-6: Data Processing (Run in parallel for performance but time separately)
+    // Step 4: Model mapping to canonical/display contract
+    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
+    const { result: mappedData, timings: mappingTiming } = await timeOperation('Model mapping', () =>
+      mapModelNames(transformedData, useDbModels)
+    );
+    timings.push(mappingTiming);
+    
+    // Step 5-7: Data Processing (Run in parallel for performance but time separately)
     const processingStart = process.hrtime.bigint();
     
     const [
@@ -96,9 +104,9 @@ async function handler(
       { result: timeSeriesData, timings: timeSeriesTiming },
       { result: tableData, timings: tableTiming }
     ] = await Promise.all([
-      timeOperation('Speed distribution processing', () => processSpeedDistData(transformedData)),
-      timeOperation('Time series processing', () => processTimeSeriesData(transformedData, days)),
-      timeOperation('Table data processing', () => processRawTableData(transformedData))
+      timeOperation('Speed distribution processing', () => processSpeedDistData(mappedData)),
+      timeOperation('Time series processing', () => processTimeSeriesData(mappedData, days)),
+      timeOperation('Table data processing', () => processRawTableData(mappedData))
     ]);
     
     const processingEnd = process.hrtime.bigint();
@@ -138,7 +146,7 @@ async function handler(
     const summary = {
       totalTimeMs,
       documentsFetched: totalDocuments,
-      modelsProcessed: transformedData.length,
+      modelsProcessed: mappedData.length,
       responseSize: `${(responseSize / 1024 / 1024).toFixed(2)} MB`,
       daysRequested: days,
       timestamp: new Date().toISOString()
