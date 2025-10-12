@@ -330,21 +330,18 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
     const providerTable = (filtered.table ?? []) as TableRow[];
     const providerModels = providerTable
         .filter((row) => row.provider === resolvedProvider.provider)
-        .map((row) => {
-            const modelSlug = createSlug(row.model_name);
-            return {
-                provider: resolvedProvider.provider,
-                providerSlug,
-                model: row.model_name,
-                modelSlug,
-                displayName: row.model_name,
-                latestRunAt,
-                tokensPerSecondMean: row.tokens_per_second_mean,
-                timeToFirstTokenMean: row.time_to_first_token_mean,
-                tokensPerSecondMin: row.tokens_per_second_min,
-                tokensPerSecondMax: row.tokens_per_second_max,
-            };
-        });
+        .map((row) => ({
+            provider: resolvedProvider.provider,
+            providerSlug: row.providerSlug ?? providerSlug,
+            model: row.model_name,
+            modelSlug: row.modelSlug,
+            displayName: row.model_name,
+            latestRunAt,
+            tokensPerSecondMean: row.tokens_per_second_mean,
+            timeToFirstTokenMean: row.time_to_first_token_mean,
+            tokensPerSecondMin: row.tokens_per_second_min,
+            tokensPerSecondMax: row.tokens_per_second_max,
+        }));
 
     const summary = buildSummaryFromTable(providerTable, rawSampleCount, runCount, latestRunAt);
 
