@@ -26,7 +26,9 @@ export interface TimeSeriesData {
 
 export interface TableRow {
     provider: string;
+    providerSlug: string;
     model_name: string;
+    modelSlug: string;
     tokens_per_second_mean: number;
     tokens_per_second_min: number;
     tokens_per_second_max: number;

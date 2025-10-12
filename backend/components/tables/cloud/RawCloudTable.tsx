@@ -38,12 +38,13 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, modelLinkFn, provid
             size: 200,
             cell: ({ row, getValue }) => {
                 const modelName = getValue() as string;
-                const provider = row.original.provider;
-                
-                if (modelLinkFn) {
+                const providerSlug = row.original.providerSlug;
+                const modelSlug = row.original.modelSlug;
+
+                if (modelLinkFn && providerSlug && modelSlug) {
                     return (
-                        <Link 
-                            href={modelLinkFn(provider, modelName)}
+                        <Link
+                            href={`/models/${providerSlug}/${modelSlug}`}
                             style={{ color: colors.link, textDecoration: 'underline' }}
                         >
                             {modelName}
