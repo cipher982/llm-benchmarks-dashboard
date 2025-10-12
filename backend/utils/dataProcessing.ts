@@ -195,19 +195,22 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
 };
 
 export const processRawTableData = async (data: CloudBenchmark[]) => {
-    // Data is already mapped at processed.ts:36 - no need to re-map!
-    const { createSlug } = await import('../utils/seoUtils');
-    const mappedData = data;
-    return mappedData.map(benchmark => ({
-        provider: benchmark.provider,
-        providerSlug: benchmark.providerSlug || createSlug(benchmark.provider),
-        model_name: benchmark.model_name,
-        modelSlug: benchmark.modelSlug || createSlug(benchmark.model_name),
-        tokens_per_second_mean: Number(calculateMean(benchmark.tokens_per_second).toFixed(PRECISION)),
-        tokens_per_second_min: Number(Math.min(...benchmark.tokens_per_second).toFixed(PRECISION)),
-        tokens_per_second_max: Number(Math.max(...benchmark.tokens_per_second).toFixed(PRECISION)),
-        time_to_first_token_mean: Number(benchmark.time_to_first_token_mean.toFixed(PRECISION)),
-    }));
+    // Data is already mapped at processed.ts:87 - slugs should be populated by mapModelNames
+    return data.map(benchmark => {
+        if (!benchmark.providerSlug || !benchmark.modelSlug) {
+            console.error(`⚠️  Missing slugs for ${benchmark.provider}/${benchmark.model_name}`);
+        }
+        return {
+            provider: benchmark.provider,
+            providerSlug: benchmark.providerSlug!,
+            model_name: benchmark.model_name,
+            modelSlug: benchmark.modelSlug!,
+            tokens_per_second_mean: Number(calculateMean(benchmark.tokens_per_second).toFixed(PRECISION)),
+            tokens_per_second_min: Number(Math.min(...benchmark.tokens_per_second).toFixed(PRECISION)),
+            tokens_per_second_max: Number(Math.max(...benchmark.tokens_per_second).toFixed(PRECISION)),
+            time_to_first_token_mean: Number(benchmark.time_to_first_token_mean.toFixed(PRECISION)),
+        };
+    });
 };
 
 // Helper functions

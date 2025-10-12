@@ -1,6 +1,7 @@
 import { CloudBenchmark } from '../types/CloudData';
 import connectToMongoDB from './connectToMongoDB';
 import mongoose from 'mongoose';
+import { createSlug } from './seoUtils';
 
 // Model schema for the models collection
 const ModelSchema = new mongoose.Schema({
@@ -128,10 +129,13 @@ export const mapModelNamesDB = async (data: CloudBenchmark[]): Promise<CloudBenc
     // Merge groups into aggregated results (same logic as original mapModelNames)
     const mergedData: CloudBenchmark[] = Object.entries(modelGroups).map(([groupKey, items]) => {
       const [provider, modelName] = groupKey.split('_');
+      const originalModelId = items[0].model_name; // The canonical model_id from MongoDB
       const mergedItem: CloudBenchmark = {
         _id: items[0]._id,
         provider: provider,
+        providerSlug: createSlug(provider),
         model_name: modelName, // This is now the display name
+        modelSlug: createSlug(originalModelId), // Use the original model_id for the slug
         tokens_per_second: [],
         time_to_first_token: [],
         tokens_per_second_mean: 0,

@@ -1,4 +1,5 @@
 import { CloudBenchmark } from '../types/CloudData';
+import { createSlug } from './seoUtils';
 
 
 export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
@@ -347,10 +348,13 @@ export const mapModelNames = (data: CloudBenchmark[]): CloudBenchmark[] => {
 
     const mergedData: CloudBenchmark[] = Object.entries(groupedData).map(([groupKey, items]) => {
         const [provider, modelName] = groupKey.split('_');
+        const originalModelId = items[0].model_name; // Canonical model_id BEFORE mapping
         const mergedItem: CloudBenchmark = {
             _id: items[0]._id,
             provider: provider,
+            providerSlug: createSlug(provider),
             model_name: modelName,
+            modelSlug: createSlug(originalModelId), // Slug from canonical ID
             tokens_per_second: [],
             time_to_first_token: [],
             tokens_per_second_mean: 0,
