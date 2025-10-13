@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Typography, Divider } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import type { TypographyProps } from "@mui/material/Typography";
 import { DesktopShell, DesktopWindow } from "../design-system/components";
 
 interface ModelPageLayoutProps {
@@ -11,13 +12,17 @@ interface ModelPageLayoutProps {
     children: React.ReactNode;
 }
 
-const PageHeading = styled(Typography)(({ theme }) => ({
+const PageHeading = styled((props: TypographyProps) => (
+    <Typography {...props} />
+))(({ theme }) => ({
     fontFamily: theme.designSystem.typography.fontFamily,
     fontWeight: theme.designSystem.typography.weights.semibold,
     color: theme.designSystem.colors.textPrimary,
 }));
 
-const PageSubtitle = styled(Typography)(({ theme }) => ({
+const PageSubtitle = styled((props: TypographyProps) => (
+    <Typography {...props} />
+))(({ theme }) => ({
     fontFamily: theme.designSystem.typography.fontFamily,
     fontWeight: theme.designSystem.typography.weights.normal,
     color: theme.designSystem.colors.textSecondary,

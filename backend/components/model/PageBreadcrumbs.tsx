@@ -2,8 +2,11 @@ import React from "react";
 import NextLink from "next/link";
 import { Breadcrumbs, Typography, Link as MuiLink } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import type { LinkProps as MuiLinkProps } from "@mui/material/Link";
 
-const BreadcrumbLink = styled(MuiLink)(({ theme }) => ({
+const BreadcrumbLink = styled((props: MuiLinkProps) => (
+    <MuiLink {...props} />
+))(({ theme }) => ({
     textDecoration: "none",
     color: theme.palette.text.primary,
     fontSize: 14,
