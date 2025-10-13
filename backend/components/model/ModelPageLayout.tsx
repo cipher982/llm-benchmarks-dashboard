@@ -1,5 +1,7 @@
 import React from "react";
-import { Box, Container, Typography, Divider } from "@mui/material";
+import { Box, Typography, Divider } from "@mui/material";
+import { styled } from "@mui/material/styles";
+import { DesktopShell, DesktopWindow } from "../design-system/components";
 
 interface ModelPageLayoutProps {
     title: string;
@@ -9,6 +11,18 @@ interface ModelPageLayoutProps {
     children: React.ReactNode;
 }
 
+const PageHeading = styled(Typography)(({ theme }) => ({
+    fontFamily: theme.designSystem.typography.fontFamily,
+    fontWeight: theme.designSystem.typography.weights.semibold,
+    color: theme.designSystem.colors.textPrimary,
+}));
+
+const PageSubtitle = styled(Typography)(({ theme }) => ({
+    fontFamily: theme.designSystem.typography.fontFamily,
+    fontWeight: theme.designSystem.typography.weights.normal,
+    color: theme.designSystem.colors.textSecondary,
+}));
+
 const ModelPageLayout: React.FC<ModelPageLayoutProps> = ({
     title,
     subtitle,
@@ -17,34 +31,34 @@ const ModelPageLayout: React.FC<ModelPageLayoutProps> = ({
     children,
 }) => {
     return (
-        <Box sx={{ bgcolor: "background.default", color: "text.primary", minHeight: "100vh" }}>
-            <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
+        <DesktopShell>
+            <DesktopWindow>
                 {breadcrumbs && (
-                    <Box sx={{ mb: 2 }}>
+                    <Box sx={{ mb: { xs: 1, md: 2 } }}>
                         {breadcrumbs}
                     </Box>
                 )}
-                <Box sx={{ mb: 3 }}>
-                    <Typography variant="h3" component="h1" sx={{ fontWeight: 700 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: { xs: 2, md: 3 } }}>
+                    <PageHeading variant="h3" component="h1">
                         {title}
-                    </Typography>
+                    </PageHeading>
                     {subtitle && (
-                        <Typography variant="subtitle1" sx={{ mt: 1, color: "text.secondary" }}>
+                        <PageSubtitle variant="subtitle1">
                             {subtitle}
-                        </Typography>
+                        </PageSubtitle>
                     )}
                 </Box>
                 {intro && (
-                    <Box sx={{ mb: 5 }}>
+                    <Box sx={{ mb: { xs: 3, md: 4 }, display: "grid", gap: 2 }}>
                         {intro}
                     </Box>
                 )}
-                <Divider sx={{ mb: 4 }} />
-                <Box component="main" sx={{ display: "grid", gap: { xs: 4, md: 6 } }}>
+                <Divider sx={{ borderColor: "divider", mb: { xs: 3, md: 4 } }} />
+                <Box component="main" sx={{ display: "grid", gap: { xs: 3, md: 5 } }}>
                     {children}
                 </Box>
-            </Container>
-        </Box>
+            </DesktopWindow>
+        </DesktopShell>
     );
 };
 

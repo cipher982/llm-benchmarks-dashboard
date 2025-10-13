@@ -29,6 +29,7 @@ const LinksContainer = styled('div')(({ theme }) => ({
     flexDirection: 'row',
     alignItems: 'center',
     order: 1,
+    gap: theme.spacing(1),
     [theme.breakpoints.down('md')]: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -82,8 +83,59 @@ const StyledIconButton = styled(StyledButton)(({ theme }) => ({
     minWidth: 'auto',
     padding: theme.spacing(1),
     '& .MuiSvgIcon-root': {
-        color: theme.palette.text.primary,
+        color: theme.designSystem.colors.textPrimary,
         fontSize: '1.25rem',
+    },
+}));
+
+const ButtonLink = styled('a')({
+    textDecoration: 'none',
+    display: 'inline-flex',
+});
+
+const NavLinkAnchor = styled('a')(({ theme }) => ({
+    textDecoration: 'none',
+    color: theme.designSystem.colors.textPrimary,
+    display: 'inline-flex',
+    alignItems: 'center',
+}));
+
+const NavLinkChip = styled('span')<{ $active: boolean }>(({ theme, $active }) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: `${theme.spacing(1)} ${theme.spacing(3)}`,
+    fontFamily: 'Tahoma, sans-serif',
+    fontSize: theme.designSystem.typography.sizes.base,
+    fontWeight: 400,
+    lineHeight: 1.2,
+    backgroundColor: $active ? theme.designSystem.colors.surface : theme.designSystem.colors.surfaceElevated,
+    borderTop: `2px solid ${$active ? theme.designSystem.colors.borderDark : theme.designSystem.colors.borderLight}`,
+    borderLeft: `2px solid ${$active ? theme.designSystem.colors.borderDark : theme.designSystem.colors.borderLight}`,
+    borderRight: `2px solid ${$active ? theme.designSystem.colors.borderLight : theme.designSystem.colors.borderDark}`,
+    borderBottom: `2px solid ${$active ? theme.designSystem.colors.borderLight : theme.designSystem.colors.borderDark}`,
+    cursor: 'pointer',
+    transition: 'none',
+    color: theme.designSystem.colors.textPrimary,
+    boxSizing: 'border-box',
+    '&:hover': {
+        backgroundColor: theme.designSystem.colors.hover,
+    },
+    '&:active': {
+        borderTop: `2px solid ${theme.designSystem.colors.borderDark}`,
+        borderLeft: `2px solid ${theme.designSystem.colors.borderDark}`,
+        borderRight: `2px solid ${theme.designSystem.colors.borderLight}`,
+        borderBottom: `2px solid ${theme.designSystem.colors.borderLight}`,
+    },
+    '&:focus-visible': {
+        outline: `2px solid ${theme.designSystem.colors.primary}`,
+        outlineOffset: 2,
+    },
+}));
+
+const ResponsiveButtonText = styled('span')(({ theme }) => ({
+    display: 'inline',
+    [theme.breakpoints.down('sm')]: {
+        display: 'none',
     },
 }));
 
@@ -97,33 +149,10 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children }) => {
     const isActive = pathname === href;
 
     return (
-        <Link href={href} style={{ textDecoration: 'none', marginRight: '8px' }}>
-            <div
-                style={{
-                    padding: '6px 14px',
-                    color: '#000',
-                    backgroundColor: isActive ? '#ECE9D8' : '#D4D0C8',
-                    borderRadius: '0',
-                    border: isActive 
-                        ? '2px inset #D4D0C8'
-                        : '2px outset #D4D0C8',
-                    fontWeight: 400,
-                    fontSize: '11px',
-                    fontFamily: 'Tahoma, sans-serif',
-                    transition: 'all 0.2s ease-in-out',
-                    cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f5f5f5';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#fff';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                }}
-            >
-                {children}
-            </div>
+        <Link href={href} passHref legacyBehavior>
+            <NavLinkAnchor>
+                <NavLinkChip $active={isActive}>{children}</NavLinkChip>
+            </NavLinkAnchor>
         </Link>
     );
 };
@@ -139,6 +168,7 @@ const Navbar: React.FC = () => {
                 <StyledIconButton
                     variant="outlined"
                     size="small"
+                    aria-label="Open GitHub repository"
                     onClick={() => window.open("https://github.com/cipher982/llm-benchmarks", "_blank")}
                 >
                     <GitHubIcon />
@@ -146,19 +176,23 @@ const Navbar: React.FC = () => {
                 <StyledButton
                     variant="outlined"
                     size="small"
+                    aria-label="Visit drose.io"
                     onClick={() => window.open("https://drose.io", "_blank")}
                 >
                     <PersonOutlineIcon />
-                    drose.io
+                    <ResponsiveButtonText>drose.io</ResponsiveButtonText>
                 </StyledButton>
-                <Link href="/status" style={{ textDecoration: 'none' }}>
-                    <StyledButton
-                        variant="outlined"
-                        size="small"
-                    >
-                        <CheckCircleOutlineIcon />
-                        API Status
-                    </StyledButton>
+                <Link href="/status" passHref legacyBehavior>
+                    <ButtonLink>
+                        <StyledButton
+                            variant="outlined"
+                            size="small"
+                            aria-label="View API status"
+                        >
+                            <CheckCircleOutlineIcon />
+                            <ResponsiveButtonText>API Status</ResponsiveButtonText>
+                        </StyledButton>
+                    </ButtonLink>
                 </Link>
             </ButtonsContainer>
         </NavBarContainer>

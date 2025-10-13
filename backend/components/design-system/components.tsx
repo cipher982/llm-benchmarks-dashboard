@@ -92,6 +92,55 @@ export const CenteredContentContainer = styled('div')({
 });
 
 /**
+ * Desktop shell that centers application windows on the Win98 desktop
+ */
+export const DesktopShell = styled('div')(({ theme }) => ({
+  width: '100%',
+  minHeight: '100%',
+  display: 'flex',
+  justifyContent: 'center',
+  boxSizing: 'border-box',
+  padding: theme.spacing(6, 2, 8),
+  [theme.breakpoints.down('md')]: {
+    padding: theme.spacing(4, 1, 6),
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(3, 1, 5),
+  },
+}));
+
+/**
+ * High-contrast application window surface for dense content layouts
+ */
+export const DesktopWindow = styled('div')(({ theme }) => ({
+  width: '100%',
+  maxWidth: 1120,
+  backgroundColor: colors.surface,
+  color: colors.textPrimary,
+  boxShadow: sizing.shadows.md,
+  borderTop: `2px solid ${colors.borderLight}`,
+  borderLeft: `2px solid ${colors.borderLight}`,
+  borderRight: `2px solid ${colors.borderDark}`,
+  borderBottom: `2px solid ${colors.borderDark}`,
+  padding: theme.spacing(4, 5),
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(4), // 32px – mirrors section spacing cadence
+  [theme.breakpoints.down('lg')]: {
+    padding: theme.spacing(4),
+    maxWidth: 1000,
+  },
+  [theme.breakpoints.down('md')]: {
+    padding: theme.spacing(3),
+    gap: theme.spacing(3),
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(2),
+    gap: theme.spacing(2.5),
+  },
+}));
+
+/**
  * Flexible layout container with Windows 98 styling
  */
 export const FlexContainer = styled('div')<LayoutProps>(({ 

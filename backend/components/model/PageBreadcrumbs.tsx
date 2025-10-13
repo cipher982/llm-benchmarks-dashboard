@@ -1,6 +1,21 @@
 import React from "react";
-import Link from "next/link";
-import { Breadcrumbs, Typography } from "@mui/material";
+import NextLink from "next/link";
+import { Breadcrumbs, Typography, Link as MuiLink } from "@mui/material";
+import { styled } from "@mui/material/styles";
+
+const BreadcrumbLink = styled(MuiLink)(({ theme }) => ({
+    textDecoration: "none",
+    color: theme.palette.text.primary,
+    fontSize: 14,
+    "&:hover": {
+        textDecoration: "underline",
+        color: theme.designSystem.colors.link,
+    },
+    "&:focus-visible": {
+        outline: `2px solid ${theme.designSystem.colors.primary}`,
+        outlineOffset: 2,
+    },
+}));
 
 interface PageBreadcrumbsProps {
     items: Array<{ label: string; href?: string }>;
@@ -19,9 +34,14 @@ const PageBreadcrumbs: React.FC<PageBreadcrumbsProps> = ({ items }) => {
                     );
                 }
                 return (
-                    <Link key={item.label} href={item.href} style={{ textDecoration: "none", color: "inherit" }}>
+                    <BreadcrumbLink
+                        key={item.label}
+                        component={NextLink}
+                        href={item.href}
+                        underline="none"
+                    >
                         {item.label}
-                    </Link>
+                    </BreadcrumbLink>
                 );
             })}
         </Breadcrumbs>
