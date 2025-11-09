@@ -89,6 +89,14 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 .y(d => y(d.y))
                 .curve(d3.curveBasis);
 
+            // Determine styling based on deprecation status
+            const isDeprecated = modelData.deprecated;
+            const baseColor = getProviderColor(theme, modelData.provider as Provider);
+            const strokeColor = isDeprecated ? '#999999' : baseColor;
+            const strokeWidth = isDeprecated ? 1.5 : 2;
+            const strokeDasharray = isDeprecated ? '5,5' : 'none';
+            const opacity = isDeprecated ? 0.5 : 1;
+
             // Draw density path
             svg.append("path")
                 .datum(modelData.density_points)
@@ -96,15 +104,21 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 .attr("id", lineId)
                 .attr("d", line)
                 .style("fill", "none")
-                .style("stroke", getProviderColor(theme, modelData.provider as Provider))
-                .style("stroke-width", 2)
+                .style("stroke", strokeColor)
+                .style("stroke-width", strokeWidth)
+                .style("stroke-dasharray", strokeDasharray)
+                .style("opacity", opacity)
                 .on("mouseover", function(event) {
                     d3.select(this)
                         .style("stroke-width", 4);
-                    
+
+                    const tooltipHtml = isDeprecated
+                        ? `${modelData.display_name}<br/>⚠ Deprecated<br/>Mean: ${modelData.mean_tokens_per_second.toFixed(2)} tokens/s`
+                        : `${modelData.display_name}<br/>Mean: ${modelData.mean_tokens_per_second.toFixed(2)} tokens/s`;
+
                     tooltip
                         .style("opacity", 1)
-                        .html(`${modelData.display_name}<br/>Mean: ${modelData.mean_tokens_per_second.toFixed(2)} tokens/s`)
+                        .html(tooltipHtml)
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 10) + "px");
                 })
@@ -115,6 +129,9 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 });
 
             // Add model label
+            const labelColor = isDeprecated ? '#999999' : getProviderColor(theme, modelData.provider as Provider);
+            const labelText = isDeprecated ? `${modelData.display_name} ⚠` : modelData.display_name;
+
             svg.append("text")
                 .attr("class", "model-label")
                 .attr("id", textId)
@@ -122,9 +139,11 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 .attr("y", y(maxDensityPoint.y))
                 .attr("dx", "0.5em")
                 .attr("dy", "-0.5em")
-                .style("fill", getProviderColor(theme, modelData.provider as Provider))
+                .style("fill", labelColor)
                 .style("font-size", "12px")
-                .text(modelData.display_name);
+                .style("font-style", isDeprecated ? "italic" : "normal")
+                .style("opacity", opacity)
+                .text(labelText);
         });
     }, [data, x, y, theme]);
 

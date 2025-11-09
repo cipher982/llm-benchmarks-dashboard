@@ -6,6 +6,8 @@ export interface SpeedDistributionPoint {
     mean_tokens_per_second: number;
     min_tokens_per_second: number;
     max_tokens_per_second: number;
+    deprecated?: boolean;
+    deprecation_date?: string;
 }
 
 export interface TimeSeriesProvider {

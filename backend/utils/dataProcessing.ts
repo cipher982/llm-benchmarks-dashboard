@@ -193,7 +193,9 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             mean_tokens_per_second: mean,
             min_tokens_per_second: min,
             max_tokens_per_second: max,
-            density_points: densityPoints
+            density_points: densityPoints,
+            deprecated: benchmark.deprecated,
+            deprecation_date: benchmark.deprecation_date,
         };
     });
 };
