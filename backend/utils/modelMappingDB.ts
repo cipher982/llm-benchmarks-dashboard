@@ -163,9 +163,10 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
       const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
 
       // Compute last benchmark date from all items in group (not just first!)
+      // Only compute if we have actual timestamps - don't fabricate dates
       const allTimestamps = items
         .map(item => item.last_run_ts)
-        .filter(ts => ts != null);
+        .filter((ts): ts is Date => ts != null);
       const lastBenchmarkDate = allTimestamps.length > 0
         ? new Date(Math.max(...allTimestamps.map(ts => ts.getTime()))).toISOString()
         : undefined;

@@ -35,19 +35,35 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
     >
       {/* Header */}
       <Box
+        component="button"
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           p: 1,
           borderBottom: '1px solid #ddd',
+          border: 'none',
+          width: '100%',
           cursor: 'pointer',
           backgroundColor: '#f5f5f5',
           '&:hover': {
             backgroundColor: '#eeeeee',
           },
+          '&:focus': {
+            outline: '2px solid #1976d2',
+            outlineOffset: '-2px',
+          },
         }}
         onClick={() => setExpanded(!expanded)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
+        aria-expanded={expanded}
+        aria-controls="deprecated-providers-list"
+        type="button"
       >
         <Typography
           variant="subtitle2"
@@ -59,14 +75,14 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
         >
           Deprecated ({deprecatedProviders.length})
         </Typography>
-        <IconButton size="small" sx={{ padding: 0 }}>
+        <IconButton size="small" sx={{ padding: 0 }} aria-hidden="true">
           {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
         </IconButton>
       </Box>
 
       {/* Expandable content */}
       {expanded && (
-        <List dense sx={{ p: 0 }}>
+        <List dense sx={{ p: 0 }} id="deprecated-providers-list">
           {deprecatedProviders.map((provider) => {
             const isChecked = selectedProviders.has(provider.providerCanonical);
 
@@ -88,8 +104,9 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
                 }}
                 role="checkbox"
                 aria-checked={isChecked}
+                aria-label={`Toggle ${provider.provider} deprecated data`}
                 tabIndex={0}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     onToggle(provider.providerCanonical);

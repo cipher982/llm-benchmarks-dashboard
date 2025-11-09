@@ -52,7 +52,7 @@ export interface ProcessedData {
     time_to_first_token_min: number;
     time_to_first_token_max: number;
     time_to_first_token_quartiles: number[];
-    last_run_ts: Date;
+    last_run_ts?: Date;
 }
 
 /**
@@ -114,10 +114,10 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         const ttft_max = calculateMax(benchmark.time_to_first_token);
         const ttft_quartiles = calculateQuartiles(benchmark.time_to_first_token);
 
-        // Compute last benchmark timestamp
+        // Compute last benchmark timestamp (undefined if no data exists)
         const lastRunTs = benchmark.run_timestamps.length > 0
             ? new Date(Math.max(...benchmark.run_timestamps.map(ts => ts.getTime())))
-            : new Date();
+            : undefined;
 
         // Return processed data with calculated statistics
         return {

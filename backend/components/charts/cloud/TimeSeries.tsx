@@ -263,6 +263,22 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         });
     }, [data.models]);
 
+    // Auto-enable first deprecated provider for models with no active providers
+    React.useEffect(() => {
+        const toAutoEnable = new Set<string>();
+
+        modelsWithVisibility.forEach(({ visibleProviders, deprecatedProviders }) => {
+            // If this model has no active providers but has deprecated ones, auto-enable the first
+            if (visibleProviders.length === 0 && deprecatedProviders.length > 0) {
+                toAutoEnable.add(deprecatedProviders[0].providerCanonical);
+            }
+        });
+
+        if (toAutoEnable.size > 0 && selectedDeprecated.size === 0) {
+            setSelectedDeprecated(toAutoEnable);
+        }
+    }, [modelsWithVisibility]);
+
     // Sort models by number of visible providers (lines), then fall back to total providers and name
     const sortedModelsWithVisibility = useMemo(() => {
         return [...modelsWithVisibility].sort((a, b) => {
