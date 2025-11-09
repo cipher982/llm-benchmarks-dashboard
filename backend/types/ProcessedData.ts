@@ -10,7 +10,11 @@ export interface SpeedDistributionPoint {
 
 export interface TimeSeriesProvider {
     provider: string;
+    providerCanonical: string;
     values: number[];
+    deprecated?: boolean;
+    deprecation_date?: string;
+    last_benchmark_date?: string;
 }
 
 export interface TimeSeriesModel {
@@ -35,6 +39,9 @@ export interface TableRow {
     tokens_per_second_min: number;
     tokens_per_second_max: number;
     time_to_first_token_mean: number;
+    deprecated?: boolean;
+    deprecation_date?: string;
+    last_benchmark_date?: string;
 }
 
 export interface ProcessedData {

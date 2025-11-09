@@ -99,7 +99,11 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
 
             return {
                 provider: benchmark.provider as Provider,
-                values: processedValues
+                providerCanonical: benchmark.providerCanonical,
+                values: processedValues,
+                deprecated: benchmark.deprecated,
+                deprecation_date: benchmark.deprecation_date,
+                last_benchmark_date: benchmark.last_benchmark_date,
             };
         });
 
@@ -211,6 +215,9 @@ export const processRawTableData = async (data: CloudBenchmark[]) => {
             tokens_per_second_min: Number(Math.min(...benchmark.tokens_per_second).toFixed(PRECISION)),
             tokens_per_second_max: Number(Math.max(...benchmark.tokens_per_second).toFixed(PRECISION)),
             time_to_first_token_mean: Number(benchmark.time_to_first_token_mean.toFixed(PRECISION)),
+            deprecated: benchmark.deprecated,
+            deprecation_date: benchmark.deprecation_date,
+            last_benchmark_date: benchmark.last_benchmark_date,
         };
     });
 };

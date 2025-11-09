@@ -18,4 +18,11 @@ export interface CloudBenchmark {
     time_to_first_token_quartiles?: number[];  // Added to match ProcessedData
     display_name?: string;  // Optional alternate display label retained for legacy consumers
     run_ts?: Date;
+
+    // Deprecation metadata
+    deprecated?: boolean;
+    deprecation_date?: string;
+    successor_model?: string;
+    deprecation_reason?: string;
+    last_benchmark_date?: string;
 }
