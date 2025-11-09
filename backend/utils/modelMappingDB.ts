@@ -49,26 +49,15 @@ async function getModelDisplayName(provider: string, modelId: string): Promise<s
 
     // Try cache again after refresh
     const cacheKey = `${provider}:${modelId}`;
-    
-    // DEBUG: Log cache lookup details
-    console.log(`🔍 CACHE LOOKUP: Provider="${provider}", ModelId="${modelId}"`);
-    console.log(`🔍 CACHE KEY: "${cacheKey}"`);
-    console.log(`🔍 CACHE HAS KEY: ${modelMappingCache ? Object.keys(modelMappingCache).includes(cacheKey) : 'No cache'}`);
-    if (modelMappingCache) {
-      console.log(`🔍 AVAILABLE KEYS: ${Object.keys(modelMappingCache).filter(k => k.includes(provider)).slice(0, 3)}`);
-    }
-    
+
     if (modelMappingCache && modelMappingCache[cacheKey]) {
-      console.log(`✅ FOUND MAPPING: "${modelId}" → "${modelMappingCache[cacheKey]}"`);
-      return modelMappingCache[cacheKey];
+        return modelMappingCache[cacheKey];
     }
 
     // Fallback: return original model name if not found
-    console.warn(`❌ Model mapping not found for ${provider}/${modelId}, using original name`);
     return modelId;
 
   } catch (error) {
-    console.error('Error getting model display name:', error);
     // Multiple fallback strategies - never fail completely
     return modelId;
   }
@@ -91,10 +80,8 @@ async function refreshModelMappingCache(): Promise<void> {
 
     modelMappingCache = newCache;
     cacheTimestamp = Date.now();
-    
-    console.log(`Model mapping cache refreshed with ${models.length} models`);
   } catch (error) {
-    console.error('Error refreshing model mapping cache:', error);
+    // Silently fail - cache will remain as-is
   }
 }
 
