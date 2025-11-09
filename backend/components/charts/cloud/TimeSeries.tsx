@@ -15,6 +15,7 @@ import Box from '@mui/material/Box';
 import { Provider, getProviderColor } from '../../theme/theme';
 import { TimeSeriesData, TimeSeriesModel, TimeSeriesProvider } from '../../../types/ProcessedData';
 import { TimeRangeSelector } from '../../TimeRangeSelector';
+import { DeprecatedModelsPanel } from './DeprecatedModelsPanel';
 
 interface TimeSeriesChartProps {
     onTimeRangeChange?: (days: number) => Promise<void>;
@@ -40,20 +41,26 @@ const getVisibleProviders = (model: TimeSeriesModel): TimeSeriesProvider[] =>
     model.providers.filter((provider) => getProviderCoverage(provider) >= COVERAGE_THRESHOLD);
 
 // Memoized individual chart component
-const ModelChart = memo(({ 
-    model, 
-    chartData, 
+const ModelChart = memo(({
+    model,
+    chartData,
     theme,
     selectedDays,
     isLoading,
-    visibleProviders
-}: { 
-    model: TimeSeriesModel; 
-    chartData: ChartDataPoint[]; 
+    visibleProviders,
+    deprecatedProviders,
+    selectedDeprecated,
+    onToggleDeprecated,
+}: {
+    model: TimeSeriesModel;
+    chartData: ChartDataPoint[];
     theme: any;
     selectedDays: number;
     isLoading: boolean;
     visibleProviders: TimeSeriesProvider[];
+    deprecatedProviders: TimeSeriesProvider[];
+    selectedDeprecated: Set<string>;
+    onToggleDeprecated: (canonical: string) => void;
 }) => {
     // Calculate tick interval based on selected days
     const getTickInterval = () => {
@@ -65,10 +72,19 @@ const ModelChart = memo(({
         return Math.floor(chartData.length / selectedDays);
     };
 
+    // Combine visible providers with selected deprecated providers
+    const allVisibleProviders = useMemo(() => {
+        const selectedDeprecatedProviders = deprecatedProviders.filter(p =>
+            selectedDeprecated.has(p.providerCanonical)
+        );
+        return [...visibleProviders, ...selectedDeprecatedProviders];
+    }, [visibleProviders, deprecatedProviders, selectedDeprecated]);
+
     return (
         <div key={model.model_name} style={{ position: 'relative' }}>
             <h3>{model.display_name || model.model_name}</h3>
-            <Box sx={{ position: 'relative', width: '100%', height: 250 }}>
+            <Box sx={{ display: 'flex', position: 'relative' }}>
+                <Box sx={{ flex: 1, height: 250 }}>
                 {isLoading && (
                     <Box
                         sx={{
@@ -126,7 +142,7 @@ const ModelChart = memo(({
                             formatter={(value: number) => [value?.toFixed(2) || 'N/A', '']}
                         />
                         <Legend />
-                        {!isLoading && visibleProviders.map((provider) => (
+                        {!isLoading && allVisibleProviders.map((provider) => (
                             <Line
                                 key={provider.provider}
                                 type="monotone"
@@ -139,6 +155,14 @@ const ModelChart = memo(({
                         ))}
                     </LineChart>
                 </ResponsiveContainer>
+                </Box>
+
+                {/* Deprecated models panel */}
+                <DeprecatedModelsPanel
+                    deprecatedProviders={deprecatedProviders}
+                    selectedProviders={selectedDeprecated}
+                    onToggle={onToggleDeprecated}
+                />
             </Box>
         </div>
     );
@@ -146,13 +170,14 @@ const ModelChart = memo(({
 
 ModelChart.displayName = 'ModelChart';
 
-const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ 
-    data, 
-    onTimeRangeChange, 
+const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
+    data,
+    onTimeRangeChange,
     selectedDays
 }) => {
     const theme = useTheme();
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedDeprecated, setSelectedDeprecated] = useState<Set<string>>(new Set());
 
     const handleTimeRangeChange = useCallback(async (days: number) => {
         if (onTimeRangeChange) {
@@ -164,6 +189,18 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             }
         }
     }, [onTimeRangeChange]);
+
+    const handleToggleDeprecated = useCallback((providerCanonical: string) => {
+        setSelectedDeprecated(prev => {
+            const next = new Set(prev);
+            if (next.has(providerCanonical)) {
+                next.delete(providerCanonical);
+            } else {
+                next.add(providerCanonical);
+            }
+            return next;
+        });
+    }, []);
 
     // Transform the data for the chart
     const chartData = useMemo(() => {
@@ -182,13 +219,24 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     }, [data.timestamps, data.models]);
 
     // Precompute visible providers for each model (applies the same coverage rule used during rendering)
+    // Separate active and deprecated providers
     const modelsWithVisibility = useMemo(() => {
         return data.models.map((model) => {
-            const visibleProviders = getVisibleProviders(model);
+            // Separate active and deprecated providers
+            const activeProviders = model.providers.filter(p => !p.deprecated);
+            const deprecatedProviders = model.providers.filter(p => p.deprecated);
+
+            // Apply coverage filter only to active providers
+            const visibleProviders = activeProviders.filter(p =>
+                getProviderCoverage(p) >= COVERAGE_THRESHOLD
+            );
+
             const totalProvidersWithValues = model.providers.filter(p => p.values && p.values.length > 0).length;
+
             return {
                 model,
                 visibleProviders,
+                deprecatedProviders,
                 visibleCount: visibleProviders.length,
                 totalProvidersWithValues,
             };
@@ -222,7 +270,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 selectedDays={selectedDays}
                 onChange={handleTimeRangeChange}
             />
-            {sortedModelsWithVisibility.map(({ model, visibleProviders }) => (
+            {sortedModelsWithVisibility.map(({ model, visibleProviders, deprecatedProviders }) => (
                 <ModelChart
                     key={model.model_name}
                     model={model}
@@ -231,6 +279,9 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                     selectedDays={selectedDays}
                     isLoading={isLoading}
                     visibleProviders={visibleProviders}
+                    deprecatedProviders={deprecatedProviders}
+                    selectedDeprecated={selectedDeprecated}
+                    onToggleDeprecated={handleToggleDeprecated}
                 />
             ))}
         </div>
