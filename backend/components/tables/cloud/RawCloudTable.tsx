@@ -56,6 +56,73 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
             },
         },
         {
+            accessorKey: 'deprecated',
+            header: 'Status',
+            size: 120,
+            cell: ({ getValue }) => {
+                const deprecated = getValue() as boolean;
+                if (deprecated) {
+                    return (
+                        <span style={{
+                            color: '#ed6c02',
+                            fontStyle: 'italic',
+                            fontSize: '0.9em'
+                        }}>
+                            ⚠ Deprecated
+                        </span>
+                    );
+                }
+                return (
+                    <span style={{
+                        color: '#2e7d32',
+                        fontWeight: 500,
+                        fontSize: '0.9em'
+                    }}>
+                        ✓ Active
+                    </span>
+                );
+            },
+        },
+        {
+            accessorKey: 'last_benchmark_date',
+            header: 'Last Updated',
+            size: 150,
+            cell: ({ row, getValue }) => {
+                const lastDate = getValue() as string | undefined;
+                const deprecated = row.original.deprecated;
+
+                if (!lastDate) {
+                    return <span style={{ color: '#666', fontStyle: 'italic' }}>Unknown</span>;
+                }
+
+                const date = new Date(lastDate);
+                const now = new Date();
+                const diffMs = now.getTime() - date.getTime();
+                const diffHours = diffMs / (1000 * 60 * 60);
+
+                if (deprecated) {
+                    // Show absolute date for deprecated models
+                    return (
+                        <span style={{ color: '#666', fontStyle: 'italic' }}>
+                            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                    );
+                }
+
+                // Show relative time for active models
+                if (diffHours < 1) {
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    return <span style={{ color: '#2e7d32' }}>{diffMinutes}m ago</span>;
+                } else if (diffHours < 24) {
+                    return <span style={{ color: '#2e7d32' }}>{Math.floor(diffHours)}h ago</span>;
+                } else {
+                    const diffDays = Math.floor(diffHours / 24);
+                    const color = diffDays > 2 ? '#ed6c02' : '#2e7d32';
+                    return <span style={{ color }}>{diffDays}d ago</span>;
+                }
+            },
+        },
+        {
             accessorKey: 'tokens_per_second_mean',
             header: 'Toks/Sec (Mean)',
             size: 150,

@@ -375,15 +375,25 @@ function TanStackTable<T>({
             ))}
           </TableHead>
           <TableBody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <DataCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </DataCell>
-                ))}
-              </tr>
-            ))}
+            {rows.map((row) => {
+              const rowData = row.original as any;
+              const isDeprecated = rowData?.deprecated;
+              return (
+                <tr
+                  key={row.id}
+                  style={isDeprecated ? {
+                    backgroundColor: 'rgba(255, 152, 0, 0.08)',
+                    opacity: 0.7
+                  } : undefined}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <DataCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </DataCell>
+                  ))}
+                </tr>
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
