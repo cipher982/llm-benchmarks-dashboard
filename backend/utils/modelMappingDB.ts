@@ -153,6 +153,7 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
 
     // Group data by provider-model combination for processing
     const modelGroups = new Map<string, ProcessedData[]>();
+    const metadataMap = new Map<string, ModelMetadata>();
 
     for (const item of data) {
       // Skip invalid data
@@ -169,12 +170,14 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
         modelDisplay: metadata.display_name,
       });
 
+      // Store metadata separately
+      metadataMap.set(groupKey, metadata);
+
       const group = modelGroups.get(groupKey) ?? [];
       group.push({
         ...item,
         providerCanonical,
         modelCanonical,
-        metadata,
       });
       modelGroups.set(groupKey, group);
     }
@@ -185,7 +188,7 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
       const { providerCanonical, modelDisplay } = JSON.parse(groupKey) as { providerCanonical: string; modelDisplay: string };
       const originalProviderCanonical = providerCanonical;
       const originalModelCanonical = items[0].modelCanonical ?? items[0].model_name; // The canonical model_id from MongoDB
-      const metadata = (items[0] as any).metadata as ModelMetadata;
+      const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
 
       // Get last benchmark date from metrics collection
       const lastBenchmarkDate = await getLastBenchmarkDate(originalProviderCanonical, originalModelCanonical);

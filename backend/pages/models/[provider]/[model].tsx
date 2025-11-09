@@ -70,7 +70,11 @@ const transformTimeSeries = (data: ModelPageData): TimeSeriesData | null => {
             display_name: data.timeSeries.displayName,
             providers: data.timeSeries.providers.map(p => ({
                 provider: p.provider,
+                providerCanonical: p.providerCanonical || p.provider,
                 values: p.values.map(v => v ?? 0), // Convert null to 0
+                deprecated: p.deprecated,
+                deprecation_date: p.deprecation_date,
+                last_benchmark_date: p.last_benchmark_date,
             })),
         }],
     };

@@ -40,7 +40,11 @@ export interface ModelSpeedDistribution {
 
 export interface TimeSeriesEntry {
     provider: string;
+    providerCanonical?: string;
     values: (number | null)[];
+    deprecated?: boolean;
+    deprecation_date?: string;
+    last_benchmark_date?: string;
 }
 
 export interface ModelTimeSeries {
