@@ -13,10 +13,11 @@ export interface SpeedDistributionPoint {
 export interface TimeSeriesProvider {
     provider: string;
     providerCanonical: string;
-    values: number[];
+    values: (number | null)[];
     deprecated?: boolean;
     deprecation_date?: string;
     last_benchmark_date?: string;
+    successor_model?: string;
 }
 
 export interface TimeSeriesModel {

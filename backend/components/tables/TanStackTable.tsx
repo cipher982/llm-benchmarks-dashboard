@@ -382,8 +382,8 @@ function TanStackTable<T>({
                 <tr
                   key={row.id}
                   style={isDeprecated ? {
-                    backgroundColor: 'rgba(255, 152, 0, 0.08)',
-                    opacity: 0.7
+                    backgroundColor: 'rgba(255, 152, 0, 0.12)',
+                    borderLeft: '3px solid rgba(255, 152, 0, 0.5)'
                   } : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (

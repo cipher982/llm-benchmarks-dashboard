@@ -83,7 +83,7 @@ const ModelChart = memo(({
     return (
         <div key={model.model_name} style={{ position: 'relative' }}>
             <h3>{model.display_name || model.model_name}</h3>
-            <Box sx={{ display: 'flex', position: 'relative' }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, position: 'relative' }}>
                 <Box sx={{ flex: 1, height: 250 }}>
                 {isLoading && (
                     <Box
@@ -141,18 +141,38 @@ const ModelChart = memo(({
                             }}
                             formatter={(value: number) => [value?.toFixed(2) || 'N/A', '']}
                         />
-                        <Legend />
-                        {!isLoading && allVisibleProviders.map((provider) => (
-                            <Line
-                                key={provider.provider}
-                                type="monotone"
-                                dataKey={`${model.model_name}-${provider.provider}`}
-                                name={provider.provider}
-                                stroke={getProviderColor(theme, provider.provider as Provider)}
-                                dot={false}
-                                connectNulls
-                            />
-                        ))}
+                        <Legend
+                            formatter={(value: string) => {
+                                // Find the provider for this legend entry
+                                const provider = allVisibleProviders.find(p => p.provider === value);
+                                if (provider?.deprecated) {
+                                    return `${value} ⚠`;
+                                }
+                                return value;
+                            }}
+                        />
+                        {!isLoading && allVisibleProviders.map((provider) => {
+                            const isDeprecated = provider.deprecated;
+                            const baseColor = getProviderColor(theme, provider.provider as Provider);
+                            const strokeColor = isDeprecated ? '#999999' : baseColor;
+                            const strokeDasharray = isDeprecated ? '5 5' : undefined;
+                            const strokeOpacity = isDeprecated ? 0.6 : 1;
+
+                            return (
+                                <Line
+                                    key={provider.provider}
+                                    type="monotone"
+                                    dataKey={`${model.model_name}-${provider.provider}`}
+                                    name={provider.provider}
+                                    stroke={strokeColor}
+                                    strokeDasharray={strokeDasharray}
+                                    strokeOpacity={strokeOpacity}
+                                    strokeWidth={isDeprecated ? 1 : 2}
+                                    dot={false}
+                                    connectNulls
+                                />
+                            );
+                        })}
                     </LineChart>
                 </ResponsiveContainer>
                 </Box>

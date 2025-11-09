@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Checkbox, Typography, IconButton, List, ListItem, ListItemText } from '@mui/material';
+import { Box, Checkbox, Typography, IconButton, List, ListItem, ListItemText, Tooltip } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { TimeSeriesProvider } from '../../../types/ProcessedData';
 
 interface DeprecatedModelsPanelProps {
@@ -24,8 +25,9 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
   return (
     <Box
       sx={{
-        width: 220,
-        borderLeft: '1px solid #ddd',
+        width: { xs: '100%', sm: 220 },
+        borderLeft: { xs: 'none', sm: '1px solid #ddd' },
+        borderTop: { xs: '1px solid #ddd', sm: 'none' },
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: '#fafafa',
@@ -68,6 +70,12 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
           {deprecatedProviders.map((provider) => {
             const isChecked = selectedProviders.has(provider.providerCanonical);
 
+            const tooltipContent = [
+              provider.deprecation_date && `Deprecated: ${provider.deprecation_date}`,
+              provider.successor_model && `Successor: ${provider.successor_model}`,
+              provider.last_benchmark_date && `Last data: ${new Date(provider.last_benchmark_date).toLocaleDateString()}`,
+            ].filter(Boolean).join('\n');
+
             return (
               <ListItem
                 key={provider.providerCanonical}
@@ -77,6 +85,15 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
                   '&:hover': {
                     backgroundColor: '#f0f0f0',
                   },
+                }}
+                role="checkbox"
+                aria-checked={isChecked}
+                tabIndex={0}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle(provider.providerCanonical);
+                  }
                 }}
               >
                 <Checkbox
@@ -90,15 +107,22 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
                 />
                 <ListItemText
                   primary={
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: '0.8rem',
-                        color: isChecked ? '#333' : '#999',
-                      }}
-                    >
-                      {provider.provider}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontSize: '0.8rem',
+                          color: isChecked ? '#333' : '#999',
+                        }}
+                      >
+                        {provider.provider}
+                      </Typography>
+                      {tooltipContent && (
+                        <Tooltip title={tooltipContent} arrow>
+                          <InfoOutlinedIcon sx={{ fontSize: 14, color: '#999', cursor: 'help' }} />
+                        </Tooltip>
+                      )}
+                    </Box>
                   }
                   secondary={
                     provider.last_benchmark_date && (

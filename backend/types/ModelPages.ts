@@ -45,6 +45,7 @@ export interface TimeSeriesEntry {
     deprecated?: boolean;
     deprecation_date?: string;
     last_benchmark_date?: string;
+    successor_model?: string;
 }
 
 export interface ModelTimeSeries {

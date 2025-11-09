@@ -75,6 +75,7 @@ const transformTimeSeries = (data: ModelPageData): TimeSeriesData | null => {
                 deprecated: p.deprecated,
                 deprecation_date: p.deprecation_date,
                 last_benchmark_date: p.last_benchmark_date,
+                successor_model: p.successor_model,
             })),
         }],
     };

@@ -4,6 +4,7 @@ import { TableRow } from '../../../types/ProcessedData';
 import Link from 'next/link';
 import TanStackTable from '../TanStackTable';
 import { colors } from '../../../components/design-system';
+import { Tooltip } from '@mui/material';
 
 interface RawCloudTableProps {
     data: TableRow[];
@@ -59,6 +60,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
             accessorKey: 'deprecated',
             header: 'Status',
             size: 120,
+            enableSorting: false,
             cell: ({ getValue }) => {
                 const deprecated = getValue() as boolean;
                 if (deprecated) {
@@ -100,26 +102,46 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                 const diffMs = now.getTime() - date.getTime();
                 const diffHours = diffMs / (1000 * 60 * 60);
 
+                // Full ISO date for tooltip
+                const fullDate = date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZoneName: 'short'
+                });
+
+                let displayText: string;
+                let textColor: string;
+
                 if (deprecated) {
                     // Show absolute date for deprecated models
-                    return (
-                        <span style={{ color: '#666', fontStyle: 'italic' }}>
-                            {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                    );
+                    displayText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    textColor = '#666';
+                } else {
+                    // Show relative time for active models
+                    if (diffHours < 1) {
+                        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                        displayText = `${diffMinutes}m ago`;
+                        textColor = '#2e7d32';
+                    } else if (diffHours < 24) {
+                        displayText = `${Math.floor(diffHours)}h ago`;
+                        textColor = '#2e7d32';
+                    } else {
+                        const diffDays = Math.floor(diffHours / 24);
+                        displayText = `${diffDays}d ago`;
+                        textColor = diffDays > 2 ? '#ed6c02' : '#2e7d32';
+                    }
                 }
 
-                // Show relative time for active models
-                if (diffHours < 1) {
-                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-                    return <span style={{ color: '#2e7d32' }}>{diffMinutes}m ago</span>;
-                } else if (diffHours < 24) {
-                    return <span style={{ color: '#2e7d32' }}>{Math.floor(diffHours)}h ago</span>;
-                } else {
-                    const diffDays = Math.floor(diffHours / 24);
-                    const color = diffDays > 2 ? '#ed6c02' : '#2e7d32';
-                    return <span style={{ color }}>{diffDays}d ago</span>;
-                }
+                return (
+                    <Tooltip title={fullDate} arrow>
+                        <span style={{ color: textColor, fontStyle: deprecated ? 'italic' : 'normal', cursor: 'help' }}>
+                            {displayText}
+                        </span>
+                    </Tooltip>
+                );
             },
         },
         {

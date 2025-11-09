@@ -21,14 +21,6 @@ const ModelSchema = new mongoose.Schema({
 
 const Model = mongoose.models.ModelMapping || mongoose.model('ModelMapping', ModelSchema, 'models');
 
-// Metrics schema for querying last benchmark dates
-const MetricsSchema = new mongoose.Schema({
-  provider: String,
-  model_name: String,
-  run_ts: Date,
-}, { collection: 'metrics_cloud_v2' });
-
-const Metrics = mongoose.models.CloudMetrics || mongoose.model('CloudMetrics', MetricsSchema, 'metrics_cloud_v2');
 
 // Cache for model mappings to avoid repeated DB queries
 interface ModelMetadata {
@@ -36,34 +28,12 @@ interface ModelMetadata {
   deprecated?: boolean;
   deprecation_date?: string;
   successor_model?: string;
+  deprecation_reason?: string;
 }
 
 let modelMappingCache: { [key: string]: ModelMetadata } | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Get last benchmark date for a provider-model combination
- */
-async function getLastBenchmarkDate(provider: string, modelId: string): Promise<string | undefined> {
-  try {
-    await connectToMongoDB();
-
-    const result = await Metrics.findOne(
-      { provider, model_name: modelId },
-      { run_ts: 1 }
-    ).sort({ run_ts: -1 }).limit(1);
-
-    if (result && result.run_ts) {
-      return result.run_ts.toISOString();
-    }
-
-    return undefined;
-  } catch (error) {
-    console.error(`Error fetching last benchmark date for ${provider}:${modelId}:`, error);
-    return undefined;
-  }
-}
 
 /**
  * Get model metadata from database (display name and deprecation info)
@@ -119,7 +89,8 @@ async function refreshModelMappingCache(): Promise<void> {
       display_name: 1,
       deprecated: 1,
       deprecation_date: 1,
-      successor_model: 1
+      successor_model: 1,
+      deprecation_reason: 1
     });
 
     const newCache: { [key: string]: ModelMetadata } = {};
@@ -129,7 +100,8 @@ async function refreshModelMappingCache(): Promise<void> {
         display_name: model.display_name,
         deprecated: model.deprecated,
         deprecation_date: model.deprecation_date,
-        successor_model: model.successor_model
+        successor_model: model.successor_model,
+        deprecation_reason: model.deprecation_reason
       };
     });
 
@@ -190,8 +162,13 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
       const originalModelCanonical = items[0].modelCanonical ?? items[0].model_name; // The canonical model_id from MongoDB
       const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
 
-      // Get last benchmark date from metrics collection
-      const lastBenchmarkDate = await getLastBenchmarkDate(originalProviderCanonical, originalModelCanonical);
+      // Compute last benchmark date from all items in group (not just first!)
+      const allTimestamps = items
+        .map(item => item.last_run_ts)
+        .filter(ts => ts != null);
+      const lastBenchmarkDate = allTimestamps.length > 0
+        ? new Date(Math.max(...allTimestamps.map(ts => ts.getTime()))).toISOString()
+        : undefined;
 
       const mergedItem: CloudBenchmark = {
         _id: items[0]._id,

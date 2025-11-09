@@ -104,6 +104,7 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
                 deprecated: benchmark.deprecated,
                 deprecation_date: benchmark.deprecation_date,
                 last_benchmark_date: benchmark.last_benchmark_date,
+                successor_model: benchmark.successor_model,
             };
         });
 
