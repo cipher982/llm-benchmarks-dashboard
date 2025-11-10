@@ -49,8 +49,6 @@ const ModelChart = memo(({
     isLoading,
     visibleProviders,
     deprecatedProviders,
-    selectedDeprecated,
-    onToggleDeprecated,
 }: {
     model: TimeSeriesModel;
     chartData: ChartDataPoint[];
@@ -59,9 +57,32 @@ const ModelChart = memo(({
     isLoading: boolean;
     visibleProviders: TimeSeriesProvider[];
     deprecatedProviders: TimeSeriesProvider[];
-    selectedDeprecated: Set<string>;
-    onToggleDeprecated: (canonical: string) => void;
 }) => {
+    // Each model chart has independent state for selected deprecated providers
+    const [selectedDeprecated, setSelectedDeprecated] = useState<Set<string>>(new Set());
+    const hasAutoEnabled = React.useRef(false);
+
+    const handleToggleDeprecated = useCallback((providerCanonical: string) => {
+        setSelectedDeprecated(prev => {
+            const next = new Set(prev);
+            if (next.has(providerCanonical)) {
+                next.delete(providerCanonical);
+            } else {
+                next.add(providerCanonical);
+            }
+            return next;
+        });
+    }, []);
+
+    // Auto-enable first deprecated provider when chart would be empty (once only)
+    React.useEffect(() => {
+        if (hasAutoEnabled.current) return;
+
+        if (visibleProviders.length === 0 && deprecatedProviders.length > 0) {
+            setSelectedDeprecated(new Set([deprecatedProviders[0].providerCanonical]));
+            hasAutoEnabled.current = true;
+        }
+    }, [visibleProviders.length, deprecatedProviders]);
     // Calculate tick interval based on selected days
     const getTickInterval = () => {
         if (selectedDays === 1) {
@@ -181,7 +202,7 @@ const ModelChart = memo(({
                 <DeprecatedModelsPanel
                     deprecatedProviders={deprecatedProviders}
                     selectedProviders={selectedDeprecated}
-                    onToggle={onToggleDeprecated}
+                    onToggle={handleToggleDeprecated}
                     modelName={model.model_name}
                 />
             </Box>
@@ -198,8 +219,6 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
 }) => {
     const theme = useTheme();
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedDeprecated, setSelectedDeprecated] = useState<Set<string>>(new Set());
-    const hasAutoEnabled = React.useRef(false);
 
     const handleTimeRangeChange = useCallback(async (days: number) => {
         if (onTimeRangeChange) {
@@ -211,18 +230,6 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             }
         }
     }, [onTimeRangeChange]);
-
-    const handleToggleDeprecated = useCallback((providerCanonical: string) => {
-        setSelectedDeprecated(prev => {
-            const next = new Set(prev);
-            if (next.has(providerCanonical)) {
-                next.delete(providerCanonical);
-            } else {
-                next.add(providerCanonical);
-            }
-            return next;
-        });
-    }, []);
 
     // Transform the data for the chart
     const chartData = useMemo(() => {
@@ -265,26 +272,6 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         });
     }, [data.models]);
 
-    // Auto-enable first deprecated provider for models with no active providers
-    // Only runs once on initial render to avoid overriding user choices
-    React.useEffect(() => {
-        if (hasAutoEnabled.current) return;
-
-        const toAutoEnable = new Set<string>();
-
-        modelsWithVisibility.forEach(({ visibleProviders, deprecatedProviders }) => {
-            // If this model has no active providers but has deprecated ones, auto-enable the first
-            if (visibleProviders.length === 0 && deprecatedProviders.length > 0) {
-                toAutoEnable.add(deprecatedProviders[0].providerCanonical);
-            }
-        });
-
-        if (toAutoEnable.size > 0) {
-            setSelectedDeprecated(toAutoEnable);
-            hasAutoEnabled.current = true;
-        }
-    }, [modelsWithVisibility]);
-
     // Sort models by number of visible providers (lines), then fall back to total providers and name
     const sortedModelsWithVisibility = useMemo(() => {
         return [...modelsWithVisibility].sort((a, b) => {
@@ -322,8 +309,6 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                     isLoading={isLoading}
                     visibleProviders={visibleProviders}
                     deprecatedProviders={deprecatedProviders}
-                    selectedDeprecated={selectedDeprecated}
-                    onToggleDeprecated={handleToggleDeprecated}
                 />
             ))}
         </div>
