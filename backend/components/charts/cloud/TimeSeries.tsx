@@ -123,20 +123,32 @@ const ModelChart = memo(({
                                 const date = new Date(timestamp);
                                 return date.toLocaleString();
                             }}
-                            formatter={(value: number, name: string) => {
-                                const provider = visibleProviders.find(p => p.provider === name);
-                                if (provider?.is_snapshot) {
+                            formatter={(value: number, name: string, props: any) => {
+                                // For split lines, dataKey includes segment suffix
+                                // Extract provider from dataKey
+                                const dataKey = props.dataKey;
+                                const isSnapshot = dataKey?.includes('-snapshot');
+
+                                // Find provider by checking if dataKey matches
+                                const provider = visibleProviders.find(p => {
+                                    const segmentSuffix = p.segment ? `-${p.segment}` : '';
+                                    const expectedKey = `${model.model_name}-${p.providerCanonical}${segmentSuffix}`;
+                                    return dataKey === expectedKey;
+                                });
+
+                                if (provider?.segment === 'snapshot' && provider.snapshot_metadata) {
                                     return [
                                         `${value?.toFixed(2)} tps (snapshot)`,
-                                        `P10-P90: ${provider.snapshot_metadata?.p10.toFixed(1)}-${provider.snapshot_metadata?.p90.toFixed(1)} | ${provider.snapshot_metadata?.sample_size} samples`
+                                        `P10-P90: ${provider.snapshot_metadata.p10.toFixed(1)}-${provider.snapshot_metadata.p90.toFixed(1)} | ${provider.snapshot_metadata.sample_size} samples`
                                     ];
                                 }
-                                return [value?.toFixed(2) || 'N/A', ''];
+                                return [value?.toFixed(2) || 'N/A', name || ''];
                             }}
                         />
                         <Legend
                             formatter={(value: string) => {
                                 // Find the provider for this legend entry
+                                // For split lines, the legend name is just the provider (without segment suffix)
                                 const provider = visibleProviders.find(p => p.provider === value);
                                 if (provider?.deprecated) {
                                     return `${value} ⚠`;
@@ -144,28 +156,37 @@ const ModelChart = memo(({
                                 return value;
                             }}
                         />
-                        {!isLoading && visibleProviders.map((provider) => {
-                            const isSnapshot = provider.is_snapshot;
+                        {!isLoading && visibleProviders.map((provider, providerIndex) => {
+                            const isSnapshot = provider.segment === 'snapshot';
                             const baseColor = getProviderColor(theme, provider.provider as Provider);
 
-                            // Only style snapshots differently - real data always uses normal styling
+                            // Style snapshots as grey dashed lines, real data uses provider color
                             const strokeColor = isSnapshot ? '#999999' : baseColor;
                             const strokeDasharray = isSnapshot ? '8 4' : undefined;
                             const strokeWidth = isSnapshot ? 2.5 : 2;
                             const strokeOpacity = isSnapshot ? 0.7 : 1;
 
+                            // Use segment suffix in dataKey to match chartData transformation
+                            const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
+                            const dataKey = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
+
+                            // For legend: only show provider name once (hide snapshot segment in legend)
+                            // Real segment gets the legend entry, snapshot is invisible in legend
+                            const legendName = provider.segment === 'snapshot' ? '' : provider.provider;
+
                             return (
                                 <Line
-                                    key={provider.provider}
+                                    key={`${provider.providerCanonical}-${provider.segment || 'default'}-${providerIndex}`}
                                     type="monotone"
-                                    dataKey={`${model.model_name}-${provider.provider}`}
-                                    name={provider.provider}
+                                    dataKey={dataKey}
+                                    name={legendName}
                                     stroke={strokeColor}
                                     strokeDasharray={strokeDasharray}
                                     strokeOpacity={strokeOpacity}
                                     strokeWidth={strokeWidth}
                                     dot={false}
                                     connectNulls
+                                    hide={!legendName}
                                 />
                             );
                         })}
@@ -198,13 +219,16 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     }, [onTimeRangeChange]);
 
     // Transform the data for the chart
+    // For split providers, we need unique keys for real vs snapshot segments
     const chartData = useMemo(() => {
         return data.timestamps.map((timestamp, index) => {
             const point: ChartDataPoint = { timestamp };
             data.models.forEach(model => {
                 model.providers.forEach(provider => {
                     if (provider.values) {
-                        const key = `${model.model_name}-${provider.provider}`;
+                        // Use segment in key if it exists (for split lines)
+                        const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
+                        const key = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
                         point[key] = provider.values[index] ?? null;
                     }
                 });

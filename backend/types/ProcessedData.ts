@@ -19,6 +19,7 @@ export interface TimeSeriesProvider {
     last_benchmark_date?: string;
     successor_model?: string;
     is_snapshot?: boolean;
+    segment?: 'real' | 'snapshot';
     snapshot_metadata?: {
         p10: number;
         p50: number;

@@ -86,6 +86,85 @@ const findClosestTimestamp = (
     return closest;
 };
 
+// Split-line deprecation helpers
+const findSplitIndex = (timestamps: string[], deprecationDate: string): number => {
+    const deprecationTime = new Date(deprecationDate).getTime();
+    // Find the first timestamp that is >= deprecation date
+    const index = timestamps.findIndex(ts => new Date(ts).getTime() >= deprecationTime);
+    // If deprecation is before all timestamps, return 0
+    // If deprecation is after all timestamps, return timestamps.length (no split)
+    return index === -1 ? timestamps.length : index;
+};
+
+const shouldSplitProvider = (
+    provider: any,
+    snapshot: any | null,
+    timestamps: string[]
+): boolean => {
+    // Only split if:
+    // 1. Provider is deprecated
+    // 2. Snapshot exists for this provider
+    // 3. Deprecation date falls within the timestamp window
+    if (!provider.deprecated || !snapshot || !provider.deprecation_date) {
+        return false;
+    }
+
+    const splitIndex = findSplitIndex(timestamps, provider.deprecation_date);
+    // Only split if deprecation falls within the window (not at edges)
+    return splitIndex > 0 && splitIndex < timestamps.length;
+};
+
+const createRealSegment = (
+    provider: any,
+    splitIndex: number,
+    nRuns: number
+): any => {
+    // Create array with real data up to split, then nulls
+    const realValues = [...provider.values];
+    for (let i = splitIndex; i < nRuns; i++) {
+        realValues[i] = null;
+    }
+
+    return {
+        ...provider,
+        values: realValues,
+        segment: 'real',
+        is_snapshot: false
+    };
+};
+
+const createSnapshotSegment = (
+    provider: any,
+    snapshot: any,
+    splitIndex: number,
+    nRuns: number
+): any => {
+    // Create array with nulls up to split, then snapshot mean
+    const snapshotValues = Array(nRuns).fill(null);
+    for (let i = splitIndex; i < nRuns; i++) {
+        snapshotValues[i] = snapshot.snapshot_mean;
+    }
+
+    return {
+        provider: provider.provider,
+        providerCanonical: provider.providerCanonical,
+        values: snapshotValues,
+        deprecated: true,
+        deprecation_date: snapshot.deprecation_date.toISOString(),
+        last_benchmark_date: snapshot.snapshot_period_end.toISOString(),
+        successor_model: snapshot.successor_model,
+        is_snapshot: true,
+        segment: 'snapshot',
+        snapshot_metadata: {
+            p10: snapshot.snapshot_p10,
+            p50: snapshot.snapshot_p50,
+            p90: snapshot.snapshot_p90,
+            period: `${snapshot.snapshot_period_start.toLocaleDateString()} - ${snapshot.snapshot_period_end.toLocaleDateString()}`,
+            sample_size: snapshot.sample_size
+        }
+    };
+};
+
 // Process time series data - creates ONE chart per unique model name
 // Each chart shows multiple provider lines for that model
 // Result: fewer items than speed distribution (unique models vs provider-model combos)
@@ -152,32 +231,66 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
             s.display_name === model_name || s.model_canonical === modelCanonical
         );
 
-        // Add snapshot providers ONLY if they don't already have real data in the current window
+        // Create a map of snapshots by provider for easy lookup
+        const snapshotMap = new Map(
+            matchingSnapshots.map(s => [s.provider_canonical, s])
+        );
+
+        // Process providers: split if needed, or keep as-is
+        const processedProviders: any[] = [];
         const existingProviders = new Set(providers.map(p => p.providerCanonical));
-        const snapshotProviders = matchingSnapshots
+
+        providers.forEach(provider => {
+            const snapshot = snapshotMap.get(provider.providerCanonical);
+
+            if (shouldSplitProvider(provider, snapshot, latestTimestamps.map(ts => new Date(ts).toISOString()))) {
+                // SPLIT: Create both real and snapshot segments
+                const splitIndex = findSplitIndex(
+                    latestTimestamps.map(ts => new Date(ts).toISOString()),
+                    provider.deprecation_date!
+                );
+
+                console.log(`[Split-line] Splitting ${provider.providerCanonical}/${model_name} at index ${splitIndex}/${nRuns}`);
+
+                const realSegment = createRealSegment(provider, splitIndex, nRuns);
+                const snapshotSegment = createSnapshotSegment(provider, snapshot!, splitIndex, nRuns);
+
+                // Add snapshot first (will appear below in legend due to stacking order)
+                processedProviders.push(snapshotSegment);
+                // Add real segment second (will appear on top)
+                processedProviders.push(realSegment);
+            } else {
+                // NO SPLIT: Keep provider as-is
+                processedProviders.push(provider);
+            }
+        });
+
+        // Add snapshot-only providers (no real data in window)
+        const snapshotOnlyProviders = matchingSnapshots
             .filter(snapshot => !existingProviders.has(snapshot.provider_canonical))
             .map(snapshot => ({
-            provider: getProviderDisplayName(snapshot.provider_canonical) as Provider,
-            providerCanonical: snapshot.provider_canonical,
-            values: Array(nRuns).fill(snapshot.snapshot_mean) as (number | null)[],
-            deprecated: true,
-            deprecation_date: snapshot.deprecation_date.toISOString(),
-            last_benchmark_date: snapshot.snapshot_period_end.toISOString(),
-            successor_model: snapshot.successor_model,
-            is_snapshot: true,
-            snapshot_metadata: {
-                p10: snapshot.snapshot_p10,
-                p50: snapshot.snapshot_p50,
-                p90: snapshot.snapshot_p90,
-                period: `${snapshot.snapshot_period_start.toLocaleDateString()} - ${snapshot.snapshot_period_end.toLocaleDateString()}`,
-                sample_size: snapshot.sample_size
-            }
-        }));
+                provider: getProviderDisplayName(snapshot.provider_canonical) as Provider,
+                providerCanonical: snapshot.provider_canonical,
+                values: Array(nRuns).fill(snapshot.snapshot_mean) as (number | null)[],
+                deprecated: true,
+                deprecation_date: snapshot.deprecation_date.toISOString(),
+                last_benchmark_date: snapshot.snapshot_period_end.toISOString(),
+                successor_model: snapshot.successor_model,
+                is_snapshot: true,
+                segment: 'snapshot',
+                snapshot_metadata: {
+                    p10: snapshot.snapshot_p10,
+                    p50: snapshot.snapshot_p50,
+                    p90: snapshot.snapshot_p90,
+                    period: `${snapshot.snapshot_period_start.toLocaleDateString()} - ${snapshot.snapshot_period_end.toLocaleDateString()}`,
+                    sample_size: snapshot.sample_size
+                }
+            }));
 
         return {
             model_name,
             display_name: benchmarks[0]?.display_name || model_name,
-            providers: [...providers, ...snapshotProviders]
+            providers: [...processedProviders, ...snapshotOnlyProviders]
         };
     });
 
