@@ -152,8 +152,11 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
             s.display_name === model_name || s.model_canonical === modelCanonical
         );
 
-        // Add snapshot providers (constant-value horizontal lines)
-        const snapshotProviders = matchingSnapshots.map(snapshot => ({
+        // Add snapshot providers ONLY if they don't already have real data in the current window
+        const existingProviders = new Set(providers.map(p => p.providerCanonical));
+        const snapshotProviders = matchingSnapshots
+            .filter(snapshot => !existingProviders.has(snapshot.provider_canonical))
+            .map(snapshot => ({
             provider: getProviderDisplayName(snapshot.provider_canonical) as Provider,
             providerCanonical: snapshot.provider_canonical,
             values: Array(nRuns).fill(snapshot.snapshot_mean) as (number | null)[],

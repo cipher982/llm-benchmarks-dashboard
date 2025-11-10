@@ -146,14 +146,13 @@ const ModelChart = memo(({
                         />
                         {!isLoading && visibleProviders.map((provider) => {
                             const isSnapshot = provider.is_snapshot;
-                            const isDeprecated = provider.deprecated;
                             const baseColor = getProviderColor(theme, provider.provider as Provider);
 
-                            // Distinct styling for snapshots vs regular deprecated lines
-                            const strokeColor = isDeprecated ? '#999999' : baseColor;
-                            const strokeDasharray = isSnapshot ? '8 4' : (isDeprecated ? '5 5' : undefined);
-                            const strokeWidth = isSnapshot ? 2.5 : (isDeprecated ? 1 : 2);
-                            const strokeOpacity = isSnapshot ? 0.7 : (isDeprecated ? 0.6 : 1);
+                            // Only style snapshots differently - real data always uses normal styling
+                            const strokeColor = isSnapshot ? '#999999' : baseColor;
+                            const strokeDasharray = isSnapshot ? '8 4' : undefined;
+                            const strokeWidth = isSnapshot ? 2.5 : 2;
+                            const strokeOpacity = isSnapshot ? 0.7 : 1;
 
                             return (
                                 <Line
