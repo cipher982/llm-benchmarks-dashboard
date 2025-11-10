@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Checkbox, Typography, IconButton, List, ListItem, ListItemText, Tooltip } from '@mui/material';
+import { Box, Checkbox, Typography, List, ListItem, ListItemText, Tooltip } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
