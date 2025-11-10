@@ -170,9 +170,9 @@ const ModelChart = memo(({
                             const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
                             const dataKey = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
 
-                            // For legend: only show provider name once (hide snapshot segment in legend)
-                            // Real segment gets the legend entry, snapshot is invisible in legend
-                            const legendName = provider.segment === 'snapshot' ? '' : provider.provider;
+                            // Both segments show provider name in legend
+                            // Recharts will merge entries with same name automatically
+                            const legendName = provider.provider;
 
                             return (
                                 <Line
@@ -185,8 +185,7 @@ const ModelChart = memo(({
                                     strokeOpacity={strokeOpacity}
                                     strokeWidth={strokeWidth}
                                     dot={false}
-                                    connectNulls
-                                    hide={!legendName}
+                                    connectNulls={false}
                                 />
                             );
                         })}
