@@ -138,9 +138,6 @@ const ModelChart = memo(({
                             formatter={(value: string) => {
                                 // Find the provider for this legend entry
                                 const provider = visibleProviders.find(p => p.provider === value);
-                                if (provider?.is_snapshot) {
-                                    return `${value} 📊`;
-                                }
                                 if (provider?.deprecated) {
                                     return `${value} ⚠`;
                                 }
