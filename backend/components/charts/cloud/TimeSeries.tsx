@@ -118,17 +118,29 @@ const ModelChart = memo(({
                             stroke={theme.palette.text.secondary}
                             tick={{ fontSize: 12, fill: theme.palette.text.primary }}
                         />
-                        <Tooltip 
+                        <Tooltip
                             labelFormatter={(timestamp: string) => {
                                 const date = new Date(timestamp);
                                 return date.toLocaleString();
                             }}
-                            formatter={(value: number) => [value?.toFixed(2) || 'N/A', '']}
+                            formatter={(value: number, name: string) => {
+                                const provider = visibleProviders.find(p => p.provider === name);
+                                if (provider?.is_snapshot) {
+                                    return [
+                                        `${value?.toFixed(2)} tps (snapshot)`,
+                                        `P10-P90: ${provider.snapshot_metadata?.p10.toFixed(1)}-${provider.snapshot_metadata?.p90.toFixed(1)} | ${provider.snapshot_metadata?.sample_size} samples`
+                                    ];
+                                }
+                                return [value?.toFixed(2) || 'N/A', ''];
+                            }}
                         />
                         <Legend
                             formatter={(value: string) => {
                                 // Find the provider for this legend entry
                                 const provider = visibleProviders.find(p => p.provider === value);
+                                if (provider?.is_snapshot) {
+                                    return `${value} 📊`;
+                                }
                                 if (provider?.deprecated) {
                                     return `${value} ⚠`;
                                 }
@@ -136,11 +148,15 @@ const ModelChart = memo(({
                             }}
                         />
                         {!isLoading && visibleProviders.map((provider) => {
+                            const isSnapshot = provider.is_snapshot;
                             const isDeprecated = provider.deprecated;
                             const baseColor = getProviderColor(theme, provider.provider as Provider);
+
+                            // Distinct styling for snapshots vs regular deprecated lines
                             const strokeColor = isDeprecated ? '#999999' : baseColor;
-                            const strokeDasharray = isDeprecated ? '5 5' : undefined;
-                            const strokeOpacity = isDeprecated ? 0.6 : 1;
+                            const strokeDasharray = isSnapshot ? '8 4' : (isDeprecated ? '5 5' : undefined);
+                            const strokeWidth = isSnapshot ? 2.5 : (isDeprecated ? 1 : 2);
+                            const strokeOpacity = isSnapshot ? 0.7 : (isDeprecated ? 0.6 : 1);
 
                             return (
                                 <Line
@@ -151,7 +167,7 @@ const ModelChart = memo(({
                                     stroke={strokeColor}
                                     strokeDasharray={strokeDasharray}
                                     strokeOpacity={strokeOpacity}
-                                    strokeWidth={isDeprecated ? 1 : 2}
+                                    strokeWidth={strokeWidth}
                                     dot={false}
                                     connectNulls
                                 />

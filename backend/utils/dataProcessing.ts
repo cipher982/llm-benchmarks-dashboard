@@ -1,10 +1,45 @@
 import { CloudBenchmark } from '../types/CloudData';
 import { Provider } from '../types/common';
+import connectToMongoDB from './connectToMongoDB';
+import mongoose from 'mongoose';
+import { getProviderDisplayName } from './providerMetadata';
 
 const SAMPLE_SIZE = 100; // Number of points to sample for speed distribution
 const PRECISION = 2; // Number of decimal places to keep
 const MINUTES_INTERVAL = 30; // Data points are 30 minutes apart
 const TARGET_DATA_POINTS = 144; // Target number of data points for time series (3 days worth at 30min intervals)
+
+// Deprecation snapshot schema
+const SnapshotSchema = new mongoose.Schema({
+    provider_canonical: String,
+    model_canonical: String,
+    display_name: String,
+    snapshot_mean: Number,
+    snapshot_p10: Number,
+    snapshot_p50: Number,
+    snapshot_p90: Number,
+    snapshot_period_start: Date,
+    snapshot_period_end: Date,
+    deprecation_date: Date,
+    successor_model: String,
+    sample_size: Number,
+    created_at: Date
+}, { collection: 'deprecation_snapshots' });
+
+const DeprecationSnapshot = mongoose.models.DeprecationSnapshot ||
+    mongoose.model('DeprecationSnapshot', SnapshotSchema, 'deprecation_snapshots');
+
+// Fetch deprecation snapshots
+async function fetchDeprecationSnapshots() {
+    try {
+        await connectToMongoDB();
+        const snapshots = await DeprecationSnapshot.find({}).lean();
+        return snapshots || [];
+    } catch (error) {
+        console.error('Error fetching deprecation snapshots:', error);
+        return [];
+    }
+}
 
 // Time Series Processing
 const roundToNearest30Minutes = (timestamp: number): number => {
@@ -57,9 +92,12 @@ const findClosestTimestamp = (
 export const processTimeSeriesData = async (data: CloudBenchmark[], days: number = 14) => {
     const latestTimestamps = generateTimestampRange(days);
     const nRuns = latestTimestamps.length;
-    
+
     // Data is already mapped at processed.ts:36 - no need to re-map!
     const mappedData = data;
+
+    // Fetch deprecation snapshots
+    const snapshots = await fetchDeprecationSnapshots();
 
     // Group by mapped model name
     const modelGroups = mappedData.reduce((groups, benchmark) => {
@@ -108,10 +146,35 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
             };
         });
 
+        // Find snapshots for this model
+        const modelCanonical = benchmarks[0]?.modelCanonical || model_name;
+        const matchingSnapshots = snapshots.filter(s =>
+            s.display_name === model_name || s.model_canonical === modelCanonical
+        );
+
+        // Add snapshot providers (constant-value horizontal lines)
+        const snapshotProviders = matchingSnapshots.map(snapshot => ({
+            provider: getProviderDisplayName(snapshot.provider_canonical) as Provider,
+            providerCanonical: snapshot.provider_canonical,
+            values: Array(nRuns).fill(snapshot.snapshot_mean) as (number | null)[],
+            deprecated: true,
+            deprecation_date: snapshot.deprecation_date.toISOString(),
+            last_benchmark_date: snapshot.snapshot_period_end.toISOString(),
+            successor_model: snapshot.successor_model,
+            is_snapshot: true,
+            snapshot_metadata: {
+                p10: snapshot.snapshot_p10,
+                p50: snapshot.snapshot_p50,
+                p90: snapshot.snapshot_p90,
+                period: `${snapshot.snapshot_period_start.toLocaleDateString()} - ${snapshot.snapshot_period_end.toLocaleDateString()}`,
+                sample_size: snapshot.sample_size
+            }
+        }));
+
         return {
             model_name,
             display_name: benchmarks[0]?.display_name || model_name,
-            providers
+            providers: [...providers, ...snapshotProviders]
         };
     });
 

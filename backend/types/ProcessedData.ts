@@ -18,6 +18,14 @@ export interface TimeSeriesProvider {
     deprecation_date?: string;
     last_benchmark_date?: string;
     successor_model?: string;
+    is_snapshot?: boolean;
+    snapshot_metadata?: {
+        p10: number;
+        p50: number;
+        p90: number;
+        period: string;
+        sample_size: number;
+    };
 }
 
 export interface TimeSeriesModel {
