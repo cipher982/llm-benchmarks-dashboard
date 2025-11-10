@@ -38,9 +38,9 @@ const CloudBenchmarks: React.FC = () => {
     const [tableData, setTableData] = useState<TableRow[]>([]);
 
     // Separate time ranges for each section
-    const [distDays, setDistDays] = useState<number>(7);
-    const [tableDays, setTableDays] = useState<number>(3);
-    const [timeSeriesDays, setTimeSeriesDays] = useState<number>(12);
+    const [distDays, setDistDays] = useState<number>(30);
+    const [tableDays, setTableDays] = useState<number>(30);
+    const [timeSeriesDays, setTimeSeriesDays] = useState<number>(14);
 
     // Separate loading states for each section
     const [distLoading, setDistLoading] = useState<boolean>(false);
