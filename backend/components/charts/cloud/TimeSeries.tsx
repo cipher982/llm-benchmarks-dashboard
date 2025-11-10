@@ -199,6 +199,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     const theme = useTheme();
     const [isLoading, setIsLoading] = useState(false);
     const [selectedDeprecated, setSelectedDeprecated] = useState<Set<string>>(new Set());
+    const hasAutoEnabled = React.useRef(false);
 
     const handleTimeRangeChange = useCallback(async (days: number) => {
         if (onTimeRangeChange) {
@@ -265,7 +266,10 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     }, [data.models]);
 
     // Auto-enable first deprecated provider for models with no active providers
+    // Only runs once on initial render to avoid overriding user choices
     React.useEffect(() => {
+        if (hasAutoEnabled.current) return;
+
         const toAutoEnable = new Set<string>();
 
         modelsWithVisibility.forEach(({ visibleProviders, deprecatedProviders }) => {
@@ -275,13 +279,9 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             }
         });
 
-        // Merge toAutoEnable into existing selection (don't replace)
         if (toAutoEnable.size > 0) {
-            setSelectedDeprecated(prev => {
-                const merged = new Set(prev);
-                toAutoEnable.forEach(canonical => merged.add(canonical));
-                return merged;
-            });
+            setSelectedDeprecated(toAutoEnable);
+            hasAutoEnabled.current = true;
         }
     }, [modelsWithVisibility]);
 
