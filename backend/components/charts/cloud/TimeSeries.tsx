@@ -182,6 +182,7 @@ const ModelChart = memo(({
                     deprecatedProviders={deprecatedProviders}
                     selectedProviders={selectedDeprecated}
                     onToggle={onToggleDeprecated}
+                    modelName={model.model_name}
                 />
             </Box>
         </div>
@@ -274,8 +275,13 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             }
         });
 
-        if (toAutoEnable.size > 0 && selectedDeprecated.size === 0) {
-            setSelectedDeprecated(toAutoEnable);
+        // Merge toAutoEnable into existing selection (don't replace)
+        if (toAutoEnable.size > 0) {
+            setSelectedDeprecated(prev => {
+                const merged = new Set(prev);
+                toAutoEnable.forEach(canonical => merged.add(canonical));
+                return merged;
+            });
         }
     }, [modelsWithVisibility]);
 

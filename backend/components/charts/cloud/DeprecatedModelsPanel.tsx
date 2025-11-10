@@ -9,14 +9,17 @@ interface DeprecatedModelsPanelProps {
   deprecatedProviders: TimeSeriesProvider[];
   selectedProviders: Set<string>;
   onToggle: (providerCanonical: string) => void;
+  modelName: string;
 }
 
 export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
   deprecatedProviders,
   selectedProviders,
   onToggle,
+  modelName,
 }) => {
   const [expanded, setExpanded] = useState(true);
+  const listId = `deprecated-providers-${modelName.replace(/\s+/g, '-')}`;
 
   if (deprecatedProviders.length === 0) {
     return null;
@@ -62,7 +65,7 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
           }
         }}
         aria-expanded={expanded}
-        aria-controls="deprecated-providers-list"
+        aria-controls={listId}
         type="button"
       >
         <Typography
@@ -75,14 +78,14 @@ export const DeprecatedModelsPanel: React.FC<DeprecatedModelsPanelProps> = ({
         >
           Deprecated ({deprecatedProviders.length})
         </Typography>
-        <IconButton size="small" sx={{ padding: 0 }} aria-hidden="true">
+        <Box component="span" sx={{ display: 'flex', alignItems: 'center' }} aria-hidden="true">
           {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-        </IconButton>
+        </Box>
       </Box>
 
       {/* Expandable content */}
       {expanded && (
-        <List dense sx={{ p: 0 }} id="deprecated-providers-list">
+        <List dense sx={{ p: 0 }} id={listId}>
           {deprecatedProviders.map((provider) => {
             const isChecked = selectedProviders.has(provider.providerCanonical);
 
