@@ -174,6 +174,10 @@ const ModelChart = memo(({
                             // Recharts will merge entries with same name automatically
                             const legendName = provider.provider;
 
+                            // For split lines, don't connect across the null boundary
+                            // For regular lines, connect across gaps to avoid "abstract painting"
+                            const shouldConnectNulls = !provider.segment;
+
                             return (
                                 <Line
                                     key={`${provider.providerCanonical}-${provider.segment || 'default'}-${providerIndex}`}
@@ -185,7 +189,7 @@ const ModelChart = memo(({
                                     strokeOpacity={strokeOpacity}
                                     strokeWidth={strokeWidth}
                                     dot={false}
-                                    connectNulls={false}
+                                    connectNulls={shouldConnectNulls}
                                 />
                             );
                         })}
