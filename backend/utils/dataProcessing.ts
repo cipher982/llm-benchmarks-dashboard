@@ -192,26 +192,33 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
     const processedModels = Object.entries(modelGroups).map(([model_name, benchmarks]) => {
         const providers = benchmarks.map(benchmark => {
             const values = benchmark.tokens_per_second;
-            let processedValues: number[] = [];
+            const timestamps = benchmark.tokens_per_second_timestamps;
+            let processedValues: (number | null)[] = Array(nRuns).fill(null);
 
-            if (values.length > nRuns) {
-                // If we have more values than needed, sample evenly
-                const step = values.length / nRuns;
-                processedValues = Array.from({ length: nRuns }, (_, i) => {
-                    const index = Math.min(Math.floor(i * step), values.length - 1);
-                    return Number(values[index].toFixed(PRECISION));
-                });
-            } else if (values.length < nRuns) {
-                // If we have fewer values than needed, pad with nulls
-                processedValues = Array(nRuns).fill(null);
-                // Copy available values to the end of the array
-                const startIndex = nRuns - values.length;
-                values.forEach((val, i) => {
-                    processedValues[startIndex + i] = Number(val.toFixed(PRECISION));
-                });
-            } else {
-                // If we have exactly the right number of values
-                processedValues = values.map(val => Number(val.toFixed(PRECISION)));
+            // Create timestamp -> value map for fast lookups
+            const valueMap = new Map<number, number>();
+            for (let i = 0; i < values.length; i++) {
+                const ts = timestamps[i].getTime();
+                // If duplicate timestamps exist, keep the most recent value (later in array)
+                valueMap.set(ts, values[i]);
+            }
+
+            // Align values to grid timestamps
+            for (let gridIdx = 0; gridIdx < latestTimestamps.length; gridIdx++) {
+                const gridTimestamp = latestTimestamps[gridIdx];
+
+                // Find closest actual timestamp within tolerance
+                const closestActualTs = findClosestTimestamp(
+                    gridTimestamp,
+                    Array.from(valueMap.keys())
+                );
+
+                if (closestActualTs !== null) {
+                    // Found a matching timestamp - place value at this grid position
+                    const value = valueMap.get(closestActualTs)!;
+                    processedValues[gridIdx] = Number(value.toFixed(PRECISION));
+                }
+                // else: leave as null (no data for this time slot)
             }
 
             return {

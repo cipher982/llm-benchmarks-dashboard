@@ -180,7 +180,9 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
         modelCanonical: originalModelCanonical,
         modelSlug: createSlug(originalModelCanonical), // Use the original model_id for the slug
         tokens_per_second: [],
+        tokens_per_second_timestamps: [],  // Initialize timestamp array
         time_to_first_token: [],
+        time_to_first_token_timestamps: [],  // Initialize timestamp array
         tokens_per_second_mean: 0,
         tokens_per_second_min: Infinity,
         tokens_per_second_max: -Infinity,
@@ -199,14 +201,18 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
       // Aggregate data from all items in the group
       items.forEach(item => {
         mergedItem.tokens_per_second.push(...item.tokens_per_second);
+        mergedItem.tokens_per_second_timestamps.push(...item.tokens_per_second_timestamps);  // Preserve timestamps
         if (item.time_to_first_token) {
           mergedItem.time_to_first_token!.push(...item.time_to_first_token);
+        }
+        if (item.time_to_first_token_timestamps) {
+          mergedItem.time_to_first_token_timestamps!.push(...item.time_to_first_token_timestamps);  // Preserve timestamps
         }
         mergedItem.tokens_per_second_mean += item.tokens_per_second_mean;
         mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
         mergedItem.tokens_per_second_max = Math.max(mergedItem.tokens_per_second_max, item.tokens_per_second_max);
         mergedItem.time_to_first_token_mean += item.time_to_first_token_mean;
-        
+
         // Handle optional time_to_first_token values
         if (item.time_to_first_token_min !== undefined) {
           mergedItem.time_to_first_token_min = Math.min(

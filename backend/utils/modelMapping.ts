@@ -370,7 +370,9 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
             modelCanonical: canonicalModel,
             modelSlug: createSlug(canonicalModel),
             tokens_per_second: [],
+            tokens_per_second_timestamps: [],  // Initialize timestamp array
             time_to_first_token: [],
+            time_to_first_token_timestamps: [],  // Initialize timestamp array
             tokens_per_second_mean: 0,
             tokens_per_second_min: Infinity,
             tokens_per_second_max: -Infinity,
@@ -384,8 +386,12 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
 
         items.forEach((item) => {
             mergedItem.tokens_per_second.push(...item.tokens_per_second);
+            mergedItem.tokens_per_second_timestamps.push(...item.tokens_per_second_timestamps);  // Preserve timestamps
             if (item.time_to_first_token) {
                 mergedItem.time_to_first_token!.push(...item.time_to_first_token);
+            }
+            if (item.time_to_first_token_timestamps) {
+                mergedItem.time_to_first_token_timestamps!.push(...item.time_to_first_token_timestamps);  // Preserve timestamps
             }
             mergedItem.tokens_per_second_mean += item.tokens_per_second_mean;
             mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
