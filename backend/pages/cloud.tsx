@@ -135,7 +135,7 @@ const CloudBenchmarks: React.FC = () => {
         }
     }, []);
 
-    // Initial data fetch for all sections
+    // Initial data fetch for all sections (only on mount)
     useEffect(() => {
         const initializeData = async () => {
             try {
@@ -150,7 +150,8 @@ const CloudBenchmarks: React.FC = () => {
             }
         };
         initializeData();
-    }, [fetchSpeedDistribution, fetchTableData, fetchTimeSeries, distDays, tableDays, timeSeriesDays]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty array - only run on mount
 
     // Time range change handlers for each section
     const handleDistTimeRangeChange = useCallback(async (days: number) => {

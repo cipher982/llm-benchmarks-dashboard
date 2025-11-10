@@ -304,6 +304,9 @@ function TanStackTable<T>({
             {/* Virtual Rows */}
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
               const row = rows[virtualRow.index];
+              const rowData = row.original as any;
+              const isDeprecated = rowData?.deprecated;
+
               return (
                 <div
                   key={row.id}
@@ -316,6 +319,8 @@ function TanStackTable<T>({
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
                     display: 'flex',
+                    backgroundColor: isDeprecated ? 'rgba(255, 152, 0, 0.12)' : undefined,
+                    borderLeft: isDeprecated ? '3px solid rgba(255, 152, 0, 0.5)' : undefined,
                   }}
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => (
