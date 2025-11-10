@@ -3,6 +3,7 @@ import { Provider } from '../types/common';
 import connectToMongoDB from './connectToMongoDB';
 import mongoose from 'mongoose';
 import { getProviderDisplayName } from './providerMetadata';
+import logger from './logger';
 
 const SAMPLE_SIZE = 100; // Number of points to sample for speed distribution
 const PRECISION = 2; // Number of decimal places to keep
@@ -72,7 +73,7 @@ const generateTimestampRange = (days: number) => {
 const findClosestTimestamp = (
     target: number,
     timestamps: number[],
-    tolerance: number = 5 * 60 * 1000 // 5 minutes in milliseconds
+    tolerance: number
 ): number | null => {
     let closest: number | null = null;
     let minDiff = Number.MAX_VALUE;
@@ -172,6 +173,16 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
     const latestTimestamps = generateTimestampRange(days);
     const nRuns = latestTimestamps.length;
 
+    // Calculate dynamic tolerance based on actual grid interval
+    // For short windows (3-7 days): grid interval ~30min, tolerance = 15min
+    // For long windows (14-30 days): grid interval ~2hr, tolerance = 60min
+    const gridInterval = latestTimestamps.length > 1
+        ? latestTimestamps[1] - latestTimestamps[0]
+        : MINUTES_INTERVAL * 60 * 1000;
+    const alignmentTolerance = gridInterval / 2; // Half the grid interval
+
+    logger.info(`🕐 Alignment config: days=${days}, gridInterval=${gridInterval/60000}min, tolerance=${alignmentTolerance/60000}min, points=${nRuns}`);
+
     // Data is already mapped at processed.ts:36 - no need to re-map!
     const mappedData = data;
 
@@ -210,7 +221,8 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
                 // Find closest actual timestamp within tolerance
                 const closestActualTs = findClosestTimestamp(
                     gridTimestamp,
-                    Array.from(valueMap.keys())
+                    Array.from(valueMap.keys()),
+                    alignmentTolerance
                 );
 
                 if (closestActualTs !== null) {
