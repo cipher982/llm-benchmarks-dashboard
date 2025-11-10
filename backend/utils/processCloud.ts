@@ -29,6 +29,7 @@ interface AggregatedData {
     display_name?: string;
     tokens_per_second: number[];
     time_to_first_token: number[];
+    run_timestamps: Date[];
 }
 
 /**
@@ -42,7 +43,9 @@ export interface ProcessedData {
     modelCanonical: string;
     display_name?: string;
     tokens_per_second: number[];
+    tokens_per_second_timestamps: Date[];  // Parallel array to tokens_per_second
     time_to_first_token: number[];
+    time_to_first_token_timestamps: Date[];  // Parallel array to time_to_first_token
     tokens_per_second_mean: number;
     tokens_per_second_min: number;
     tokens_per_second_max: number;
@@ -51,6 +54,7 @@ export interface ProcessedData {
     time_to_first_token_min: number;
     time_to_first_token_max: number;
     time_to_first_token_quartiles: number[];
+    last_run_ts?: Date;
 }
 
 /**
@@ -85,13 +89,18 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 modelCanonical: benchmark.model_name,
                 display_name: benchmark.display_name,
                 tokens_per_second: [],
-                time_to_first_token: []
+                time_to_first_token: [],
+                run_timestamps: []
             });
         }
-        
+
         const entry = benchmarkMap.get(key)!;
         entry.tokens_per_second.push(benchmark.tokens_per_second);
         entry.time_to_first_token.push(benchmark.time_to_first_token);
+        // Collect timestamps for computing last benchmark date
+        if (benchmark.run_ts) {
+            entry.run_timestamps.push(new Date(benchmark.run_ts));
+        }
     }
     
     // Process each benchmark group
@@ -106,7 +115,12 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         const ttft_min = calculateMin(benchmark.time_to_first_token);
         const ttft_max = calculateMax(benchmark.time_to_first_token);
         const ttft_quartiles = calculateQuartiles(benchmark.time_to_first_token);
-        
+
+        // Compute last benchmark timestamp (undefined if no data exists)
+        const lastRunTs = benchmark.run_timestamps.length > 0
+            ? new Date(Math.max(...benchmark.run_timestamps.map(ts => ts.getTime())))
+            : undefined;
+
         // Return processed data with calculated statistics
         return {
             _id: benchmark._id,
@@ -116,7 +130,9 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             modelCanonical: benchmark.modelCanonical,
             display_name: benchmark.display_name,
             tokens_per_second: benchmark.tokens_per_second,
+            tokens_per_second_timestamps: benchmark.run_timestamps,  // Preserve timestamps!
             time_to_first_token: benchmark.time_to_first_token,
+            time_to_first_token_timestamps: benchmark.run_timestamps,  // Same timestamps for both metrics
             tokens_per_second_mean: tps_mean,
             tokens_per_second_min: tps_min,
             tokens_per_second_max: tps_max,
@@ -124,7 +140,8 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             time_to_first_token_mean: ttft_mean,
             time_to_first_token_min: ttft_min,
             time_to_first_token_max: ttft_max,
-            time_to_first_token_quartiles: ttft_quartiles
+            time_to_first_token_quartiles: ttft_quartiles,
+            last_run_ts: lastRunTs
         };
     });
 };

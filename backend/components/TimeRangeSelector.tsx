@@ -14,11 +14,11 @@ interface TimeRangeSelectorProps {
 }
 
 const timeRanges: TimeRange[] = [
-  { days: 1, label: '24h' },
-  { days: 3, label: '3d' },
-  { days: 7, label: '1w' },
-  { days: 14, label: '2w' },
-  { days: 30, label: '1m' },
+  { days: 1, label: '1D' },
+  { days: 3, label: '3D' },
+  { days: 7, label: '7D' },
+  { days: 14, label: '14D' },
+  { days: 30, label: '30D' },
 ];
 
 export function TimeRangeSelector({ selectedDays, onChange }: TimeRangeSelectorProps) {

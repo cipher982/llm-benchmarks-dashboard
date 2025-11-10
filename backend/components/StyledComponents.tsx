@@ -58,6 +58,28 @@ export const SectionHeader = styled('h4')(({ theme }) => ({
     fontWeight: theme.typography.h4.fontWeight,
 }));
 
+// Section header with inline controls (for time range selectors)
+export const SectionHeaderRow = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
+    display: 'flex',
+    flexDirection: isMobile ? 'column' : 'row',
+    justifyContent: 'space-between',
+    alignItems: isMobile ? 'center' : 'center',
+    marginBottom: theme.spacing(2),
+    gap: theme.spacing(2),
+    [theme.breakpoints.down('sm')]: {
+        flexDirection: 'column',
+        gap: theme.spacing(1),
+    },
+}));
+
+export const SectionHeaderWithControl = styled('div')(({ theme }) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(2),
+}));
+
 export const PageTitle = styled('h1')(({ theme }) => ({
     textAlign: 'center',
     color: theme.palette.text.primary,

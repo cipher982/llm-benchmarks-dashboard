@@ -7,7 +7,9 @@ export interface CloudBenchmark {
     modelCanonical: string;  // Canonical model identifier used for routing/lookups
     modelSlug: string;  // Slug derived from the canonical model identifier
     tokens_per_second: number[];
+    tokens_per_second_timestamps: Date[];  // Parallel array to tokens_per_second
     time_to_first_token?: number[];  // Optional array for time to first token
+    time_to_first_token_timestamps?: Date[];  // Parallel array to time_to_first_token
     tokens_per_second_mean: number;
     tokens_per_second_min: number;
     tokens_per_second_max: number;
@@ -18,4 +20,11 @@ export interface CloudBenchmark {
     time_to_first_token_quartiles?: number[];  // Added to match ProcessedData
     display_name?: string;  // Optional alternate display label retained for legacy consumers
     run_ts?: Date;
+
+    // Deprecation metadata
+    deprecated?: boolean;
+    deprecation_date?: string;
+    successor_model?: string;
+    deprecation_reason?: string;
+    last_benchmark_date?: string;
 }

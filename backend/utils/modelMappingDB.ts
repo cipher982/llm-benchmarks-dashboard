@@ -12,21 +12,34 @@ const ModelSchema = new mongoose.Schema({
   display_name: { type: String, required: true },
   enabled: { type: Boolean, default: true },
   created_at: { type: Date, default: Date.now },
-  imported_from: { type: String, default: 'api' }
+  imported_from: { type: String, default: 'api' },
+  deprecated: { type: Boolean, default: false },
+  deprecation_date: { type: String },
+  successor_model: { type: String },
+  deprecation_reason: { type: String }
 });
 
 const Model = mongoose.models.ModelMapping || mongoose.model('ModelMapping', ModelSchema, 'models');
 
+
 // Cache for model mappings to avoid repeated DB queries
-let modelMappingCache: { [key: string]: string } | null = null;
+interface ModelMetadata {
+  display_name: string;
+  deprecated?: boolean;
+  deprecation_date?: string;
+  successor_model?: string;
+  deprecation_reason?: string;
+}
+
+let modelMappingCache: { [key: string]: ModelMetadata } | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Get model display name from database
+ * Get model metadata from database (display name and deprecation info)
  * Uses caching with multiple fallback layers for reliability
- */ 
-async function getModelDisplayName(provider: string, modelId: string): Promise<string> {
+ */
+async function getModelMetadata(provider: string, modelId: string): Promise<ModelMetadata> {
   try {
     // Check cache first
     const now = Date.now();
@@ -49,28 +62,17 @@ async function getModelDisplayName(provider: string, modelId: string): Promise<s
 
     // Try cache again after refresh
     const cacheKey = `${provider}:${modelId}`;
-    
-    // DEBUG: Log cache lookup details
-    console.log(`🔍 CACHE LOOKUP: Provider="${provider}", ModelId="${modelId}"`);
-    console.log(`🔍 CACHE KEY: "${cacheKey}"`);
-    console.log(`🔍 CACHE HAS KEY: ${modelMappingCache ? Object.keys(modelMappingCache).includes(cacheKey) : 'No cache'}`);
-    if (modelMappingCache) {
-      console.log(`🔍 AVAILABLE KEYS: ${Object.keys(modelMappingCache).filter(k => k.includes(provider)).slice(0, 3)}`);
-    }
-    
+
     if (modelMappingCache && modelMappingCache[cacheKey]) {
-      console.log(`✅ FOUND MAPPING: "${modelId}" → "${modelMappingCache[cacheKey]}"`);
-      return modelMappingCache[cacheKey];
+        return modelMappingCache[cacheKey];
     }
 
     // Fallback: return original model name if not found
-    console.warn(`❌ Model mapping not found for ${provider}/${modelId}, using original name`);
-    return modelId;
+    return { display_name: modelId };
 
   } catch (error) {
-    console.error('Error getting model display name:', error);
     // Multiple fallback strategies - never fail completely
-    return modelId;
+    return { display_name: modelId };
   }
 }
 
@@ -80,21 +82,33 @@ async function getModelDisplayName(provider: string, modelId: string): Promise<s
 async function refreshModelMappingCache(): Promise<void> {
   try {
     await connectToMongoDB();
-    
-    const models = await Model.find({}, { provider: 1, model_id: 1, display_name: 1 });
-    
-    const newCache: { [key: string]: string } = {};
+
+    const models = await Model.find({}, {
+      provider: 1,
+      model_id: 1,
+      display_name: 1,
+      deprecated: 1,
+      deprecation_date: 1,
+      successor_model: 1,
+      deprecation_reason: 1
+    });
+
+    const newCache: { [key: string]: ModelMetadata } = {};
     models.forEach(model => {
       const cacheKey = `${model.provider}:${model.model_id}`;
-      newCache[cacheKey] = model.display_name;
+      newCache[cacheKey] = {
+        display_name: model.display_name,
+        deprecated: model.deprecated,
+        deprecation_date: model.deprecation_date,
+        successor_model: model.successor_model,
+        deprecation_reason: model.deprecation_reason
+      };
     });
 
     modelMappingCache = newCache;
     cacheTimestamp = Date.now();
-    
-    console.log(`Model mapping cache refreshed with ${models.length} models`);
   } catch (error) {
-    console.error('Error refreshing model mapping cache:', error);
+    // Silently fail - cache will remain as-is
   }
 }
 
@@ -111,6 +125,7 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
 
     // Group data by provider-model combination for processing
     const modelGroups = new Map<string, ProcessedData[]>();
+    const metadataMap = new Map<string, ModelMetadata>();
 
     for (const item of data) {
       // Skip invalid data
@@ -120,12 +135,15 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
 
       const providerCanonical = item.providerCanonical ?? item.provider;
       const modelCanonical = item.modelCanonical ?? item.model_name;
-      const displayName = await getModelDisplayName(providerCanonical, modelCanonical);
+      const metadata = await getModelMetadata(providerCanonical, modelCanonical);
 
       const groupKey = JSON.stringify({
         providerCanonical,
-        modelDisplay: displayName,
+        modelDisplay: metadata.display_name,
       });
+
+      // Store metadata separately
+      metadataMap.set(groupKey, metadata);
 
       const group = modelGroups.get(groupKey) ?? [];
       group.push({
@@ -137,10 +155,22 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
     }
 
     // Merge groups into aggregated results (same logic as original mapModelNames)
-    const mergedData: CloudBenchmark[] = Array.from(modelGroups.entries()).map(([groupKey, items]) => {
+    const mergedData: CloudBenchmark[] = await Promise.all(
+      Array.from(modelGroups.entries()).map(async ([groupKey, items]) => {
       const { providerCanonical, modelDisplay } = JSON.parse(groupKey) as { providerCanonical: string; modelDisplay: string };
       const originalProviderCanonical = providerCanonical;
       const originalModelCanonical = items[0].modelCanonical ?? items[0].model_name; // The canonical model_id from MongoDB
+      const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
+
+      // Compute last benchmark date from all items in group (not just first!)
+      // Only compute if we have actual timestamps - don't fabricate dates
+      const allTimestamps = items
+        .map(item => item.last_run_ts)
+        .filter((ts): ts is Date => ts != null);
+      const lastBenchmarkDate = allTimestamps.length > 0
+        ? new Date(Math.max(...allTimestamps.map(ts => ts.getTime()))).toISOString()
+        : undefined;
+
       const mergedItem: CloudBenchmark = {
         _id: items[0]._id,
         provider: getProviderDisplayName(providerCanonical),
@@ -150,7 +180,9 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
         modelCanonical: originalModelCanonical,
         modelSlug: createSlug(originalModelCanonical), // Use the original model_id for the slug
         tokens_per_second: [],
+        tokens_per_second_timestamps: [],  // Initialize timestamp array
         time_to_first_token: [],
+        time_to_first_token_timestamps: [],  // Initialize timestamp array
         tokens_per_second_mean: 0,
         tokens_per_second_min: Infinity,
         tokens_per_second_max: -Infinity,
@@ -160,19 +192,27 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
         time_to_first_token_max: -Infinity,
         time_to_first_token_quartiles: [0, 0, 0],
         display_name: modelDisplay,
+        deprecated: metadata.deprecated,
+        deprecation_date: metadata.deprecation_date,
+        successor_model: metadata.successor_model,
+        last_benchmark_date: lastBenchmarkDate,
       };
 
       // Aggregate data from all items in the group
       items.forEach(item => {
         mergedItem.tokens_per_second.push(...item.tokens_per_second);
+        mergedItem.tokens_per_second_timestamps.push(...item.tokens_per_second_timestamps);  // Preserve timestamps
         if (item.time_to_first_token) {
           mergedItem.time_to_first_token!.push(...item.time_to_first_token);
+        }
+        if (item.time_to_first_token_timestamps) {
+          mergedItem.time_to_first_token_timestamps!.push(...item.time_to_first_token_timestamps);  // Preserve timestamps
         }
         mergedItem.tokens_per_second_mean += item.tokens_per_second_mean;
         mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
         mergedItem.tokens_per_second_max = Math.max(mergedItem.tokens_per_second_max, item.tokens_per_second_max);
         mergedItem.time_to_first_token_mean += item.time_to_first_token_mean;
-        
+
         // Handle optional time_to_first_token values
         if (item.time_to_first_token_min !== undefined) {
           mergedItem.time_to_first_token_min = Math.min(
@@ -193,7 +233,8 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
       mergedItem.time_to_first_token_mean /= items.length;
 
       return mergedItem;
-    });
+    })
+  );
 
     return mergedData;
 

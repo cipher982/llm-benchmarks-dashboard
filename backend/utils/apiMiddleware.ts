@@ -61,18 +61,12 @@ export async function fetchAndProcessMetrics(
 
 export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
     const origin = req.headers.origin;
-    
-    console.log('CORS Debug:', {
-        origin,
-        nodeEnv: process.env.NODE_ENV,
-        disableCors: process.env.DISABLE_CORS,
-        method: req.method,
-        url: req.url
-    });
-    
+
     // If DISABLE_CORS env var is set to true, allow all origins regardless of environment
     if (process.env.DISABLE_CORS === 'true') {
-        console.log(`DISABLE_CORS is set: allowing all origins`);
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`DISABLE_CORS is set: allowing all origins`);
+        }
         res.setHeader('Access-Control-Allow-Origin', origin || '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -95,22 +89,18 @@ export async function corsMiddleware(req: NextApiRequest, res: NextApiResponse):
             'https://llm-benchmarks.com',
             'https://api.llm-benchmarks.com'
         ];
-        
+
         // Check if the origin is in our allowed list
         if (origin && allowedOrigins.includes(origin)) {
-            console.log(`Setting CORS headers for origin: ${origin}`);
             res.setHeader('Access-Control-Allow-Origin', origin);
             res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
             res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
             res.setHeader('Access-Control-Allow-Credentials', 'true');
-        } else if (origin) {
-            console.log(`Origin not allowed: ${origin}`);
         }
     }
 
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
-        console.log('Handling OPTIONS preflight request');
         res.status(200).end();
         return true;
     }

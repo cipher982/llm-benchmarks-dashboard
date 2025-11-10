@@ -1,10 +1,46 @@
 import { CloudBenchmark } from '../types/CloudData';
 import { Provider } from '../types/common';
+import connectToMongoDB from './connectToMongoDB';
+import mongoose from 'mongoose';
+import { getProviderDisplayName } from './providerMetadata';
+import logger from './logger';
 
 const SAMPLE_SIZE = 100; // Number of points to sample for speed distribution
 const PRECISION = 2; // Number of decimal places to keep
 const MINUTES_INTERVAL = 30; // Data points are 30 minutes apart
 const TARGET_DATA_POINTS = 144; // Target number of data points for time series (3 days worth at 30min intervals)
+
+// Deprecation snapshot schema
+const SnapshotSchema = new mongoose.Schema({
+    provider_canonical: String,
+    model_canonical: String,
+    display_name: String,
+    snapshot_mean: Number,
+    snapshot_p10: Number,
+    snapshot_p50: Number,
+    snapshot_p90: Number,
+    snapshot_period_start: Date,
+    snapshot_period_end: Date,
+    deprecation_date: Date,
+    successor_model: String,
+    sample_size: Number,
+    created_at: Date
+}, { collection: 'deprecation_snapshots' });
+
+const DeprecationSnapshot = mongoose.models.DeprecationSnapshot ||
+    mongoose.model('DeprecationSnapshot', SnapshotSchema, 'deprecation_snapshots');
+
+// Fetch deprecation snapshots
+async function fetchDeprecationSnapshots() {
+    try {
+        await connectToMongoDB();
+        const snapshots = await DeprecationSnapshot.find({}).lean();
+        return snapshots || [];
+    } catch (error) {
+        console.error('Error fetching deprecation snapshots:', error);
+        return [];
+    }
+}
 
 // Time Series Processing
 const roundToNearest30Minutes = (timestamp: number): number => {
@@ -37,7 +73,7 @@ const generateTimestampRange = (days: number) => {
 const findClosestTimestamp = (
     target: number,
     timestamps: number[],
-    tolerance: number = 5 * 60 * 1000 // 5 minutes in milliseconds
+    tolerance: number
 ): number | null => {
     let closest: number | null = null;
     let minDiff = Number.MAX_VALUE;
@@ -51,15 +87,107 @@ const findClosestTimestamp = (
     return closest;
 };
 
+// Split-line deprecation helpers
+const findSplitIndex = (timestamps: string[], deprecationDate: string): number => {
+    const deprecationTime = new Date(deprecationDate).getTime();
+    // Find the first timestamp that is >= deprecation date
+    const index = timestamps.findIndex(ts => new Date(ts).getTime() >= deprecationTime);
+    // If deprecation is before all timestamps, return 0
+    // If deprecation is after all timestamps, return timestamps.length (no split)
+    return index === -1 ? timestamps.length : index;
+};
+
+const shouldSplitProvider = (
+    provider: any,
+    snapshot: any | null,
+    timestamps: string[]
+): boolean => {
+    // Only split if:
+    // 1. Provider is deprecated
+    // 2. Snapshot exists for this provider
+    // 3. Deprecation date falls within the timestamp window
+    if (!provider.deprecated || !snapshot || !provider.deprecation_date) {
+        return false;
+    }
+
+    const splitIndex = findSplitIndex(timestamps, provider.deprecation_date);
+    // Only split if deprecation falls within the window (not at edges)
+    return splitIndex > 0 && splitIndex < timestamps.length;
+};
+
+const createRealSegment = (
+    provider: any,
+    splitIndex: number,
+    nRuns: number
+): any => {
+    // Create array with real data up to split, then nulls
+    const realValues = [...provider.values];
+    for (let i = splitIndex; i < nRuns; i++) {
+        realValues[i] = null;
+    }
+
+    return {
+        ...provider,
+        values: realValues,
+        segment: 'real',
+        is_snapshot: false
+    };
+};
+
+const createSnapshotSegment = (
+    provider: any,
+    snapshot: any,
+    splitIndex: number,
+    nRuns: number
+): any => {
+    // Create array with nulls up to split, then snapshot mean
+    const snapshotValues = Array(nRuns).fill(null);
+    for (let i = splitIndex; i < nRuns; i++) {
+        snapshotValues[i] = snapshot.snapshot_mean;
+    }
+
+    return {
+        provider: provider.provider,
+        providerCanonical: provider.providerCanonical,
+        values: snapshotValues,
+        deprecated: true,
+        deprecation_date: snapshot.deprecation_date.toISOString(),
+        last_benchmark_date: snapshot.snapshot_period_end.toISOString(),
+        successor_model: snapshot.successor_model,
+        is_snapshot: true,
+        segment: 'snapshot',
+        snapshot_metadata: {
+            p10: snapshot.snapshot_p10,
+            p50: snapshot.snapshot_p50,
+            p90: snapshot.snapshot_p90,
+            period: `${snapshot.snapshot_period_start.toLocaleDateString()} - ${snapshot.snapshot_period_end.toLocaleDateString()}`,
+            sample_size: snapshot.sample_size
+        }
+    };
+};
+
 // Process time series data - creates ONE chart per unique model name
 // Each chart shows multiple provider lines for that model
 // Result: fewer items than speed distribution (unique models vs provider-model combos)
 export const processTimeSeriesData = async (data: CloudBenchmark[], days: number = 14) => {
     const latestTimestamps = generateTimestampRange(days);
     const nRuns = latestTimestamps.length;
-    
+
+    // Calculate dynamic tolerance based on actual grid interval
+    // For short windows (3-7 days): grid interval ~30min, tolerance = 15min
+    // For long windows (14-30 days): grid interval ~2hr, tolerance = 60min
+    const gridInterval = latestTimestamps.length > 1
+        ? latestTimestamps[1] - latestTimestamps[0]
+        : MINUTES_INTERVAL * 60 * 1000;
+    const alignmentTolerance = gridInterval / 2; // Half the grid interval
+
+    logger.info(`🕐 Alignment config: days=${days}, gridInterval=${gridInterval/60000}min, tolerance=${alignmentTolerance/60000}min, points=${nRuns}`);
+
     // Data is already mapped at processed.ts:36 - no need to re-map!
     const mappedData = data;
+
+    // Fetch deprecation snapshots
+    const snapshots = await fetchDeprecationSnapshots();
 
     // Group by mapped model name
     const modelGroups = mappedData.reduce((groups, benchmark) => {
@@ -75,38 +203,113 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
     const processedModels = Object.entries(modelGroups).map(([model_name, benchmarks]) => {
         const providers = benchmarks.map(benchmark => {
             const values = benchmark.tokens_per_second;
-            let processedValues: number[] = [];
+            const timestamps = benchmark.tokens_per_second_timestamps;
+            let processedValues: (number | null)[] = Array(nRuns).fill(null);
 
-            if (values.length > nRuns) {
-                // If we have more values than needed, sample evenly
-                const step = values.length / nRuns;
-                processedValues = Array.from({ length: nRuns }, (_, i) => {
-                    const index = Math.min(Math.floor(i * step), values.length - 1);
-                    return Number(values[index].toFixed(PRECISION));
-                });
-            } else if (values.length < nRuns) {
-                // If we have fewer values than needed, pad with nulls
-                processedValues = Array(nRuns).fill(null);
-                // Copy available values to the end of the array
-                const startIndex = nRuns - values.length;
-                values.forEach((val, i) => {
-                    processedValues[startIndex + i] = Number(val.toFixed(PRECISION));
-                });
-            } else {
-                // If we have exactly the right number of values
-                processedValues = values.map(val => Number(val.toFixed(PRECISION)));
+            // Create timestamp -> value map for fast lookups
+            const valueMap = new Map<number, number>();
+            for (let i = 0; i < values.length; i++) {
+                const ts = timestamps[i].getTime();
+                // If duplicate timestamps exist, keep the most recent value (later in array)
+                valueMap.set(ts, values[i]);
+            }
+
+            // Align values to grid timestamps
+            for (let gridIdx = 0; gridIdx < latestTimestamps.length; gridIdx++) {
+                const gridTimestamp = latestTimestamps[gridIdx];
+
+                // Find closest actual timestamp within tolerance
+                const closestActualTs = findClosestTimestamp(
+                    gridTimestamp,
+                    Array.from(valueMap.keys()),
+                    alignmentTolerance
+                );
+
+                if (closestActualTs !== null) {
+                    // Found a matching timestamp - place value at this grid position
+                    const value = valueMap.get(closestActualTs)!;
+                    processedValues[gridIdx] = Number(value.toFixed(PRECISION));
+                }
+                // else: leave as null (no data for this time slot)
             }
 
             return {
                 provider: benchmark.provider as Provider,
-                values: processedValues
+                providerCanonical: benchmark.providerCanonical,
+                values: processedValues,
+                deprecated: benchmark.deprecated,
+                deprecation_date: benchmark.deprecation_date,
+                last_benchmark_date: benchmark.last_benchmark_date,
+                successor_model: benchmark.successor_model,
             };
         });
+
+        // Find snapshots for this model
+        const modelCanonical = benchmarks[0]?.modelCanonical || model_name;
+        const matchingSnapshots = snapshots.filter(s =>
+            s.display_name === model_name || s.model_canonical === modelCanonical
+        );
+
+        // Create a map of snapshots by provider for easy lookup
+        const snapshotMap = new Map(
+            matchingSnapshots.map(s => [s.provider_canonical, s])
+        );
+
+        // Process providers: split if needed, or keep as-is
+        const processedProviders: any[] = [];
+        const existingProviders = new Set(providers.map(p => p.providerCanonical));
+
+        providers.forEach(provider => {
+            const snapshot = snapshotMap.get(provider.providerCanonical);
+
+            if (shouldSplitProvider(provider, snapshot, latestTimestamps.map(ts => new Date(ts).toISOString()))) {
+                // SPLIT: Create both real and snapshot segments
+                const splitIndex = findSplitIndex(
+                    latestTimestamps.map(ts => new Date(ts).toISOString()),
+                    provider.deprecation_date!
+                );
+
+                console.log(`[Split-line] Splitting ${provider.providerCanonical}/${model_name} at index ${splitIndex}/${nRuns}`);
+
+                const realSegment = createRealSegment(provider, splitIndex, nRuns);
+                const snapshotSegment = createSnapshotSegment(provider, snapshot!, splitIndex, nRuns);
+
+                // Add snapshot first (will appear below in legend due to stacking order)
+                processedProviders.push(snapshotSegment);
+                // Add real segment second (will appear on top)
+                processedProviders.push(realSegment);
+            } else {
+                // NO SPLIT: Keep provider as-is
+                processedProviders.push(provider);
+            }
+        });
+
+        // Add snapshot-only providers (no real data in window)
+        const snapshotOnlyProviders = matchingSnapshots
+            .filter(snapshot => !existingProviders.has(snapshot.provider_canonical))
+            .map(snapshot => ({
+                provider: getProviderDisplayName(snapshot.provider_canonical) as Provider,
+                providerCanonical: snapshot.provider_canonical,
+                values: Array(nRuns).fill(snapshot.snapshot_mean) as (number | null)[],
+                deprecated: true,
+                deprecation_date: snapshot.deprecation_date.toISOString(),
+                last_benchmark_date: snapshot.snapshot_period_end.toISOString(),
+                successor_model: snapshot.successor_model,
+                is_snapshot: true,
+                segment: 'snapshot',
+                snapshot_metadata: {
+                    p10: snapshot.snapshot_p10,
+                    p50: snapshot.snapshot_p50,
+                    p90: snapshot.snapshot_p90,
+                    period: `${snapshot.snapshot_period_start.toLocaleDateString()} - ${snapshot.snapshot_period_end.toLocaleDateString()}`,
+                    sample_size: snapshot.sample_size
+                }
+            }));
 
         return {
             model_name,
             display_name: benchmarks[0]?.display_name || model_name,
-            providers
+            providers: [...processedProviders, ...snapshotOnlyProviders]
         };
     });
 
@@ -189,7 +392,9 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             mean_tokens_per_second: mean,
             min_tokens_per_second: min,
             max_tokens_per_second: max,
-            density_points: densityPoints
+            density_points: densityPoints,
+            deprecated: benchmark.deprecated,
+            deprecation_date: benchmark.deprecation_date,
         };
     });
 };
@@ -211,6 +416,9 @@ export const processRawTableData = async (data: CloudBenchmark[]) => {
             tokens_per_second_min: Number(Math.min(...benchmark.tokens_per_second).toFixed(PRECISION)),
             tokens_per_second_max: Number(Math.max(...benchmark.tokens_per_second).toFixed(PRECISION)),
             time_to_first_token_mean: Number(benchmark.time_to_first_token_mean.toFixed(PRECISION)),
+            deprecated: benchmark.deprecated,
+            deprecation_date: benchmark.deprecation_date,
+            last_benchmark_date: benchmark.last_benchmark_date,
         };
     });
 };

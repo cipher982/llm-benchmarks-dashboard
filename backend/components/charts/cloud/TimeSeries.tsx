@@ -40,16 +40,16 @@ const getVisibleProviders = (model: TimeSeriesModel): TimeSeriesProvider[] =>
     model.providers.filter((provider) => getProviderCoverage(provider) >= COVERAGE_THRESHOLD);
 
 // Memoized individual chart component
-const ModelChart = memo(({ 
-    model, 
-    chartData, 
+const ModelChart = memo(({
+    model,
+    chartData,
     theme,
     selectedDays,
     isLoading,
-    visibleProviders
-}: { 
-    model: TimeSeriesModel; 
-    chartData: ChartDataPoint[]; 
+    visibleProviders,
+}: {
+    model: TimeSeriesModel;
+    chartData: ChartDataPoint[];
     theme: any;
     selectedDays: number;
     isLoading: boolean;
@@ -118,25 +118,81 @@ const ModelChart = memo(({
                             stroke={theme.palette.text.secondary}
                             tick={{ fontSize: 12, fill: theme.palette.text.primary }}
                         />
-                        <Tooltip 
+                        <Tooltip
                             labelFormatter={(timestamp: string) => {
                                 const date = new Date(timestamp);
                                 return date.toLocaleString();
                             }}
-                            formatter={(value: number) => [value?.toFixed(2) || 'N/A', '']}
+                            formatter={(value: number, name: string, props: any) => {
+                                // For split lines, dataKey includes segment suffix
+                                // Extract provider from dataKey
+                                const dataKey = props.dataKey;
+                                const isSnapshot = dataKey?.includes('-snapshot');
+
+                                // Find provider by checking if dataKey matches
+                                const provider = visibleProviders.find(p => {
+                                    const segmentSuffix = p.segment ? `-${p.segment}` : '';
+                                    const expectedKey = `${model.model_name}-${p.providerCanonical}${segmentSuffix}`;
+                                    return dataKey === expectedKey;
+                                });
+
+                                if (provider?.segment === 'snapshot' && provider.snapshot_metadata) {
+                                    return [
+                                        `${value?.toFixed(2)} tps (snapshot)`,
+                                        `P10-P90: ${provider.snapshot_metadata.p10.toFixed(1)}-${provider.snapshot_metadata.p90.toFixed(1)} | ${provider.snapshot_metadata.sample_size} samples`
+                                    ];
+                                }
+                                return [value?.toFixed(2) || 'N/A', name || ''];
+                            }}
                         />
-                        <Legend />
-                        {!isLoading && visibleProviders.map((provider) => (
-                            <Line
-                                key={provider.provider}
-                                type="monotone"
-                                dataKey={`${model.model_name}-${provider.provider}`}
-                                name={provider.provider}
-                                stroke={getProviderColor(theme, provider.provider as Provider)}
-                                dot={false}
-                                connectNulls
-                            />
-                        ))}
+                        <Legend
+                            formatter={(value: string) => {
+                                // Find the provider for this legend entry
+                                // For split lines, the legend name is just the provider (without segment suffix)
+                                const provider = visibleProviders.find(p => p.provider === value);
+                                if (provider?.deprecated) {
+                                    return `${value} ⚠`;
+                                }
+                                return value;
+                            }}
+                        />
+                        {!isLoading && visibleProviders.map((provider, providerIndex) => {
+                            const isSnapshot = provider.segment === 'snapshot';
+                            const baseColor = getProviderColor(theme, provider.provider as Provider);
+
+                            // Style snapshots as grey dashed lines, real data uses provider color
+                            const strokeColor = isSnapshot ? '#999999' : baseColor;
+                            const strokeDasharray = isSnapshot ? '8 4' : undefined;
+                            const strokeWidth = isSnapshot ? 2.5 : 2;
+                            const strokeOpacity = isSnapshot ? 0.7 : 1;
+
+                            // Use segment suffix in dataKey to match chartData transformation
+                            const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
+                            const dataKey = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
+
+                            // Both segments show provider name in legend
+                            // Recharts will merge entries with same name automatically
+                            const legendName = provider.provider;
+
+                            // For split lines, don't connect across the null boundary
+                            // For regular lines, connect across gaps to avoid "abstract painting"
+                            const shouldConnectNulls = !provider.segment;
+
+                            return (
+                                <Line
+                                    key={`${provider.providerCanonical}-${provider.segment || 'default'}-${providerIndex}`}
+                                    type="monotone"
+                                    dataKey={dataKey}
+                                    name={legendName}
+                                    stroke={strokeColor}
+                                    strokeDasharray={strokeDasharray}
+                                    strokeOpacity={strokeOpacity}
+                                    strokeWidth={strokeWidth}
+                                    dot={false}
+                                    connectNulls={shouldConnectNulls}
+                                />
+                            );
+                        })}
                     </LineChart>
                 </ResponsiveContainer>
             </Box>
@@ -146,9 +202,9 @@ const ModelChart = memo(({
 
 ModelChart.displayName = 'ModelChart';
 
-const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({ 
-    data, 
-    onTimeRangeChange, 
+const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
+    data,
+    onTimeRangeChange,
     selectedDays
 }) => {
     const theme = useTheme();
@@ -166,13 +222,16 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     }, [onTimeRangeChange]);
 
     // Transform the data for the chart
+    // For split providers, we need unique keys for real vs snapshot segments
     const chartData = useMemo(() => {
         return data.timestamps.map((timestamp, index) => {
             const point: ChartDataPoint = { timestamp };
             data.models.forEach(model => {
                 model.providers.forEach(provider => {
                     if (provider.values) {
-                        const key = `${model.model_name}-${provider.provider}`;
+                        // Use segment in key if it exists (for split lines)
+                        const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
+                        const key = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
                         point[key] = provider.values[index] ?? null;
                     }
                 });
@@ -182,10 +241,12 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     }, [data.timestamps, data.models]);
 
     // Precompute visible providers for each model (applies the same coverage rule used during rendering)
+    // Show ALL providers (active and deprecated) that meet coverage threshold
     const modelsWithVisibility = useMemo(() => {
         return data.models.map((model) => {
             const visibleProviders = getVisibleProviders(model);
             const totalProvidersWithValues = model.providers.filter(p => p.values && p.values.length > 0).length;
+
             return {
                 model,
                 visibleProviders,

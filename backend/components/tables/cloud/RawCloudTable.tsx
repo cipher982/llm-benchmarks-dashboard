@@ -4,6 +4,7 @@ import { TableRow } from '../../../types/ProcessedData';
 import Link from 'next/link';
 import TanStackTable from '../TanStackTable';
 import { colors } from '../../../components/design-system';
+import { Tooltip } from '@mui/material';
 
 interface RawCloudTableProps {
     data: TableRow[];
@@ -53,6 +54,94 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                     );
                 }
                 return modelName;
+            },
+        },
+        {
+            accessorKey: 'deprecated',
+            header: 'Status',
+            size: 120,
+            enableSorting: false,
+            cell: ({ getValue }) => {
+                const deprecated = getValue() as boolean;
+                if (deprecated) {
+                    return (
+                        <span style={{
+                            color: '#ed6c02',
+                            fontStyle: 'italic',
+                            fontSize: '0.9em'
+                        }}>
+                            ⚠ Deprecated
+                        </span>
+                    );
+                }
+                return (
+                    <span style={{
+                        color: '#2e7d32',
+                        fontWeight: 500,
+                        fontSize: '0.9em'
+                    }}>
+                        ✓ Active
+                    </span>
+                );
+            },
+        },
+        {
+            accessorKey: 'last_benchmark_date',
+            header: 'Last Updated',
+            size: 150,
+            cell: ({ row, getValue }) => {
+                const lastDate = getValue() as string | undefined;
+                const deprecated = row.original.deprecated;
+
+                if (!lastDate) {
+                    return <span style={{ color: '#666', fontStyle: 'italic' }}>Unknown</span>;
+                }
+
+                const date = new Date(lastDate);
+                const now = new Date();
+                const diffMs = now.getTime() - date.getTime();
+                const diffHours = diffMs / (1000 * 60 * 60);
+
+                // Full ISO date for tooltip
+                const fullDate = date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZoneName: 'short'
+                });
+
+                let displayText: string;
+                let textColor: string;
+
+                if (deprecated) {
+                    // Show absolute date for deprecated models
+                    displayText = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    textColor = '#666';
+                } else {
+                    // Show relative time for active models
+                    if (diffHours < 1) {
+                        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                        displayText = `${diffMinutes}m ago`;
+                        textColor = '#2e7d32';
+                    } else if (diffHours < 24) {
+                        displayText = `${Math.floor(diffHours)}h ago`;
+                        textColor = '#2e7d32';
+                    } else {
+                        const diffDays = Math.floor(diffHours / 24);
+                        displayText = `${diffDays}d ago`;
+                        textColor = diffDays > 2 ? '#ed6c02' : '#2e7d32';
+                    }
+                }
+
+                return (
+                    <Tooltip title={fullDate} arrow>
+                        <span style={{ color: textColor, fontStyle: deprecated ? 'italic' : 'normal', cursor: 'help' }}>
+                            {displayText}
+                        </span>
+                    </Tooltip>
+                );
             },
         },
         {
