@@ -13,11 +13,13 @@ import {
     ChartContentContainer,
     TableContentContainer,
     SectionHeader,
+    SectionHeaderWithControl,
     PageTitle,
     StyledDescriptionSection,
     StyledChartContainer,
     StyledTableContainer,
 } from "../components/StyledComponents";
+import { TimeRangeSelector } from "../components/TimeRangeSelector";
 
 const TimeSeriesChart = lazy(() => import("../components/charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTable"));
@@ -26,74 +28,145 @@ const SpeedDistChart = lazy(() => import("../components/charts/cloud/SpeedDistCh
 const CloudBenchmarks: React.FC = () => {
     console.log('CloudBenchmarks component mounted');
     const theme = useTheme();
+
+    // Separate state for each section
     const [speedDistData, setSpeedDistData] = useState<SpeedDistributionPoint[]>([]);
-    const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>({ 
-        timestamps: [], 
-        models: [] 
+    const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>({
+        timestamps: [],
+        models: []
     });
     const [tableData, setTableData] = useState<TableRow[]>([]);
+
+    // Separate time ranges for each section
+    const [distDays, setDistDays] = useState<number>(7);
+    const [tableDays, setTableDays] = useState<number>(3);
+    const [timeSeriesDays, setTimeSeriesDays] = useState<number>(12);
+
+    // Separate loading states for each section
+    const [distLoading, setDistLoading] = useState<boolean>(false);
+    const [tableLoading, setTableLoading] = useState<boolean>(false);
+    const [timeSeriesLoading, setTimeSeriesLoading] = useState<boolean>(false);
+
     const [error, setError] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState<boolean>(true);
-    const [selectedDays, setSelectedDays] = useState<number>(12);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-    const fetchCloudBenchmarks = useCallback(async (days?: number) => {
+    // Fetch function for Speed Distribution section
+    const fetchSpeedDistribution = useCallback(async (days: number) => {
         try {
-            const queryParams = days ? `?days=${days}` : '';
-            const fullUrl = `/api/processed${queryParams}`;
-            
-            console.log('🌐 EXACT HTTP CALL:', fullUrl);
-            
-            console.time('fetchCloudBenchmarks');
-            const res = await fetch(fullUrl, {
+            setDistLoading(true);
+            const res = await fetch(`/api/processed?days=${days}`, {
                 method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
+                headers: { 'Accept': 'application/json' }
             });
-            console.timeEnd('fetchCloudBenchmarks');
-            
-            console.log('🌐 RESPONSE STATUS:', res.status);
-            console.log('🌐 RESPONSE HEADERS:', Object.fromEntries([...res.headers]));
-            console.log('🌐 CACHE STATUS:', res.headers.get('x-cache-status') || 'No cache header');
-            
+
             if (!res.ok) {
                 throw new Error(`HTTP error! status: ${res.status}`);
             }
-            
+
             const data = await res.json();
-            
-            if (!data || !data.speedDistribution || !data.timeSeries || !data.table) {
-                throw new Error('Invalid data format received from API');
+            if (!data || !data.speedDistribution) {
+                throw new Error('Invalid speed distribution data received');
             }
 
             setSpeedDistData(data.speedDistribution);
-            setTimeSeriesData(data.timeSeries);
-            setTableData(data.table);
             setError(null);
         } catch (err: any) {
-            console.error('Error fetching cloud benchmarks:', err);
+            console.error('Error fetching speed distribution:', err);
             setError(err.message);
+        } finally {
+            setDistLoading(false);
         }
     }, []);
 
-    // Only run on initial mount
+    // Fetch function for Table section
+    const fetchTableData = useCallback(async (days: number) => {
+        try {
+            setTableLoading(true);
+            const res = await fetch(`/api/processed?days=${days}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            const data = await res.json();
+            if (!data || !data.table) {
+                throw new Error('Invalid table data received');
+            }
+
+            setTableData(data.table);
+            setError(null);
+        } catch (err: any) {
+            console.error('Error fetching table data:', err);
+            setError(err.message);
+        } finally {
+            setTableLoading(false);
+        }
+    }, []);
+
+    // Fetch function for Time Series section
+    const fetchTimeSeries = useCallback(async (days: number) => {
+        try {
+            setTimeSeriesLoading(true);
+            const res = await fetch(`/api/processed?days=${days}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            const data = await res.json();
+            if (!data || !data.timeSeries) {
+                throw new Error('Invalid time series data received');
+            }
+
+            setTimeSeriesData(data.timeSeries);
+            setError(null);
+        } catch (err: any) {
+            console.error('Error fetching time series:', err);
+            setError(err.message);
+        } finally {
+            setTimeSeriesLoading(false);
+        }
+    }, []);
+
+    // Initial data fetch for all sections
     useEffect(() => {
         const initializeData = async () => {
             try {
-                await fetchCloudBenchmarks(selectedDays);
+                // Fetch all sections in parallel with their default time ranges
+                await Promise.all([
+                    fetchSpeedDistribution(distDays),
+                    fetchTableData(tableDays),
+                    fetchTimeSeries(timeSeriesDays)
+                ]);
             } finally {
                 setInitialLoading(false);
             }
         };
         initializeData();
-    }, [fetchCloudBenchmarks, selectedDays]);
+    }, [fetchSpeedDistribution, fetchTableData, fetchTimeSeries, distDays, tableDays, timeSeriesDays]);
 
-    // Handle time range changes
-    const handleTimeRangeChange = useCallback(async (days: number) => {
-        setSelectedDays(days);
-        await fetchCloudBenchmarks(days);
-    }, [fetchCloudBenchmarks]);
+    // Time range change handlers for each section
+    const handleDistTimeRangeChange = useCallback(async (days: number) => {
+        setDistDays(days);
+        await fetchSpeedDistribution(days);
+    }, [fetchSpeedDistribution]);
+
+    const handleTableTimeRangeChange = useCallback(async (days: number) => {
+        setTableDays(days);
+        await fetchTableData(days);
+    }, [fetchTableData]);
+
+    const handleTimeSeriesTimeRangeChange = useCallback(async (days: number) => {
+        setTimeSeriesDays(days);
+        await fetchTimeSeries(days);
+    }, [fetchTimeSeries]);
 
     if (initialLoading) {
         return (
@@ -130,9 +203,19 @@ const CloudBenchmarks: React.FC = () => {
             </StyledDescriptionSection>
 
             <StyledChartContainer isMobile={isMobile}>
-                <SectionHeader>📊 Speed Distribution 📊</SectionHeader>
+                <SectionHeaderWithControl>
+                    <SectionHeader>📊 Speed Distribution 📊</SectionHeader>
+                    <TimeRangeSelector
+                        selectedDays={distDays}
+                        onChange={handleDistTimeRangeChange}
+                    />
+                </SectionHeaderWithControl>
                 <ChartContentContainer>
-                    {speedDistData.length > 0 && (
+                    {distLoading ? (
+                        <ChartLoadingContainer>
+                            <StyledCircularProgress size={60} />
+                        </ChartLoadingContainer>
+                    ) : speedDistData.length > 0 ? (
                         <Suspense fallback={
                             <ChartLoadingContainer>
                                 <StyledCircularProgress size={60} />
@@ -140,21 +223,31 @@ const CloudBenchmarks: React.FC = () => {
                         }>
                             <SpeedDistChart data={speedDistData} />
                         </Suspense>
-                    )}
+                    ) : null}
                 </ChartContentContainer>
             </StyledChartContainer>
 
             <StyledTableContainer isMobile={isMobile}>
-                <SectionHeader>📚 Full Results 📚</SectionHeader>
+                <SectionHeaderWithControl>
+                    <SectionHeader>📚 Full Results 📚</SectionHeader>
+                    <TimeRangeSelector
+                        selectedDays={tableDays}
+                        onChange={handleTableTimeRangeChange}
+                    />
+                </SectionHeaderWithControl>
                 <TableContentContainer isMobile={isMobile}>
                     <Box sx={{ pb: 8 }}>
-                        <Suspense fallback={<StyledCircularProgress />}>
-                            {tableData && tableData.length > 0 ? (
-                                <RawCloudTable data={tableData} />
-                            ) : (
-                                <div>Loading table data...</div>
-                            )}
-                        </Suspense>
+                        {tableLoading ? (
+                            <StyledCircularProgress />
+                        ) : (
+                            <Suspense fallback={<StyledCircularProgress />}>
+                                {tableData && tableData.length > 0 ? (
+                                    <RawCloudTable data={tableData} />
+                                ) : (
+                                    <div>No table data available</div>
+                                )}
+                            </Suspense>
+                        )}
                     </Box>
                 </TableContentContainer>
             </StyledTableContainer>
@@ -163,13 +256,19 @@ const CloudBenchmarks: React.FC = () => {
                 <StyledChartContainer isMobile={isMobile}>
                     <SectionHeader>📈 Time Series 📈</SectionHeader>
                     <ChartContentContainer>
-                        <Suspense fallback={<StyledCircularProgress />}>
-                            <TimeSeriesChart 
-                                data={timeSeriesData} 
-                                onTimeRangeChange={handleTimeRangeChange}
-                                selectedDays={selectedDays}
-                            />
-                        </Suspense>
+                        {timeSeriesLoading ? (
+                            <ChartLoadingContainer>
+                                <StyledCircularProgress size={60} />
+                            </ChartLoadingContainer>
+                        ) : (
+                            <Suspense fallback={<StyledCircularProgress />}>
+                                <TimeSeriesChart
+                                    data={timeSeriesData}
+                                    onTimeRangeChange={handleTimeSeriesTimeRangeChange}
+                                    selectedDays={timeSeriesDays}
+                                />
+                            </Suspense>
+                        )}
                     </ChartContentContainer>
                 </StyledChartContainer>
             )}
