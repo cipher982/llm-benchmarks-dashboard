@@ -4,13 +4,20 @@
  * These tests validate that the API endpoints properly expose the
  * canonical/display/slug architecture to frontend consumers.
  *
- * Run against local: TEST_API_URL=http://localhost:3000 npm test
- * Run against prod: npm test (uses default production URL)
- */
+ * Usage: set TEST_API_URL to the environment you want to exercise, e.g.
+ *   TEST_API_URL=http://localhost:3000 npm test
+ * This explicit opt-in prevents accidental hits against production.
+*/
 
 const fetch = require('node-fetch');
 
-const API_URL = process.env.TEST_API_URL || 'https://api.llm-benchmarks.com';
+if (!process.env.TEST_API_URL) {
+  throw new Error(
+    'TEST_API_URL is not set. Run with TEST_API_URL=http://localhost:3000 (or another target) to avoid hitting production by default.'
+  );
+}
+
+const API_URL = process.env.TEST_API_URL;
 const TIMEOUT = 30000;
 
 describe('API Contract Tests - Canonical Architecture', () => {
