@@ -54,6 +54,22 @@ interface TableMetaSummary {
     };
 }
 
+interface LifecycleSummaryRow {
+    provider: string;
+    total: number;
+    flaggedTotal: number;
+    counts: Record<string, number>;
+    sampleReasons: Record<string, string>;
+    lastComputedAt?: string;
+}
+
+interface LifecycleSummaryResponse {
+    generatedAt: string;
+    flaggedStatuses: string[];
+    includeActive: boolean;
+    rows: LifecycleSummaryRow[];
+}
+
 const CloudBenchmarks: React.FC = () => {
     console.log('CloudBenchmarks component mounted');
     const theme = useTheme();
@@ -66,6 +82,7 @@ const CloudBenchmarks: React.FC = () => {
     });
     const [tableData, setTableData] = useState<TableRow[]>([]);
     const [tableMeta, setTableMeta] = useState<TableMetaSummary | null>(null);
+    const [lifecycleSummary, setLifecycleSummary] = useState<LifecycleSummaryResponse | null>(null);
 
     // Separate time ranges for each section
     const [distDays, setDistDays] = useState<number>(30);
@@ -78,8 +95,10 @@ const CloudBenchmarks: React.FC = () => {
     const [distLoading, setDistLoading] = useState<boolean>(false);
     const [tableLoading, setTableLoading] = useState<boolean>(false);
     const [timeSeriesLoading, setTimeSeriesLoading] = useState<boolean>(false);
+    const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
 
     const [error, setError] = useState<string | null>(null);
+    const [summaryError, setSummaryError] = useState<string | null>(null);
     const [initialLoading, setInitialLoading] = useState<boolean>(true);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -150,6 +169,25 @@ const CloudBenchmarks: React.FC = () => {
         }
     }, [tableStatusFilter]);
 
+    const fetchLifecycleSummaryData = useCallback(async () => {
+        try {
+            setSummaryLoading(true);
+            const res = await fetch('/api/lifecycle-summary');
+            if (!res.ok) {
+                throw new Error(`Lifecycle summary HTTP ${res.status}`);
+            }
+            const data: LifecycleSummaryResponse = await res.json();
+            setLifecycleSummary(data);
+            setSummaryError(null);
+        } catch (err: any) {
+            console.error('Error fetching lifecycle summary:', err);
+            setSummaryError(err.message);
+            setLifecycleSummary(null);
+        } finally {
+            setSummaryLoading(false);
+        }
+    }, []);
+
     // Fetch function for Time Series section
     const fetchTimeSeries = useCallback(async (days: number) => {
         try {
@@ -186,7 +224,8 @@ const CloudBenchmarks: React.FC = () => {
                 await Promise.all([
                     fetchSpeedDistribution(distDays),
                     fetchTableData(tableDays),
-                    fetchTimeSeries(timeSeriesDays)
+                    fetchTimeSeries(timeSeriesDays),
+                    fetchLifecycleSummaryData()
                 ]);
             } finally {
                 setInitialLoading(false);
@@ -258,6 +297,44 @@ const CloudBenchmarks: React.FC = () => {
                         does not require purchasing dedicated endpoints for hosting (why some models may appear
                         to be missing). If you have any more suggestions let me know on GitHub!! 😊
                     </p>
+                    <Box
+                        sx={{
+                            mt: 2,
+                            p: 2,
+                            border: '1px solid #d0d0d0',
+                            borderRadius: 1,
+                            backgroundColor: '#fafafa'
+                        }}
+                    >
+                        <strong>
+                            Lifecycle snapshot{lifecycleSummary?.generatedAt ? ` (${new Date(lifecycleSummary.generatedAt).toLocaleString()})` : ''}
+                        </strong>
+                        {summaryLoading ? (
+                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>Loading status summary…</div>
+                        ) : summaryError ? (
+                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem', color: '#d32f2f' }}>
+                                Failed to load lifecycle summary. ({summaryError})
+                            </div>
+                        ) : lifecycleSummary && lifecycleSummary.rows.length ? (
+                            <ul style={{ marginTop: '0.4rem', paddingLeft: '1.2rem', fontSize: '0.85rem' }}>
+                                {lifecycleSummary.rows.map((row) => (
+                                    <li key={row.provider}>
+                                        <strong>{row.provider}</strong>: {row.flaggedTotal} flagged / {row.total} total
+                                        {row.sampleReasons && Object.keys(row.sampleReasons).length > 0 && (
+                                            <span style={{ marginLeft: '0.4rem', color: '#555' }}>
+                                                – {Object.entries(row.sampleReasons)
+                                                    .map(([status, reason]) => `${status}: ${reason}`)
+                                                    .slice(0, 2)
+                                                    .join(' | ')}
+                                            </span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>No lifecycle summary available.</div>
+                        )}
+                    </Box>
                 </CenteredContentContainer>
             </StyledDescriptionSection>
 
