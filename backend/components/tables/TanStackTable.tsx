@@ -150,13 +150,16 @@ const SortIndicator = styled('span')<{ direction?: 'asc' | 'desc' }>(({ directio
 }));
 
 const DataCell = styled('td')({
+  display: 'flex',
+  alignItems: 'center',
   backgroundColor: colors.surface,
   color: colors.textPrimary,
   fontFamily: typography.fontFamily,
   fontSize: typography.sizes.base,
   padding: `${spacing.scale[2]}px ${spacing.scale[3]}px`,
   border: `1px solid ${colors.borderMedium}`,
-  
+  height: '35px',
+
   '&:hover': {
     backgroundColor: colors.hover,
   },

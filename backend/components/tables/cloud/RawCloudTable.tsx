@@ -152,6 +152,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                             color: meta.color,
                             fontSize: '0.9em',
                             fontWeight: effectiveStatus === 'active' ? 500 : 600,
+                            whiteSpace: 'nowrap',
                         }}
                     >
                         {meta.icon && <span aria-hidden>{meta.icon}</span>}
