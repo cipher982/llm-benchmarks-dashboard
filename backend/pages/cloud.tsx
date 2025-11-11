@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { lazy, Suspense } from "react";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
@@ -42,6 +42,18 @@ const TABLE_FILTER_OPTIONS: Array<{ value: TableStatusFilter; label: string }> =
     { value: 'flaggedOnly', label: 'Flagged only' },
 ];
 
+const FLAGGED_STATUS_SET = new Set(FLAGGED_STATUSES);
+
+interface TableMetaSummary {
+    totalRows: number;
+    filteredRows: number;
+    flaggedStatuses: string[];
+    appliedFilters?: {
+        allowedStatuses?: string[];
+        hideFlagged?: boolean;
+    };
+}
+
 const CloudBenchmarks: React.FC = () => {
     console.log('CloudBenchmarks component mounted');
     const theme = useTheme();
@@ -53,6 +65,7 @@ const CloudBenchmarks: React.FC = () => {
         models: []
     });
     const [tableData, setTableData] = useState<TableRow[]>([]);
+    const [tableMeta, setTableMeta] = useState<TableMetaSummary | null>(null);
 
     // Separate time ranges for each section
     const [distDays, setDistDays] = useState<number>(30);
@@ -126,13 +139,15 @@ const CloudBenchmarks: React.FC = () => {
             }
 
             setTableData(data.table);
+            setTableMeta(data.meta?.table ?? null);
             setError(null);
-    } catch (err: any) {
-        console.error('Error fetching table data:', err);
-        setError(err.message);
-    } finally {
-        setTableLoading(false);
-    }
+        } catch (err: any) {
+            console.error('Error fetching table data:', err);
+            setError(err.message);
+            setTableMeta(null);
+        } finally {
+            setTableLoading(false);
+        }
     }, [tableStatusFilter]);
 
     // Fetch function for Time Series section
@@ -197,6 +212,15 @@ const CloudBenchmarks: React.FC = () => {
         setTableStatusFilter(nextFilter);
         await fetchTableData(tableDays, nextFilter);
     }, [fetchTableData, tableDays]);
+
+    const visibleFlaggedCount = useMemo(() => {
+        return tableData.reduce((count, row) => {
+            if (row.lifecycle_status && FLAGGED_STATUS_SET.has(row.lifecycle_status)) {
+                return count + 1;
+            }
+            return count;
+        }, 0);
+    }, [tableData]);
 
     const handleTimeSeriesTimeRangeChange = useCallback(async (days: number) => {
         setTimeSeriesDays(days);
@@ -292,6 +316,43 @@ const CloudBenchmarks: React.FC = () => {
                     </div>
                 </SectionHeaderWithControl>
                 <TableContentContainer isMobile={isMobile}>
+                    {(() => {
+                        const totalRows = tableMeta?.totalRows ?? tableData.length;
+                        const filteredRows = tableMeta?.filteredRows ?? tableData.length;
+                        const flaggedHiddenCount = tableMeta?.appliedFilters?.hideFlagged ? Math.max(totalRows - filteredRows, 0) : 0;
+                        const flaggedStatuses = tableMeta?.flaggedStatuses ?? FLAGGED_STATUSES;
+
+                        const contextParts: string[] = [];
+                        if (flaggedHiddenCount > 0) {
+                            contextParts.push(`${flaggedHiddenCount} flagged hidden`);
+                        }
+                        if (tableStatusFilter === 'flaggedOnly') {
+                            contextParts.push(`${visibleFlaggedCount} flagged`);
+                        }
+
+                        const contextSuffix = contextParts.length ? ` (${contextParts.join(' · ')})` : '';
+
+                        return (
+                            <div
+                                style={{
+                                    marginBottom: '0.75rem',
+                                    fontSize: '0.85rem',
+                                    color: '#4a4a4a',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.3rem'
+                                }}
+                            >
+                                <span>
+                                    <strong>{`Showing ${filteredRows} of ${totalRows} models`}</strong>
+                                    {contextSuffix}
+                                </span>
+                                <span>
+                                    Flagged statuses: {flaggedStatuses.join(', ')}
+                                </span>
+                            </div>
+                        );
+                    })()}
                     <Box sx={{ pb: 8 }}>
                         {tableLoading ? (
                             <StyledCircularProgress />

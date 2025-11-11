@@ -80,4 +80,15 @@ export interface ProcessedData {
     speedDistribution: SpeedDistributionPoint[];
     timeSeries: TimeSeriesData;
     table: TableRow[];
+    meta?: {
+        table?: {
+            totalRows: number;
+            filteredRows: number;
+            flaggedStatuses: string[];
+            appliedFilters?: {
+                allowedStatuses?: string[];
+                hideFlagged?: boolean;
+            };
+        };
+    };
 }
