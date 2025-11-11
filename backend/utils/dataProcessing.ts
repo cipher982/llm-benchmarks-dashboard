@@ -403,9 +403,23 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
     });
 };
 
-export const processRawTableData = async (data: CloudBenchmark[]) => {
+const FLAGGED_LIFECYCLE_STATUSES = new Set([
+    'likely_deprecated',
+    'deprecated',
+    'failing',
+    'stale',
+    'never_succeeded',
+    'disabled'
+]);
+
+export interface TableFilterOptions {
+    allowedStatuses?: Set<string>;
+    hideFlagged?: boolean;
+}
+
+export const processRawTableData = async (data: CloudBenchmark[], filters?: TableFilterOptions) => {
     // Data is already mapped at processed.ts:87 - slugs should be populated by mapModelNames
-    return data.map(benchmark => {
+    const rows = data.map(benchmark => {
         if (!benchmark.providerSlug || !benchmark.modelSlug) {
             throw new Error(`Missing slugs for ${benchmark.provider}/${benchmark.modelCanonical}`);
         }
@@ -431,6 +445,26 @@ export const processRawTableData = async (data: CloudBenchmark[]) => {
             lifecycle_computed_at: benchmark.lifecycle_computed_at,
             lifecycle_metrics: benchmark.lifecycle_metrics,
         };
+    });
+
+    if (!filters) {
+        return rows;
+    }
+
+    const { allowedStatuses, hideFlagged } = filters;
+
+    return rows.filter(row => {
+        const lifecycleStatus = row.lifecycle_status || (row.deprecated ? 'deprecated' : 'active');
+
+        if (allowedStatuses && allowedStatuses.size > 0 && !allowedStatuses.has(lifecycleStatus)) {
+            return false;
+        }
+
+        if (hideFlagged && FLAGGED_LIFECYCLE_STATUSES.has(lifecycleStatus)) {
+            return false;
+        }
+
+        return true;
     });
 };
 

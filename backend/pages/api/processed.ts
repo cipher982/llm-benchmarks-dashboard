@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { CloudMetrics } from '../../models/BenchmarkMetrics';
-import { processSpeedDistData, processTimeSeriesData, processRawTableData } from '../../utils/dataProcessing';
+import { processSpeedDistData, processTimeSeriesData, processRawTableData, TableFilterOptions } from '../../utils/dataProcessing';
 import { cleanTransformCloud } from '../../utils/processCloud';
 import { corsMiddleware, fetchAndProcessMetrics } from '../../utils/apiMiddleware';
 import logger from '../../utils/logger';
@@ -10,6 +10,68 @@ import path from 'path';
 
 // Default time range in days
 const DEFAULT_DAYS = 3;
+const FLAGGED_STATUSES = new Set([
+    'likely_deprecated',
+    'deprecated',
+    'failing',
+    'stale',
+    'never_succeeded',
+    'disabled'
+]);
+
+function parseBoolParam(value: string | string[] | undefined): boolean {
+    if (Array.isArray(value)) {
+        return value.some(item => parseBoolParam(item));
+    }
+    if (!value) return false;
+    const normalized = value.toString().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
+function parseLifecycleFilters(req: NextApiRequest): TableFilterOptions | undefined {
+    const filters: TableFilterOptions = {};
+
+    const statusParam = req.query.status;
+    const statuses: string[] = [];
+
+    if (Array.isArray(statusParam)) {
+        statusParam.forEach(item => {
+            if (typeof item === 'string') {
+                item.split(',').forEach(token => {
+                    const trimmed = token.trim();
+                    if (trimmed) statuses.push(trimmed);
+                });
+            }
+        });
+    } else if (typeof statusParam === 'string') {
+        statusParam.split(',').forEach(token => {
+            const trimmed = token.trim();
+            if (trimmed) statuses.push(trimmed);
+        });
+    }
+
+    if (statuses.length > 0) {
+        filters.allowedStatuses = new Set(statuses);
+    }
+
+    if (parseBoolParam(req.query.hideFlagged)) {
+        filters.hideFlagged = true;
+    }
+
+    if (!filters.allowedStatuses && !filters.hideFlagged) {
+        return undefined;
+    }
+
+    return filters;
+}
+
+function buildCacheKey(days: number, filters?: TableFilterOptions): string {
+    const allowedKey = filters?.allowedStatuses
+        ? Array.from(filters.allowedStatuses).sort().join('|')
+        : 'all';
+    const hideKey = filters?.hideFlagged ? 'hide' : 'show';
+    return `processed-${days}days-${allowedKey}-${hideKey}`;
+}
 
 // Request deduplication cache to prevent multiple identical expensive requests
 const requestCache = new Map<string, Promise<any>>();
@@ -67,7 +129,7 @@ function parseTimeRange(req: NextApiRequest) {
 
 // This is the shared processing function used by both processed.ts and model.ts endpoints
 // Performance optimization metrics are added here
-export async function processAllMetrics(rawMetrics: any[], days: number) {
+export async function processAllMetrics(rawMetrics: any[], days: number, options?: { tableFilters?: TableFilterOptions }) {
     const pipelineStartTime = process.hrtime.bigint();
     logger.info(`🚀 processAllMetrics started with ${rawMetrics.length} raw metrics for ${days} days`);
     
@@ -105,6 +167,8 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
     const startTimeParallel = process.hrtime.bigint();
     logger.info(`🚀 Starting parallel processing with ${mappedData.length} mapped metrics...`);
     
+    const tableFilters = options?.tableFilters;
+
     let speedDistData, timeSeriesData, tableData;
     try {
         [speedDistData, timeSeriesData, tableData] = await Promise.all([
@@ -127,7 +191,7 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
             (async () => {
                 const start = process.hrtime.bigint();
                 logger.info(`🔄 Starting processRawTableData...`);
-                const result = await processRawTableData(mappedData);
+                const result = await processRawTableData(mappedData, tableFilters);
                 const end = process.hrtime.bigint();
                 logger.info(`✅ processRawTableData took ${(end - start) / 1000000n}ms, rows: ${result.length}`);
                 return result;
@@ -174,10 +238,27 @@ export async function processAllMetrics(rawMetrics: any[], days: number) {
     logger.info(`Time Series: ${(JSON.stringify(timeSeriesData).length / 1024).toFixed(2)}`);
     logger.info(`Table: ${(JSON.stringify(tableData).length / 1024).toFixed(2)}`);
 
+    const appliedFilters = tableFilters
+        ? {
+            allowedStatuses: tableFilters.allowedStatuses
+                ? Array.from(tableFilters.allowedStatuses).sort()
+                : undefined,
+            hideFlagged: tableFilters.hideFlagged ?? undefined
+        }
+        : undefined;
+
     const finalResult = roundNumbers({
         speedDistribution: speedDistData,
         timeSeries: timeSeriesData,
-        table: tableData
+        table: tableData,
+        meta: {
+            table: {
+                totalRows: mappedData.length,
+                filteredRows: tableData.length,
+                flaggedStatuses: Array.from(FLAGGED_STATUSES),
+                appliedFilters
+            }
+        }
     });
     
     const pipelineEndTime = process.hrtime.bigint();
@@ -200,9 +281,10 @@ async function handler(
         // Parse time range
         const timeRange = parseTimeRange(req);
         const days = timeRange.days;
+        const lifecycleFilters = parseLifecycleFilters(req);
         
         // Check if static file serving should be bypassed
-        const useStatic = req.query.bypass_static !== "true"; // Static enabled by default
+        const useStatic = req.query.bypass_static !== "true" && !lifecycleFilters; // Static only when unfiltered
         
         // First priority: Try to serve static file (unless bypassed)
         if (useStatic) {
@@ -216,7 +298,7 @@ async function handler(
         logger.info(`Static file not available for days=${days}, generating dynamically`);
         
         // Implement request deduplication to prevent race conditions
-        const cacheKey = `processed-${days}days`;
+        const cacheKey = buildCacheKey(days, lifecycleFilters);
         
         if (requestCache.has(cacheKey)) {
             logger.info(`🔄 Request deduplication: using cached promise for ${cacheKey}`);
@@ -256,7 +338,15 @@ async function handler(
                     }
                     
                     logger.info(`Processing ${metricsArray.length} metrics`);
-                    return await processAllMetrics(metricsArray, days);
+                    if (lifecycleFilters?.allowedStatuses) {
+                        logger.info(`Applying lifecycle status filter: ${Array.from(lifecycleFilters.allowedStatuses).join(',')}`);
+                    }
+                    if (lifecycleFilters?.hideFlagged) {
+                        logger.info(`Applying lifecycle hideFlagged filter`);
+                    }
+                    return await processAllMetrics(metricsArray, days, {
+                        tableFilters: lifecycleFilters,
+                    });
                 })();
                 
                 // Race between data processing and timeout
@@ -286,7 +376,8 @@ async function handler(
         
         // Clean up cache on error if needed
         const timeRange = parseTimeRange(req);
-        const cacheKey = `processed-${timeRange.days}days`;
+        const lifecycleFilters = parseLifecycleFilters(req);
+        const cacheKey = buildCacheKey(timeRange.days, lifecycleFilters);
         if (requestCache.has(cacheKey)) {
             requestCache.delete(cacheKey);
         }

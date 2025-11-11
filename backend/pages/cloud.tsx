@@ -25,6 +25,23 @@ const TimeSeriesChart = lazy(() => import("../components/charts/cloud/TimeSeries
 const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTable"));
 const SpeedDistChart = lazy(() => import("../components/charts/cloud/SpeedDistChart"));
 
+type TableStatusFilter = 'all' | 'hideFlagged' | 'flaggedOnly';
+
+const FLAGGED_STATUSES = [
+    'likely_deprecated',
+    'deprecated',
+    'failing',
+    'stale',
+    'never_succeeded',
+    'disabled'
+];
+
+const TABLE_FILTER_OPTIONS: Array<{ value: TableStatusFilter; label: string }> = [
+    { value: 'all', label: 'Show all models' },
+    { value: 'hideFlagged', label: 'Hide flagged models' },
+    { value: 'flaggedOnly', label: 'Flagged only' },
+];
+
 const CloudBenchmarks: React.FC = () => {
     console.log('CloudBenchmarks component mounted');
     const theme = useTheme();
@@ -41,6 +58,8 @@ const CloudBenchmarks: React.FC = () => {
     const [distDays, setDistDays] = useState<number>(30);
     const [tableDays, setTableDays] = useState<number>(30);
     const [timeSeriesDays, setTimeSeriesDays] = useState<number>(14);
+
+    const [tableStatusFilter, setTableStatusFilter] = useState<TableStatusFilter>('all');
 
     // Separate loading states for each section
     const [distLoading, setDistLoading] = useState<boolean>(false);
@@ -80,10 +99,19 @@ const CloudBenchmarks: React.FC = () => {
     }, []);
 
     // Fetch function for Table section
-    const fetchTableData = useCallback(async (days: number) => {
+    const fetchTableData = useCallback(async (days: number, overrideFilter?: TableStatusFilter) => {
         try {
             setTableLoading(true);
-            const res = await fetch(`/api/processed?days=${days}`, {
+            const filterToUse = overrideFilter ?? tableStatusFilter;
+            const params = new URLSearchParams({ days: String(days) });
+
+            if (filterToUse === 'hideFlagged') {
+                params.set('hideFlagged', 'true');
+            } else if (filterToUse === 'flaggedOnly') {
+                params.set('status', FLAGGED_STATUSES.join(','));
+            }
+
+            const res = await fetch(`/api/processed?${params.toString()}`, {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' }
             });
@@ -99,13 +127,13 @@ const CloudBenchmarks: React.FC = () => {
 
             setTableData(data.table);
             setError(null);
-        } catch (err: any) {
-            console.error('Error fetching table data:', err);
-            setError(err.message);
-        } finally {
-            setTableLoading(false);
-        }
-    }, []);
+    } catch (err: any) {
+        console.error('Error fetching table data:', err);
+        setError(err.message);
+    } finally {
+        setTableLoading(false);
+    }
+    }, [tableStatusFilter]);
 
     // Fetch function for Time Series section
     const fetchTimeSeries = useCallback(async (days: number) => {
@@ -161,8 +189,14 @@ const CloudBenchmarks: React.FC = () => {
 
     const handleTableTimeRangeChange = useCallback(async (days: number) => {
         setTableDays(days);
-        await fetchTableData(days);
-    }, [fetchTableData]);
+        await fetchTableData(days, tableStatusFilter);
+    }, [fetchTableData, tableStatusFilter]);
+
+    const handleTableStatusFilterChange = useCallback(async (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const nextFilter = event.target.value as TableStatusFilter;
+        setTableStatusFilter(nextFilter);
+        await fetchTableData(tableDays, nextFilter);
+    }, [fetchTableData, tableDays]);
 
     const handleTimeSeriesTimeRangeChange = useCallback(async (days: number) => {
         setTimeSeriesDays(days);
@@ -231,10 +265,31 @@ const CloudBenchmarks: React.FC = () => {
             <StyledTableContainer isMobile={isMobile}>
                 <SectionHeaderWithControl>
                     <SectionHeader>📚 Full Results 📚</SectionHeader>
-                    <TimeRangeSelector
-                        selectedDays={tableDays}
-                        onChange={handleTableTimeRangeChange}
-                    />
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <TimeRangeSelector
+                            selectedDays={tableDays}
+                            onChange={handleTableTimeRangeChange}
+                        />
+                        <label style={{ display: 'flex', alignItems: 'center', fontSize: '0.9rem', color: '#333' }}>
+                            <span style={{ marginRight: '0.4rem' }}>Lifecycle:</span>
+                            <select
+                                value={tableStatusFilter}
+                                onChange={handleTableStatusFilterChange}
+                                style={{
+                                    padding: '4px 8px',
+                                    borderRadius: 4,
+                                    border: '1px solid #ccc',
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                {TABLE_FILTER_OPTIONS.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                 </SectionHeaderWithControl>
                 <TableContentContainer isMobile={isMobile}>
                     <Box sx={{ pb: 8 }}>

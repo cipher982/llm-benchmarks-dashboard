@@ -440,6 +440,45 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       expect(result[0].lifecycle_recommended_actions).toContain('investigate_provider_catalog');
       expect(result[0].lifecycle_computed_at).toBe('2025-11-10T12:00:00Z');
     });
+
+    test('filters flagged lifecycle statuses when hideFlagged is true', async () => {
+      const cloudBenchmarks = [{
+        _id: 'test-active',
+        provider: 'openai',
+        providerCanonical: 'openai',
+        providerSlug: 'openai',
+        model_name: 'gpt-4o',
+        modelCanonical: 'gpt-4o',
+        modelSlug: 'gpt-4o',
+        tokens_per_second: [60],
+        time_to_first_token: [0.2],
+        tokens_per_second_mean: 60,
+        tokens_per_second_min: 60,
+        tokens_per_second_max: 60,
+        time_to_first_token_mean: 0.2,
+        lifecycle_status: 'active'
+      }, {
+        _id: 'test-flagged',
+        provider: 'openai',
+        providerCanonical: 'openai',
+        providerSlug: 'openai',
+        model_name: 'gpt-4o-preview',
+        modelCanonical: 'gpt-4o-preview',
+        modelSlug: 'gpt-4o-preview',
+        tokens_per_second: [45],
+        time_to_first_token: [0.3],
+        tokens_per_second_mean: 45,
+        tokens_per_second_min: 45,
+        tokens_per_second_max: 45,
+        time_to_first_token_mean: 0.3,
+        lifecycle_status: 'likely_deprecated'
+      }];
+
+      const result = await processRawTableData(cloudBenchmarks, { hideFlagged: true });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].lifecycle_status).toBe('active');
+    });
   });
 
   describe('End-to-End Pipeline Integration', () => {
