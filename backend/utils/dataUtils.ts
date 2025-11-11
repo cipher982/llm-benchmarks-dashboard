@@ -61,6 +61,9 @@ function roundToSignificantDigits(num: number, digits: number = 3): number {
 // Recursively round all numbers in a data structure
 function roundNumbers(data: any, significantDigits: number = 3): any {
     if (typeof data === 'number') {
+        if (Number.isInteger(data)) {
+            return data;
+        }
         return roundToSignificantDigits(data, significantDigits);
     }
     if (Array.isArray(data)) {
