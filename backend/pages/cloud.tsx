@@ -20,6 +20,7 @@ import {
     StyledTableContainer,
 } from "../components/StyledComponents";
 import { TimeRangeSelector } from "../components/TimeRangeSelector";
+import { LifecycleSelector } from "../components/LifecycleSelector";
 
 const TimeSeriesChart = lazy(() => import("../components/charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTable"));
@@ -36,11 +37,6 @@ const FLAGGED_STATUSES = [
     'disabled'
 ];
 
-const TABLE_FILTER_OPTIONS: Array<{ value: TableStatusFilter; label: string }> = [
-    { value: 'all', label: 'Show all models' },
-    { value: 'hideFlagged', label: 'Hide flagged models' },
-    { value: 'flaggedOnly', label: 'Flagged only' },
-];
 
 const FLAGGED_STATUS_SET = new Set(FLAGGED_STATUSES);
 
@@ -367,30 +363,18 @@ const CloudBenchmarks: React.FC = () => {
             <StyledTableContainer isMobile={isMobile}>
                 <SectionHeaderWithControl>
                     <SectionHeader>📚 Full Results 📚</SectionHeader>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <TimeRangeSelector
                             selectedDays={tableDays}
                             onChange={handleTableTimeRangeChange}
                         />
-                        <label style={{ display: 'flex', alignItems: 'center', fontSize: '0.9rem', color: '#333' }}>
-                            <span style={{ marginRight: '0.4rem' }}>Lifecycle:</span>
-                            <select
-                                value={tableStatusFilter}
-                                onChange={handleTableStatusFilterChange}
-                                style={{
-                                    padding: '4px 8px',
-                                    borderRadius: 4,
-                                    border: '1px solid #ccc',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                {TABLE_FILTER_OPTIONS.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                        <LifecycleSelector
+                            value={tableStatusFilter}
+                            onChange={(value) => {
+                                setTableStatusFilter(value);
+                                fetchTableData(tableDays, value);
+                            }}
+                        />
                     </div>
                 </SectionHeaderWithControl>
                 <TableContentContainer isMobile={isMobile}>

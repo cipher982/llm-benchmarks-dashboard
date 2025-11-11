@@ -150,8 +150,6 @@ const SortIndicator = styled('span')<{ direction?: 'asc' | 'desc' }>(({ directio
 }));
 
 const DataCell = styled('td')({
-  display: 'flex',
-  alignItems: 'center',
   backgroundColor: colors.surface,
   color: colors.textPrimary,
   fontFamily: typography.fontFamily,
@@ -160,6 +158,7 @@ const DataCell = styled('td')({
   border: `1px solid ${colors.borderMedium}`,
   height: '35px',
   boxSizing: 'border-box',
+  verticalAlign: 'middle',
 
   '&:hover': {
     backgroundColor: colors.hover,
