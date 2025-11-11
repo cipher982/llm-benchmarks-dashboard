@@ -79,10 +79,7 @@ export async function fetchLifecycleSummary(options: LifecycleSummaryOptions = {
     rows.forEach(doc => {
         const provider = doc.provider as string;
         const status = (doc.status as string | undefined) || 'unknown';
-
-        if (!includeActive && status === 'active') {
-            return;
-        }
+        const includeStatus = includeActive || status !== 'active';
 
         let summary = summaries.get(provider);
         if (!summary) {
@@ -98,7 +95,10 @@ export async function fetchLifecycleSummary(options: LifecycleSummaryOptions = {
         }
 
         summary.total += 1;
-        summary.counts[status] = (summary.counts[status] || 0) + 1;
+
+        if (includeStatus) {
+            summary.counts[status] = (summary.counts[status] || 0) + 1;
+        }
 
         if (FLAGGED_STATUSES.has(status)) {
             summary.flaggedTotal += 1;
@@ -109,7 +109,7 @@ export async function fetchLifecycleSummary(options: LifecycleSummaryOptions = {
             summary.lastComputedAt = computedAtIso;
         }
 
-        if (doc.reasons && Array.isArray(doc.reasons) && doc.reasons.length > 0) {
+        if (includeStatus && doc.reasons && Array.isArray(doc.reasons) && doc.reasons.length > 0) {
             const existingReasonCount = summary.sampleReasons[status] ? 1 : 0;
             if (existingReasonCount < limitPerStatus) {
                 summary.sampleReasons[status] = doc.reasons[0];
@@ -127,4 +127,3 @@ export async function fetchLifecycleSummary(options: LifecycleSummaryOptions = {
 }
 
 export { FLAGGED_STATUSES };
-
