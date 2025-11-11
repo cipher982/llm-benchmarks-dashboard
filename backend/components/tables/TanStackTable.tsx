@@ -159,6 +159,7 @@ const DataCell = styled('td')({
   padding: `${spacing.scale[2]}px ${spacing.scale[3]}px`,
   border: `1px solid ${colors.borderMedium}`,
   height: '35px',
+  boxSizing: 'border-box',
 
   '&:hover': {
     backgroundColor: colors.hover,
@@ -355,11 +356,15 @@ function TanStackTable<T>({
                     transform: `translateY(${virtualRow.start}px)`,
                     display: 'flex',
                     backgroundColor,
-                    borderLeft,
                   }}
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => (
-                    <VirtualCell key={cell.id} role="cell" width={columnWidths[cellIndex]}>
+                    <VirtualCell
+                      key={cell.id}
+                      role="cell"
+                      width={columnWidths[cellIndex]}
+                      style={cellIndex === 0 && borderLeft ? { borderLeft } : undefined}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </VirtualCell>
                   ))}
@@ -440,13 +445,15 @@ function TanStackTable<T>({
               return (
                 <tr
                   key={row.id}
-                  style={backgroundColor || borderLeft ? {
+                  style={backgroundColor ? {
                     backgroundColor,
-                    borderLeft,
                   } : undefined}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <DataCell key={cell.id}>
+                  {row.getVisibleCells().map((cell, cellIndex) => (
+                    <DataCell
+                      key={cell.id}
+                      style={cellIndex === 0 && borderLeft ? { borderLeft } : undefined}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </DataCell>
                   ))}
