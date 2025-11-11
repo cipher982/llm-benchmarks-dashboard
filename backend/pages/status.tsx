@@ -1,71 +1,182 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { styled, useTheme } from '@mui/system';
-import { MainContainer } from '../components/design-system/components';
-import { PageTitle, SectionHeader } from '../components/design-system/components';
+import { styled } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
+import { MainContainer, PageTitle } from '../components/design-system/components';
+import {
+    StyledDescriptionSection,
+    CenteredContentContainer,
+    StyledTableContainer,
+} from '../components/StyledComponents';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
+import { colors, typography } from '../components/design-system';
 
 interface ModelData {
     provider: string;
     model: string;
-    last_run_timestamp: string;
+    last_run_timestamp: string | null;
+    last_run_relative: string;
     runs: boolean[];
-    latest_status: string;
+    status: 'healthy' | 'warning' | 'deprecated' | 'disabled';
+    warnings: string[];
+    enabled?: boolean;
+    deprecated?: boolean;
+    deprecation_date?: string;
+    successor_model?: string;
+    disabled_reason?: string;
+}
+
+interface StatusData {
+    active: ModelData[];
+    deprecated: ModelData[];
+    disabled: ModelData[];
+    summary: {
+        active_count: number;
+        deprecated_count: number;
+        disabled_count: number;
+        total_issues: number;
+    };
 }
 
 // Styles
-const StatusPageContainer = styled('div')(() => {
-    const theme = useTheme();
+const SectionHeaderContainer = styled('div')(({ theme }) => ({
+    marginBottom: theme.spacing(3),
+    marginTop: theme.spacing(2),
+}));
+
+const SectionTitle = styled('h2')<{ sectionType?: 'active' | 'deprecated' | 'disabled' }>(({ sectionType = 'active' }) => {
+    const borderColors = {
+        active: '#2d7a2d',
+        deprecated: '#d97706',
+        disabled: '#6b7280'
+    };
+
     return {
-        backgroundColor: theme.palette.primary.main,
-        padding: '20px',
-        color: theme.palette.text.primary,
+        fontSize: typography.sizes['2xl'],
+        fontWeight: typography.weights.semibold,
+        color: colors.textPrimary,
+        margin: '0',
+        padding: '12px 16px',
+        backgroundColor: colors.surfaceElevated,
+        borderLeft: `4px solid ${borderColors[sectionType]}`,
+        fontFamily: typography.fontFamily,
     };
 });
 
-const ProviderSection = styled(Paper)(({ theme }) => ({
-    marginBottom: "8px",
-    backgroundColor: 'transparent',
-    color: theme.palette.text.primary,
+const SectionDescription = styled('p')({
+    fontSize: typography.sizes.base,
+    color: colors.textSecondary,
+    margin: '8px 16px',
+    fontFamily: typography.fontFamily,
+});
+
+const ProviderSection = styled('div')(({ theme }) => ({
+    width: '100%',
+    marginBottom: theme.spacing(2),
 }));
 
-const ProviderHeader = styled('h3')(({ theme }) => ({
-    fontSize: '1.0rem',
-    fontWeight: 600,
-    color: theme.palette.text.primary,
-    marginBottom: '12px',
+const ProviderHeader = styled('h3')({
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.semibold,
+    color: colors.textPrimary,
+    marginTop: '0',
+    marginBottom: '16px',
+    padding: '8px 0',
     textAlign: 'center',
-    padding: '4px 0',
-    borderBottom: `2px solid ${theme.palette.primary.main}`,
-}));
+    backgroundColor: colors.surfaceElevated,
+    borderTop: `1px solid ${colors.borderLight}`,
+    borderBottom: `1px solid ${colors.borderDark}`,
+    fontFamily: typography.fontFamily,
+});
 
-const StatusIndicator = styled('span')<{ status: string }>(({ status, theme }) => {
-    const color = status === 'success' ? theme.palette.success.main : theme.palette.error.main;
+const StatusIndicator = styled('span')<{ status: string }>(({ status }) => {
+    const color = status === 'success' ? '#008000' : '#800000';
     return {
         color,
         marginRight: '2px',
         display: 'inline-block',
-        width: '12px',
+        width: '16px',
         textAlign: 'center',
-        fontSize: '0.8rem'
+        fontSize: typography.sizes.base,
+        fontWeight: typography.weights.normal,
     };
 });
 
-const LastRunInfo = styled('div')(() => ({
-    marginBottom: "12px",
-    fontSize: '0.9rem',
-    textAlign: 'center'
+const WarningBadge = styled('span')<{ type: string }>(({ type }) => {
+    const colors = {
+        stale: { bg: '#fef3c7', text: '#92400e', border: '#fbbf24' },
+        infrequent: { bg: '#fef3c7', text: '#92400e', border: '#fbbf24' },
+        failures: { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' },
+        deprecated: { bg: '#ffedd5', text: '#9a3412', border: '#f97316' }
+    };
+
+    const style = type.startsWith('stale') ? colors.stale :
+                  type.startsWith('infrequent') ? colors.infrequent :
+                  type.startsWith('failures') ? colors.failures :
+                  colors.deprecated;
+
+    return {
+        display: 'inline-block',
+        padding: '2px 6px',
+        marginLeft: '4px',
+        fontSize: typography.sizes.xs,
+        fontFamily: typography.fontFamily,
+        backgroundColor: style.bg,
+        color: style.text,
+        border: `1px solid ${style.border}`,
+        borderRadius: '2px',
+    };
+});
+
+const DeprecationDetails = styled('div')({
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    padding: '4px 12px',
+    fontFamily: typography.fontFamily,
+    fontStyle: 'italic',
+});
+
+const StyledTable = styled(Table)({
+    backgroundColor: colors.surface,
+    '& .MuiTableCell-root': {
+        fontFamily: typography.fontFamily,
+        fontSize: typography.sizes.base,
+        color: colors.textPrimary,
+        borderBottom: `1px solid ${colors.borderMedium}`,
+        padding: '8px 12px',
+    },
+    '& .MuiTableHead-root': {
+        backgroundColor: colors.surfaceElevated,
+    },
+    '& .MuiTableRow-root': {
+        '&:hover': {
+            backgroundColor: colors.hover,
+        },
+    },
+});
+
+const CollapsibleSection = styled('div')<{ isOpen: boolean }>(({ isOpen }) => ({
+    cursor: 'pointer',
+    userSelect: 'none',
+    transition: 'all 0.2s ease',
+    opacity: isOpen ? 1 : 0.7,
+    '&:hover': {
+        opacity: 1,
+    },
 }));
 
 const StatusPage: React.FC = () => {
-    const [statusData, setStatusData] = useState<ModelData[]>([]);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [statusData, setStatusData] = useState<StatusData | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const [disabledExpanded, setDisabledExpanded] = useState<boolean>(false);
 
     const fetchStatusData = useCallback(async () => {
         try {
@@ -73,22 +184,10 @@ const StatusPage: React.FC = () => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const data = await response.json();
-            console.log('Status API returned:', data, 'Type:', typeof data, 'IsArray:', Array.isArray(data));
-            
-            // Convert object to array if needed
-            const statusArray = Array.isArray(data) ? data : Object.values(data);
-            
-            // Add latest_status field based on last run result
-            const processedStatusArray = statusArray.map((model: any) => ({
-                ...model,
-                latest_status: model.runs && model.runs.length > 0 
-                    ? (model.runs[model.runs.length - 1] ? 'success' : 'error')
-                    : 'unknown'
-            }));
-            
-            console.log('Converted to array:', processedStatusArray.length, 'items');
-            setStatusData(processedStatusArray);
+            const data: StatusData = await response.json();
+            console.log('Status API returned:', data);
+
+            setStatusData(data);
             setLoading(false);
         } catch (err: any) {
             setError(err.message);
@@ -104,83 +203,187 @@ const StatusPage: React.FC = () => {
 
     if (loading) {
         return (
-            <StatusPageContainer>
-                <PageTitle>🔄 API Status 🔄</PageTitle>
-                <div>Loading status data...</div>
-            </StatusPageContainer>
+            <MainContainer isMobile={isMobile}>
+                <StyledDescriptionSection isMobile={isMobile}>
+                    <CenteredContentContainer>
+                        <PageTitle>🔄 API Status 🔄</PageTitle>
+                        <p>Loading status data...</p>
+                    </CenteredContentContainer>
+                </StyledDescriptionSection>
+            </MainContainer>
         );
     }
 
     if (error) {
         return (
-            <StatusPageContainer>
-                <PageTitle>❌ API Status - Error ❌</PageTitle>
-                <div>Error: {error}</div>
-            </StatusPageContainer>
+            <MainContainer isMobile={isMobile}>
+                <StyledDescriptionSection isMobile={isMobile}>
+                    <CenteredContentContainer>
+                        <PageTitle>❌ API Status - Error ❌</PageTitle>
+                        <p style={{ color: colors.error }}>Error: {error}</p>
+                    </CenteredContentContainer>
+                </StyledDescriptionSection>
+            </MainContainer>
         );
     }
 
-    const groupedByProvider = statusData.reduce((acc, model) => {
-        if (!acc[model.provider]) {
-            acc[model.provider] = [];
-        }
-        acc[model.provider].push(model);
-        return acc;
-    }, {} as Record<string, ModelData[]>);
+    if (!statusData) return null;
 
-    return (
-        <MainContainer isMobile={false}>
-            <StatusPageContainer>
-                <PageTitle>📊 API Status Dashboard 📊</PageTitle>
-                <p style={{ textAlign: 'center', marginBottom: '24px' }}>
-                    Real-time status of all cloud LLM providers and models. 
-                    ✅ = Success, ❌ = Failure. Updates every 30 seconds.
-                </p>
+    // Helper to render warning badges
+    const renderWarnings = (warnings: string[]) => {
+        return warnings.map((warning, idx) => {
+            const label = warning.startsWith('stale') ? `⚠️ Stale (${warning.split('_')[1]})` :
+                         warning.startsWith('infrequent') ? `⚠️ Infrequent (${warning.split('_')[1]})` :
+                         warning.startsWith('failures') ? `⚠️ ${warning.split('_')[1]} failures` :
+                         warning;
+            return <WarningBadge key={idx} type={warning}>{label}</WarningBadge>;
+        });
+    };
 
-                {Object.entries(groupedByProvider).map(([provider, models]) => (
-                    <ProviderSection key={provider}>
-                        <ProviderHeader>{provider.toUpperCase()}</ProviderHeader>
-                        <TableContainer component={Paper} style={{ backgroundColor: 'transparent' }}>
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Model</TableCell>
-                                        <TableCell>Last Run</TableCell>
-                                        <TableCell>Status History (Last 10 runs)</TableCell>
-                                        <TableCell>Latest Status</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {models.map((model) => (
-                                        <TableRow key={`${model.provider}-${model.model}`}>
+    // Helper to group models by provider
+    const groupByProvider = (models: ModelData[]) => {
+        return models.reduce((acc, model) => {
+            if (!acc[model.provider]) {
+                acc[model.provider] = [];
+            }
+            acc[model.provider].push(model);
+            return acc;
+        }, {} as Record<string, ModelData[]>);
+    };
+
+    // Helper to render a model table section
+    const renderModelTable = (models: ModelData[], showDeprecationDetails = false) => {
+        const groupedByProvider = groupByProvider(models);
+
+        return Object.entries(groupedByProvider).map(([provider, providerModels]) => (
+            <StyledTableContainer key={provider} isMobile={isMobile}>
+                <ProviderSection>
+                    <ProviderHeader>{provider.toUpperCase()}</ProviderHeader>
+                    <TableContainer>
+                        <StyledTable size="small">
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Model</TableCell>
+                                    <TableCell>Last Run</TableCell>
+                                    <TableCell>Status History (Last 10 runs)</TableCell>
+                                    <TableCell>Status</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {providerModels.map((model) => (
+                                    <React.Fragment key={`${model.provider}-${model.model}`}>
+                                        <TableRow>
                                             <TableCell>{model.model}</TableCell>
+                                            <TableCell>{model.last_run_relative}</TableCell>
                                             <TableCell>
-                                                {new Date(model.last_run_timestamp).toLocaleString()}
+                                                {model.runs.length > 0 ? (
+                                                    model.runs.map((success, index) => (
+                                                        <StatusIndicator
+                                                            key={index}
+                                                            status={success ? 'success' : 'error'}
+                                                        >
+                                                            {success ? '✅' : '❌'}
+                                                        </StatusIndicator>
+                                                    ))
+                                                ) : (
+                                                    <span style={{ color: colors.textSecondary }}>No data</span>
+                                                )}
                                             </TableCell>
                                             <TableCell>
-                                                {model.runs.map((success, index) => (
-                                                    <StatusIndicator 
-                                                        key={index} 
-                                                        status={success ? 'success' : 'error'}
-                                                    >
-                                                        {success ? '✅' : '❌'}
+                                                {model.runs.length > 0 && (
+                                                    <StatusIndicator status={model.runs[model.runs.length - 1] ? 'success' : 'error'}>
+                                                        {model.runs[model.runs.length - 1] ? '✅' : '❌'}
                                                     </StatusIndicator>
-                                                ))}
-                                            </TableCell>
-                                            <TableCell>
-                                                <StatusIndicator status={model.latest_status}>
-                                                    {model.latest_status === 'success' ? '✅' : '❌'}
-                                                </StatusIndicator>
-                                                {model.latest_status}
+                                                )}
+                                                {renderWarnings(model.warnings)}
                                             </TableCell>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </ProviderSection>
-                ))}
-            </StatusPageContainer>
+                                        {showDeprecationDetails && model.deprecation_date && (
+                                            <TableRow>
+                                                <TableCell colSpan={4}>
+                                                    <DeprecationDetails>
+                                                        📅 Deprecated: {new Date(model.deprecation_date).toLocaleDateString()}
+                                                        {model.successor_model && ` → Successor: ${model.successor_model}`}
+                                                    </DeprecationDetails>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </TableBody>
+                        </StyledTable>
+                    </TableContainer>
+                </ProviderSection>
+            </StyledTableContainer>
+        ));
+    };
+
+    return (
+        <MainContainer isMobile={isMobile}>
+            <StyledDescriptionSection isMobile={isMobile}>
+                <CenteredContentContainer>
+                    <PageTitle>📊 API Status Dashboard 📊</PageTitle>
+                    <p>
+                        Real-time status of all cloud LLM providers and models.
+                        ✅ = Success, ❌ = Failure. Updates every 30 seconds.
+                    </p>
+                    <p>
+                        <strong>Summary:</strong> {statusData.summary.active_count} active •{' '}
+                        {statusData.summary.deprecated_count} deprecated •{' '}
+                        {statusData.summary.disabled_count} disabled •{' '}
+                        {statusData.summary.total_issues} issues
+                    </p>
+                </CenteredContentContainer>
+            </StyledDescriptionSection>
+
+            {/* Active Models Section */}
+            {statusData.active.length > 0 && (
+                <SectionHeaderContainer>
+                    <SectionTitle sectionType="active">
+                        🟢 ACTIVE MODELS ({statusData.summary.active_count})
+                    </SectionTitle>
+                    <SectionDescription>
+                        Models currently being benchmarked (enabled, not deprecated)
+                    </SectionDescription>
+                </SectionHeaderContainer>
+            )}
+            {renderModelTable(statusData.active)}
+
+            {/* Deprecated Models Section */}
+            {statusData.deprecated.length > 0 && (
+                <>
+                    <SectionHeaderContainer>
+                        <SectionTitle sectionType="deprecated">
+                            ⏸️ DEPRECATED BY PROVIDER ({statusData.summary.deprecated_count})
+                        </SectionTitle>
+                        <SectionDescription>
+                            Models deprecated by provider but still in our benchmarks
+                        </SectionDescription>
+                    </SectionHeaderContainer>
+                    {renderModelTable(statusData.deprecated, true)}
+                </>
+            )}
+
+            {/* Disabled Models Section */}
+            {statusData.disabled.length > 0 && (
+                <>
+                    <SectionHeaderContainer>
+                        <CollapsibleSection
+                            isOpen={disabledExpanded}
+                            onClick={() => setDisabledExpanded(!disabledExpanded)}
+                        >
+                            <SectionTitle sectionType="disabled">
+                                📦 DISABLED MODELS ({statusData.summary.disabled_count})
+                                {disabledExpanded ? ' ▼' : ' ▶'}
+                            </SectionTitle>
+                            <SectionDescription>
+                                Models we chose not to run (click to {disabledExpanded ? 'collapse' : 'expand'})
+                            </SectionDescription>
+                        </CollapsibleSection>
+                    </SectionHeaderContainer>
+                    {disabledExpanded && renderModelTable(statusData.disabled)}
+                </>
+            )}
         </MainContainer>
     );
 };
