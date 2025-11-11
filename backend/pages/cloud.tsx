@@ -254,7 +254,8 @@ const CloudBenchmarks: React.FC = () => {
 
     const visibleFlaggedCount = useMemo(() => {
         return tableData.reduce((count, row) => {
-            if (row.lifecycle_status && FLAGGED_STATUS_SET.has(row.lifecycle_status)) {
+            const effectiveStatus = row.lifecycle_status || (row.deprecated ? 'deprecated' : 'active');
+            if (FLAGGED_STATUS_SET.has(effectiveStatus)) {
                 return count + 1;
             }
             return count;
