@@ -24,6 +24,19 @@ import {
   sizing
 } from '../design-system';
 
+const FLAGGED_STATUSES = new Set([
+  'likely_deprecated',
+  'deprecated',
+  'failing',
+  'stale',
+  'never_succeeded',
+  'disabled',
+]);
+
+const CAUTION_STATUSES = new Set([
+  'monitor',
+]);
+
 // =============================================================================
 // STYLED COMPONENTS
 // =============================================================================
@@ -305,7 +318,26 @@ function TanStackTable<T>({
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
               const row = rows[virtualRow.index];
               const rowData = row.original as any;
-              const isDeprecated = rowData?.deprecated;
+              const lifecycleStatus = rowData?.lifecycle_status as string | undefined;
+              const isDeprecated = Boolean(rowData?.deprecated);
+              const isFlaggedStatus = lifecycleStatus ? FLAGGED_STATUSES.has(lifecycleStatus) : false;
+              const isCautionStatus = !isFlaggedStatus && lifecycleStatus ? CAUTION_STATUSES.has(lifecycleStatus) : false;
+
+              const backgroundColor = isDeprecated
+                ? 'rgba(255, 152, 0, 0.12)'
+                : isFlaggedStatus
+                  ? 'rgba(211, 47, 47, 0.08)'
+                  : isCautionStatus
+                    ? 'rgba(255, 193, 7, 0.12)'
+                    : undefined;
+
+              const borderLeft = isDeprecated
+                ? '3px solid rgba(255, 152, 0, 0.5)'
+                : isFlaggedStatus
+                  ? '3px solid rgba(211, 47, 47, 0.4)'
+                  : isCautionStatus
+                    ? '3px solid rgba(255, 193, 7, 0.4)'
+                    : undefined;
 
               return (
                 <div
@@ -319,8 +351,8 @@ function TanStackTable<T>({
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
                     display: 'flex',
-                    backgroundColor: isDeprecated ? 'rgba(255, 152, 0, 0.12)' : undefined,
-                    borderLeft: isDeprecated ? '3px solid rgba(255, 152, 0, 0.5)' : undefined,
+                    backgroundColor,
+                    borderLeft,
                   }}
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => (
@@ -382,13 +414,32 @@ function TanStackTable<T>({
           <TableBody>
             {rows.map((row) => {
               const rowData = row.original as any;
-              const isDeprecated = rowData?.deprecated;
+              const lifecycleStatus = rowData?.lifecycle_status as string | undefined;
+              const isDeprecated = Boolean(rowData?.deprecated);
+              const isFlaggedStatus = lifecycleStatus ? FLAGGED_STATUSES.has(lifecycleStatus) : false;
+              const isCautionStatus = !isFlaggedStatus && lifecycleStatus ? CAUTION_STATUSES.has(lifecycleStatus) : false;
+
+              const backgroundColor = isDeprecated
+                ? 'rgba(255, 152, 0, 0.12)'
+                : isFlaggedStatus
+                  ? 'rgba(211, 47, 47, 0.08)'
+                  : isCautionStatus
+                    ? 'rgba(255, 193, 7, 0.12)'
+                    : undefined;
+
+              const borderLeft = isDeprecated
+                ? '3px solid rgba(255, 152, 0, 0.5)'
+                : isFlaggedStatus
+                  ? '3px solid rgba(211, 47, 47, 0.4)'
+                  : isCautionStatus
+                    ? '3px solid rgba(255, 193, 7, 0.4)'
+                    : undefined;
               return (
                 <tr
                   key={row.id}
-                  style={isDeprecated ? {
-                    backgroundColor: 'rgba(255, 152, 0, 0.12)',
-                    borderLeft: '3px solid rgba(255, 152, 0, 0.5)'
+                  style={backgroundColor || borderLeft ? {
+                    backgroundColor,
+                    borderLeft,
                   } : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (

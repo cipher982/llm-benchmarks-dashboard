@@ -39,6 +39,11 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
     ...overrides
   });
 
+  const defaultProcessedFields = {
+    tokens_per_second_timestamps: [new Date('2025-01-15T12:00:00Z')],
+    time_to_first_token_timestamps: [new Date('2025-01-15T12:00:00Z')]
+  };
+
   describe('Stage 1: cleanTransformCloud (Raw → ProcessedData)', () => {
     test('creates canonical fields from raw data', () => {
       const rawData = [createRawBenchmark({ provider: 'vertex', model_name: 'gemini-1.5-pro' })];
@@ -97,6 +102,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       test('preserves vertex as canonical provider (does not mutate to google)', () => {
         const processedData = [{
           _id: 'test-1',
+          ...defaultProcessedFields,
           provider: 'vertex',
           providerCanonical: 'vertex',
           model_name: 'gemini-1.5-pro',
@@ -127,6 +133,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
         providers.forEach(originalProvider => {
           const processedData = [{
             _id: `test-${originalProvider}`,
+            ...defaultProcessedFields,
             provider: originalProvider,
             providerCanonical: originalProvider,
             model_name: 'test-model',
@@ -152,6 +159,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       test('never mutates modelCanonical field', () => {
         const processedData = [{
           _id: 'test-1',
+          ...defaultProcessedFields,
           provider: 'openai',
           providerCanonical: 'openai',
           model_name: 'gpt-4-0613',
@@ -179,6 +187,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       test('generates slugs from canonical fields, not display names', () => {
         const processedData = [{
           _id: 'test-1',
+          ...defaultProcessedFields,
           provider: 'vertex',
           providerCanonical: 'vertex',
           model_name: 'gemini-1.5-pro',
@@ -207,6 +216,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       test('all slugs are URL-safe and consistent', () => {
         const processedData = [{
           _id: 'test-1',
+          ...defaultProcessedFields,
           provider: 'test',
           providerCanonical: 'Test Provider With Spaces',
           model_name: 'test',
@@ -240,6 +250,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       test('maps display names while preserving canonicals', () => {
         const processedData = [{
           _id: 'test-1',
+          ...defaultProcessedFields,
           provider: 'openai',
           providerCanonical: 'openai',
           model_name: 'gpt-4-0613',
@@ -270,6 +281,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
         const processedData = [
           {
             _id: 'test-1',
+            ...defaultProcessedFields,
             provider: 'openai',
             providerCanonical: 'openai',
             model_name: 'gpt-4-0613',
@@ -287,6 +299,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           },
           {
             _id: 'test-2',
+            ...defaultProcessedFields,
             provider: 'openai',
             providerCanonical: 'openai',
             model_name: 'gpt-4-0314',
@@ -317,6 +330,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       test('returns CloudBenchmark[] with all required slug fields', () => {
         const processedData = [{
           _id: 'test-1',
+          ...defaultProcessedFields,
           provider: 'openai',
           providerCanonical: 'openai',
           model_name: 'gpt-4',
@@ -391,6 +405,40 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
         modelCanonical: 'gemini-1.5-pro',
         modelSlug: 'gemini-15-pro'
       });
+    });
+
+    test('carries lifecycle metadata into table rows', async () => {
+      const cloudBenchmarks = [{
+        _id: 'test-2',
+        provider: 'openai',
+        providerCanonical: 'openai',
+        providerSlug: 'openai',
+        model_name: 'gpt-4o',
+        modelCanonical: 'gpt-4o-20241120',
+        modelSlug: 'gpt-4o-20241120',
+        tokens_per_second: [60],
+        time_to_first_token: [0.2],
+        tokens_per_second_mean: 60,
+        tokens_per_second_min: 60,
+        tokens_per_second_max: 60,
+        time_to_first_token_mean: 0.2,
+        lifecycle_status: 'stale',
+        lifecycle_confidence: 'medium',
+        lifecycle_reasons: ['Last success 65 days ago.'],
+        lifecycle_recommended_actions: ['investigate_provider_catalog'],
+        lifecycle_catalog_state: 'missing',
+        lifecycle_computed_at: '2025-11-10T12:00:00Z',
+        lifecycle_metrics: {
+          successes_30d: 0,
+          errors_7d: 5
+        }
+      }];
+
+      const result = await processRawTableData(cloudBenchmarks);
+
+      expect(result[0].lifecycle_status).toBe('stale');
+      expect(result[0].lifecycle_recommended_actions).toContain('investigate_provider_catalog');
+      expect(result[0].lifecycle_computed_at).toBe('2025-11-10T12:00:00Z');
     });
   });
 

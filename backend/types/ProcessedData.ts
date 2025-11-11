@@ -8,6 +8,8 @@ export interface SpeedDistributionPoint {
     max_tokens_per_second: number;
     deprecated?: boolean;
     deprecation_date?: string;
+    lifecycle_status?: string;
+    lifecycle_confidence?: string;
 }
 
 export interface TimeSeriesProvider {
@@ -27,6 +29,8 @@ export interface TimeSeriesProvider {
         period: string;
         sample_size: number;
     };
+    lifecycle_status?: string;
+    lifecycle_confidence?: string;
 }
 
 export interface TimeSeriesModel {
@@ -54,6 +58,22 @@ export interface TableRow {
     deprecated?: boolean;
     deprecation_date?: string;
     last_benchmark_date?: string;
+    lifecycle_status?: string;
+    lifecycle_confidence?: string;
+    lifecycle_reasons?: string[];
+    lifecycle_recommended_actions?: string[];
+    lifecycle_catalog_state?: string;
+    lifecycle_computed_at?: string;
+    lifecycle_metrics?: {
+        last_success?: string;
+        successes_7d?: number;
+        successes_30d?: number;
+        successes_120d?: number;
+        errors_7d?: number;
+        errors_30d?: number;
+        hard_failures_7d?: number;
+        hard_failures_30d?: number;
+    };
 }
 
 export interface ProcessedData {

@@ -241,6 +241,8 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
                 deprecation_date: benchmark.deprecation_date,
                 last_benchmark_date: benchmark.last_benchmark_date,
                 successor_model: benchmark.successor_model,
+                lifecycle_status: benchmark.lifecycle_status,
+                lifecycle_confidence: benchmark.lifecycle_confidence,
             };
         });
 
@@ -395,6 +397,8 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             density_points: densityPoints,
             deprecated: benchmark.deprecated,
             deprecation_date: benchmark.deprecation_date,
+            lifecycle_status: benchmark.lifecycle_status,
+            lifecycle_confidence: benchmark.lifecycle_confidence,
         };
     });
 };
@@ -419,6 +423,13 @@ export const processRawTableData = async (data: CloudBenchmark[]) => {
             deprecated: benchmark.deprecated,
             deprecation_date: benchmark.deprecation_date,
             last_benchmark_date: benchmark.last_benchmark_date,
+            lifecycle_status: benchmark.lifecycle_status,
+            lifecycle_confidence: benchmark.lifecycle_confidence,
+            lifecycle_reasons: benchmark.lifecycle_reasons,
+            lifecycle_recommended_actions: benchmark.lifecycle_recommended_actions,
+            lifecycle_catalog_state: benchmark.lifecycle_catalog_state,
+            lifecycle_computed_at: benchmark.lifecycle_computed_at,
+            lifecycle_metrics: benchmark.lifecycle_metrics,
         };
     });
 };

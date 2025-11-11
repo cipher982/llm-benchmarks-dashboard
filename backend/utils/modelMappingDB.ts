@@ -21,19 +21,94 @@ const ModelSchema = new mongoose.Schema({
 
 const Model = mongoose.models.ModelMapping || mongoose.model('ModelMapping', ModelSchema, 'models');
 
+// Lifecycle status schema (model_status collection)
+const LifecycleStatusSchema = new mongoose.Schema({
+  provider: { type: String, required: true },
+  model_id: { type: String, required: true },
+  status: { type: String },
+  confidence: { type: String },
+  reasons: { type: [String], default: [] },
+  recommended_actions: { type: [String], default: [] },
+  catalog_state: { type: String },
+  computed_at: { type: Date },
+  metrics: { type: mongoose.Schema.Types.Mixed }
+});
+
+const LifecycleStatusModel = mongoose.models.ModelLifecycleStatus ||
+  mongoose.model('ModelLifecycleStatus', LifecycleStatusSchema, 'model_status');
+
 
 // Cache for model mappings to avoid repeated DB queries
+interface LifecycleMetrics {
+  last_success?: string;
+  successes_7d?: number;
+  successes_30d?: number;
+  successes_120d?: number;
+  errors_7d?: number;
+  errors_30d?: number;
+  hard_failures_7d?: number;
+  hard_failures_30d?: number;
+}
+
+interface LifecycleMetadata {
+  status?: string;
+  confidence?: string;
+  reasons?: string[];
+  recommended_actions?: string[];
+  catalog_state?: string;
+  computed_at?: string;
+  metrics?: LifecycleMetrics;
+}
+
 interface ModelMetadata {
   display_name: string;
   deprecated?: boolean;
   deprecation_date?: string;
   successor_model?: string;
   deprecation_reason?: string;
+  lifecycle?: LifecycleMetadata;
 }
 
 let modelMappingCache: { [key: string]: ModelMetadata } | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const toIsoString = (value: unknown): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  const parsed = new Date(value as string);
+  if (Number.isNaN(parsed.getTime())) {
+    return undefined;
+  }
+  return parsed.toISOString();
+};
+
+const normalizeLifecycleMetrics = (raw: any): LifecycleMetrics | undefined => {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+  return {
+    last_success: toIsoString(raw.last_success),
+    successes_7d: typeof raw.successes_7d === 'number' ? raw.successes_7d : undefined,
+    successes_30d: typeof raw.successes_30d === 'number' ? raw.successes_30d : undefined,
+    successes_120d: typeof raw.successes_120d === 'number' ? raw.successes_120d : undefined,
+    errors_7d: typeof raw.errors_7d === 'number' ? raw.errors_7d : undefined,
+    errors_30d: typeof raw.errors_30d === 'number' ? raw.errors_30d : undefined,
+    hard_failures_7d: typeof raw.hard_failures_7d === 'number' ? raw.hard_failures_7d : undefined,
+    hard_failures_30d: typeof raw.hard_failures_30d === 'number' ? raw.hard_failures_30d : undefined,
+  };
+};
+
+const toStringArray = (value: unknown): string[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value.map(item => String(item)).filter(Boolean);
+};
 
 /**
  * Get model metadata from database (display name and deprecation info)
@@ -102,6 +177,36 @@ async function refreshModelMappingCache(): Promise<void> {
         deprecation_date: model.deprecation_date,
         successor_model: model.successor_model,
         deprecation_reason: model.deprecation_reason
+      };
+    });
+
+    const lifecycleStatuses = await LifecycleStatusModel.find({}, {
+      provider: 1,
+      model_id: 1,
+      status: 1,
+      confidence: 1,
+      reasons: 1,
+      recommended_actions: 1,
+      catalog_state: 1,
+      computed_at: 1,
+      metrics: 1
+    }).lean();
+
+    lifecycleStatuses.forEach(status => {
+      const cacheKey = `${status.provider}:${status.model_id}`;
+      const existing = newCache[cacheKey] || { display_name: status.model_id };
+
+      newCache[cacheKey] = {
+        ...existing,
+        lifecycle: {
+          status: status.status || undefined,
+          confidence: status.confidence || undefined,
+          reasons: toStringArray(status.reasons),
+          recommended_actions: toStringArray(status.recommended_actions),
+          catalog_state: status.catalog_state || undefined,
+          computed_at: toIsoString(status.computed_at),
+          metrics: normalizeLifecycleMetrics(status.metrics)
+        }
       };
     });
 
@@ -196,6 +301,13 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
         deprecation_date: metadata.deprecation_date,
         successor_model: metadata.successor_model,
         last_benchmark_date: lastBenchmarkDate,
+        lifecycle_status: metadata.lifecycle?.status,
+        lifecycle_confidence: metadata.lifecycle?.confidence,
+        lifecycle_reasons: metadata.lifecycle?.reasons,
+        lifecycle_recommended_actions: metadata.lifecycle?.recommended_actions,
+        lifecycle_catalog_state: metadata.lifecycle?.catalog_state,
+        lifecycle_computed_at: metadata.lifecycle?.computed_at,
+        lifecycle_metrics: metadata.lifecycle?.metrics,
       };
 
       // Aggregate data from all items in the group
