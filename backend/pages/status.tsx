@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Head from 'next/head';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { MainContainer, PageTitle } from '../components/design-system/components';
@@ -38,27 +39,39 @@ const StatusPage: React.FC = () => {
 
     if (loading) {
         return (
-            <MainContainer isMobile={isMobile}>
-                <StyledDescriptionSection isMobile={isMobile}>
-                    <CenteredContentContainer>
-                        <PageTitle>🔄 API Status 🔄</PageTitle>
-                        <p>Loading status data...</p>
-                    </CenteredContentContainer>
-                </StyledDescriptionSection>
-            </MainContainer>
+            <>
+                <Head>
+                    <title>API Status - LLM Benchmarks</title>
+                    <meta name="description" content="Real-time status of cloud LLM providers and models" />
+                </Head>
+                <MainContainer isMobile={isMobile}>
+                    <StyledDescriptionSection isMobile={isMobile}>
+                        <CenteredContentContainer>
+                            <PageTitle>🔄 API Status 🔄</PageTitle>
+                            <p>Loading status data...</p>
+                        </CenteredContentContainer>
+                    </StyledDescriptionSection>
+                </MainContainer>
+            </>
         );
     }
 
     if (error) {
         return (
-            <MainContainer isMobile={isMobile}>
-                <StyledDescriptionSection isMobile={isMobile}>
-                    <CenteredContentContainer>
-                        <PageTitle>❌ API Status - Error ❌</PageTitle>
-                        <p style={{ color: colors.error }}>Error: {error}</p>
-                    </CenteredContentContainer>
-                </StyledDescriptionSection>
-            </MainContainer>
+            <>
+                <Head>
+                    <title>API Status - Error - LLM Benchmarks</title>
+                    <meta name="description" content="Error loading API status" />
+                </Head>
+                <MainContainer isMobile={isMobile}>
+                    <StyledDescriptionSection isMobile={isMobile}>
+                        <CenteredContentContainer>
+                            <PageTitle>❌ API Status - Error ❌</PageTitle>
+                            <p style={{ color: colors.error }}>Error: {error}</p>
+                        </CenteredContentContainer>
+                    </StyledDescriptionSection>
+                </MainContainer>
+            </>
         );
     }
 
@@ -140,22 +153,27 @@ const StatusPage: React.FC = () => {
     };
 
     return (
-        <MainContainer isMobile={isMobile}>
-            <StyledDescriptionSection isMobile={isMobile}>
-                <CenteredContentContainer>
-                    <PageTitle>📊 API Status Dashboard 📊</PageTitle>
-                    <p>
-                        Real-time status of all cloud LLM providers and models.
-                        ✅ = Success, ❌ = Failure. Updates every 30 seconds.
-                    </p>
-                    <p>
-                        <strong>Summary:</strong> {statusData.summary.active_count} active •{' '}
-                        {statusData.summary.deprecated_count} deprecated •{' '}
-                        {statusData.summary.disabled_count} disabled •{' '}
-                        {statusData.summary.total_issues} issues
-                    </p>
-                </CenteredContentContainer>
-            </StyledDescriptionSection>
+        <>
+            <Head>
+                <title>API Status Dashboard - LLM Benchmarks</title>
+                <meta name="description" content="Real-time status of cloud LLM providers and models. Monitor API health, deprecations, and issues." />
+            </Head>
+            <MainContainer isMobile={isMobile}>
+                <StyledDescriptionSection isMobile={isMobile}>
+                    <CenteredContentContainer>
+                        <PageTitle>📊 API Status Dashboard 📊</PageTitle>
+                        <p>
+                            Real-time status of all cloud LLM providers and models.
+                            ✅ = Success, ❌ = Failure. Updates every 30 seconds.
+                        </p>
+                        <p>
+                            <strong>Summary:</strong> {statusData.summary.active_count} active •{' '}
+                            {statusData.summary.deprecated_count} deprecated •{' '}
+                            {statusData.summary.disabled_count} disabled •{' '}
+                            {statusData.summary.total_issues} issues
+                        </p>
+                    </CenteredContentContainer>
+                </StyledDescriptionSection>
 
             {/* Active Models Section */}
             {statusData.active.length > 0 && (
@@ -205,7 +223,8 @@ const StatusPage: React.FC = () => {
                     {disabledExpanded && renderModelTable(statusData.disabled)}
                 </>
             )}
-        </MainContainer>
+            </MainContainer>
+        </>
     );
 };
 

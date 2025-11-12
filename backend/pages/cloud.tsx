@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { lazy, Suspense } from "react";
+import Head from "next/head";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -276,10 +277,15 @@ const CloudBenchmarks: React.FC = () => {
     }
 
     return (
-        <MainContainer isMobile={isMobile}>
-            <StyledDescriptionSection isMobile={isMobile}>
-                <CenteredContentContainer>
-                    <PageTitle>☁️ Cloud Benchmarks ☁️</PageTitle>
+        <>
+            <Head>
+                <title>Cloud LLM Benchmarks - Speed & Performance Testing</title>
+                <meta name="description" content="Real-time benchmarking of cloud LLM providers including OpenAI, Anthropic, Google, and more. Compare speed, reliability, and performance." />
+            </Head>
+            <MainContainer isMobile={isMobile}>
+                <StyledDescriptionSection isMobile={isMobile}>
+                    <CenteredContentContainer>
+                        <PageTitle>☁️ Cloud Benchmarks ☁️</PageTitle>
                     <p>
                         I run cron jobs to periodically test the token generation speed of different cloud LLM providers.
                         The chart helps visualize the distributions of different speeds, as they can vary somewhat depending on the loads.
@@ -451,7 +457,8 @@ const CloudBenchmarks: React.FC = () => {
                     </ChartContentContainer>
                 </StyledChartContainer>
             )}
-        </MainContainer>
+            </MainContainer>
+        </>
     );
 };
 

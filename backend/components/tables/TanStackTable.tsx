@@ -262,9 +262,13 @@ function TanStackTable<T>({
     return (
       <TableWrapper className={className} style={{ height }}>
         <TableContainer ref={tableContainerRef}>
-          <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+          <div
+            role="table"
+            aria-label="Benchmark data table"
+            style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}
+          >
             {/* Header */}
-            <div 
+            <div
               role="row"
               style={{ 
                 display: 'flex', 

@@ -1,5 +1,6 @@
 // LocalBenchmarks.tsx
 import { useState, useEffect, FC } from 'react';
+import Head from 'next/head';
 import SpeedGpuScatterChart from '../components/charts/local/SpeedGpuScatterChart';
 import RawLocalTable from '../components/tables/local/RawLocalTable';
 import ComparisonTable from '../components/tables/local/ComparisonTable';
@@ -79,10 +80,15 @@ const LocalBenchmarks: FC = () => {
 
     console.log('Rendering main content');
     return (
-        <MainContainer isMobile={isMobile}>
-            <StyledDescriptionSection isMobile={isMobile}>
-                <CenteredContentContainer>
-                    <PageTitle>🖥️ Local Benchmarks 🖥️</PageTitle>
+        <>
+            <Head>
+                <title>Local LLM Benchmarks - M3 Max Performance Testing</title>
+                <meta name="description" content="Local LLM benchmarks on Apple M3 Max with 128GB RAM. Compare frameworks like transformers, GGUF, and HF-TGI for speed and GPU usage." />
+            </Head>
+            <MainContainer isMobile={isMobile}>
+                <StyledDescriptionSection isMobile={isMobile}>
+                    <CenteredContentContainer>
+                        <PageTitle>🖥️ Local Benchmarks 🖥️</PageTitle>
                     <p>
                         These are results from running local benchmarks on my Apple M3 Max MacBook Pro (14-inch, Nov 2023)
                         with 128GB RAM and 40-core GPU. All models were run with the same hardware and settings to ensure
@@ -140,7 +146,8 @@ const LocalBenchmarks: FC = () => {
                     </Box>
                 </TableContentContainer>
             </StyledTableContainer>
-        </MainContainer>
+            </MainContainer>
+        </>
     );
 };
 
