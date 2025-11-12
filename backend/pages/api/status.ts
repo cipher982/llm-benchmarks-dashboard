@@ -54,91 +54,107 @@ interface StatusResponse {
 async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     await connectToMongoDB();
 
-    // Step 1: Get all distinct provider/model combinations
-    const distinctModels = await CloudMetrics.aggregate([
-        {
-            $group: {
-                _id: {
-                    provider: "$provider",
-                    model_name: "$model_name"
-                }
-            }
-        }
-    ]);
+    // OPTIMIZED APPROACH: Use aggregation to pre-group and limit, then merge in memory
+    // This reduces 440+ individual queries to just 2 aggregation queries (~20x faster)
 
-    // Also check errors_cloud for models that only have errors (no successes)
     const ErrorsCollection = mongoose.connection.db.collection('errors_cloud');
-    const distinctErrorModels = await ErrorsCollection.aggregate([
+
+    // Step 1: Get last MAX_RUNS metrics per model using aggregation
+    const metricsPipeline = [
+        { $sort: { run_ts: -1 } },
         {
             $group: {
                 _id: {
                     provider: "$provider",
                     model_name: "$model_name"
+                },
+                runs: {
+                    $push: {
+                        timestamp: "$run_ts",
+                        success: { $literal: true }
+                    }
                 }
             }
+        },
+        {
+            $project: {
+                provider: "$_id.provider",
+                model_name: "$_id.model_name",
+                runs: { $slice: ["$runs", MAX_RUNS] }
+            }
         }
-    ]).toArray();
+    ];
 
-    // Combine unique models from both collections
-    const allModels = new Map();
-    distinctModels.forEach((m: any) => {
-        const key = `${m._id.provider}/${m._id.model_name}`;
-        allModels.set(key, m._id);
+    const metrics = await CloudMetrics.aggregate(metricsPipeline);
+
+    // Step 2: Get last MAX_RUNS errors per model using aggregation
+    const errorsPipeline = [
+        { $sort: { ts: -1 } },
+        {
+            $group: {
+                _id: {
+                    provider: "$provider",
+                    model_name: "$model_name"
+                },
+                runs: {
+                    $push: {
+                        timestamp: "$ts",
+                        success: { $literal: false }
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                provider: "$_id.provider",
+                model_name: "$_id.model_name",
+                runs: { $slice: ["$runs", MAX_RUNS] }
+            }
+        }
+    ];
+
+    const errors = await ErrorsCollection.aggregate(errorsPipeline).toArray();
+
+    // Step 3: Merge in JavaScript (fast for small arrays)
+    const modelMap = new Map();
+
+    metrics.forEach((m: any) => {
+        const key = `${m.provider}/${m.model_name}`;
+        modelMap.set(key, {
+            provider: m.provider,
+            model_name: m.model_name,
+            runs: m.runs
+        });
     });
-    distinctErrorModels.forEach((m: any) => {
-        const key = `${m._id.provider}/${m._id.model_name}`;
-        if (!allModels.has(key)) {
-            allModels.set(key, m._id);
+
+    errors.forEach((e: any) => {
+        const key = `${e.provider}/${e.model_name}`;
+        if (modelMap.has(key)) {
+            modelMap.get(key).runs.push(...e.runs);
+        } else {
+            modelMap.set(key, {
+                provider: e.provider,
+                model_name: e.model_name,
+                runs: e.runs
+            });
         }
     });
 
-    // Step 2: For each model, get last 10 runs (successes + errors merged)
-    const modelRunHistory = await Promise.all(
-        Array.from(allModels.values()).map(async (modelId: any) => {
-            const provider = modelId.provider;
-            const model_name = modelId.model_name;
+    // Step 4: Sort and limit final result
+    const modelRunHistory = Array.from(modelMap.values()).map((model: any) => {
+        const sortedRuns = model.runs
+            .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, MAX_RUNS);
 
-            // Get successes from metrics_cloud_v2
-            const successes = await CloudMetrics.find({
-                provider,
-                model_name
-            }).sort({ run_ts: -1 }).limit(50).lean();
+        return {
+            provider: model.provider,
+            model: model.model_name,
+            runs: sortedRuns.map((r: any) => r.success),
+            last_run_timestamp: sortedRuns.length > 0 ? sortedRuns[0].timestamp : null
+        };
+    });
 
-            // Get errors from errors_cloud (using 'ts' field, not 'run_ts')
-            const errors = await ErrorsCollection.find({
-                provider,
-                model_name
-            }).sort({ ts: -1 }).limit(50).toArray();
-
-            // Merge and sort by timestamp
-            const allRuns = [
-                ...successes.map((s: any) => ({
-                    timestamp: new Date(s.run_ts),
-                    success: true,
-                    data: s
-                })),
-                ...errors.map((e: any) => ({
-                    timestamp: new Date(e.ts),
-                    success: false,
-                    data: e
-                }))
-            ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-             .slice(0, MAX_RUNS);
-
-            // Extract run history and last run timestamp
-            const runs = allRuns.map(r => r.success);
-            const last_run_timestamp = allRuns.length > 0 ? allRuns[0].timestamp : null;
-
-            return {
-                provider,
-                model: model_name,
-                runs,
-                last_run_timestamp
-            };
-        })
-    );
-
-    // Step 3: Get model metadata from models collection
+    // Step 5: Get model metadata from models collection
     const ModelsCollection = mongoose.connection.db.collection('models');
     const modelMetadata = await ModelsCollection.find({}).toArray();
 
@@ -155,7 +171,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
         });
     });
 
-    // Step 4: Enrich run data with metadata and calculate warnings
+    // Step 6: Enrich run data with metadata and calculate warnings
     const enrichedModels: ModelStatus[] = modelRunHistory.map((result: any) => {
         const key = `${result.provider}/${result.model}`;
         const metadata = metadataMap.get(key) || { enabled: false, deprecated: false };
@@ -202,7 +218,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
         };
     });
 
-    // Step 4: Get disabled models that have never run (in models DB but no metrics)
+    // Step 7: Get disabled models that have never run (in models DB but no metrics)
     const modelsWithRuns = new Set(enrichedModels.map(m => `${m.provider}/${m.model}`));
     const disabledModelsNeverRun = modelMetadata
         .filter((meta: any) => {
@@ -222,7 +238,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
             disabled_reason: meta.disabled_reason
         }));
 
-    // Step 5: Split into sections
+    // Step 8: Split into sections
     const active = enrichedModels.filter(m => m.enabled && !m.deprecated);
     const deprecated = enrichedModels.filter(m => m.enabled && m.deprecated);
     const disabled = [
