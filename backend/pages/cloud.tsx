@@ -267,7 +267,7 @@ const CloudBenchmarks: React.FC = () => {
     if (initialLoading) {
         return (
             <LoadingContainer>
-                <StyledCircularProgress size={80} />
+                <StyledCircularProgress size={80} aria-label="Loading benchmarks data" />
             </LoadingContainer>
         );
     }
@@ -352,12 +352,12 @@ const CloudBenchmarks: React.FC = () => {
                 <ChartContentContainer>
                     {distLoading ? (
                         <ChartLoadingContainer>
-                            <StyledCircularProgress size={60} />
+                            <StyledCircularProgress size={60} aria-label="Loading speed distribution chart" />
                         </ChartLoadingContainer>
                     ) : speedDistData.length > 0 ? (
                         <Suspense fallback={
                             <ChartLoadingContainer>
-                                <StyledCircularProgress size={60} />
+                                <StyledCircularProgress size={60} aria-label="Loading speed distribution chart" />
                             </ChartLoadingContainer>
                         }>
                             <SpeedDistChart data={speedDistData} />
@@ -423,9 +423,9 @@ const CloudBenchmarks: React.FC = () => {
                     })()}
                     <Box sx={{ pb: 8 }}>
                         {tableLoading ? (
-                            <StyledCircularProgress />
+                            <StyledCircularProgress aria-label="Loading benchmark table" />
                         ) : (
-                            <Suspense fallback={<StyledCircularProgress />}>
+                            <Suspense fallback={<StyledCircularProgress aria-label="Loading benchmark table" />}>
                                 {tableData && tableData.length > 0 ? (
                                     <RawCloudTable data={tableData} />
                                 ) : (
@@ -443,10 +443,10 @@ const CloudBenchmarks: React.FC = () => {
                     <ChartContentContainer>
                         {timeSeriesLoading ? (
                             <ChartLoadingContainer>
-                                <StyledCircularProgress size={60} />
+                                <StyledCircularProgress size={60} aria-label="Loading time series chart" />
                             </ChartLoadingContainer>
                         ) : (
-                            <Suspense fallback={<StyledCircularProgress />}>
+                            <Suspense fallback={<StyledCircularProgress aria-label="Loading time series chart" />}>
                                 <TimeSeriesChart
                                     data={timeSeriesData}
                                     onTimeRangeChange={handleTimeSeriesTimeRangeChange}

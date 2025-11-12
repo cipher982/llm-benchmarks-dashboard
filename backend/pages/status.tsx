@@ -37,45 +37,22 @@ const StatusPage: React.FC = () => {
     // Use custom hook for data fetching with 30-second refresh
     const { statusData, loading, error } = useStatusData(30000);
 
-    if (loading) {
-        return (
-            <>
-                <Head>
-                    <title>API Status - LLM Benchmarks</title>
-                    <meta name="description" content="Real-time status of cloud LLM providers and models" />
-                </Head>
-                <MainContainer isMobile={isMobile}>
-                    <StyledDescriptionSection isMobile={isMobile}>
-                        <CenteredContentContainer>
-                            <PageTitle>🔄 API Status 🔄</PageTitle>
-                            <p>Loading status data...</p>
-                        </CenteredContentContainer>
-                    </StyledDescriptionSection>
-                </MainContainer>
-            </>
-        );
+    // Debug logging for tests
+    if (typeof window !== 'undefined') {
+        console.log('[StatusPage] State:', { loading, error: !!error, hasData: !!statusData });
     }
 
-    if (error) {
-        return (
-            <>
-                <Head>
-                    <title>API Status - Error - LLM Benchmarks</title>
-                    <meta name="description" content="Error loading API status" />
-                </Head>
-                <MainContainer isMobile={isMobile}>
-                    <StyledDescriptionSection isMobile={isMobile}>
-                        <CenteredContentContainer>
-                            <PageTitle>❌ API Status - Error ❌</PageTitle>
-                            <p style={{ color: colors.error }}>Error: {error}</p>
-                        </CenteredContentContainer>
-                    </StyledDescriptionSection>
-                </MainContainer>
-            </>
-        );
-    }
+    // Determine the page title based on state
+    // Always provide a fallback for SSR where state may not be available yet
+    const pageTitle = error
+        ? 'API Status - Error - LLM Benchmarks'
+        : loading || !statusData
+        ? 'API Status - LLM Benchmarks'
+        : 'API Status Dashboard - LLM Benchmarks';
 
-    if (!statusData) return null;
+    const pageDescription = error
+        ? 'Error loading API status'
+        : 'Real-time status of cloud LLM providers and models. Monitor API health, deprecations, and issues.';
 
     // Helper to render warning badges
     const renderWarnings = (warnings: string[]) => {
@@ -152,75 +129,102 @@ const StatusPage: React.FC = () => {
         ));
     };
 
+    // Render main status dashboard
     return (
         <>
             <Head>
-                <title>API Status Dashboard - LLM Benchmarks</title>
+                <title>API Status - LLM Benchmarks</title>
                 <meta name="description" content="Real-time status of cloud LLM providers and models. Monitor API health, deprecations, and issues." />
             </Head>
             <MainContainer isMobile={isMobile}>
+
+            {/* Loading State */}
+            {loading && (
                 <StyledDescriptionSection isMobile={isMobile}>
                     <CenteredContentContainer>
-                        <PageTitle>📊 API Status Dashboard 📊</PageTitle>
-                        <p>
-                            Real-time status of all cloud LLM providers and models.
-                            ✅ = Success, ❌ = Failure. Updates every 30 seconds.
-                        </p>
-                        <p>
-                            <strong>Summary:</strong> {statusData.summary.active_count} active •{' '}
-                            {statusData.summary.deprecated_count} deprecated •{' '}
-                            {statusData.summary.disabled_count} disabled •{' '}
-                            {statusData.summary.total_issues} issues
-                        </p>
+                        <PageTitle>🔄 API Status 🔄</PageTitle>
+                        <p>Loading status data...</p>
                     </CenteredContentContainer>
                 </StyledDescriptionSection>
-
-            {/* Active Models Section */}
-            {statusData.active.length > 0 && (
-                <SectionHeaderContainer>
-                    <SectionTitle sectionType="active">
-                        🟢 ACTIVE MODELS ({statusData.summary.active_count})
-                    </SectionTitle>
-                    <SectionDescription>
-                        Models currently being benchmarked (enabled, not deprecated)
-                    </SectionDescription>
-                </SectionHeaderContainer>
-            )}
-            {renderModelTable(statusData.active)}
-
-            {/* Deprecated Models Section */}
-            {statusData.deprecated.length > 0 && (
-                <>
-                    <SectionHeaderContainer>
-                        <SectionTitle sectionType="deprecated">
-                            ⏸️ DEPRECATED BY PROVIDER ({statusData.summary.deprecated_count})
-                        </SectionTitle>
-                        <SectionDescription>
-                            Models deprecated by provider but still in our benchmarks
-                        </SectionDescription>
-                    </SectionHeaderContainer>
-                    {renderModelTable(statusData.deprecated, true)}
-                </>
             )}
 
-            {/* Disabled Models Section */}
-            {statusData.disabled.length > 0 && (
+            {/* Error State */}
+            {error && (
+                <StyledDescriptionSection isMobile={isMobile}>
+                    <CenteredContentContainer>
+                        <PageTitle>❌ API Status - Error ❌</PageTitle>
+                        <p style={{ color: colors.error }}>Error: {error}</p>
+                    </CenteredContentContainer>
+                </StyledDescriptionSection>
+            )}
+
+            {/* Success State */}
+            {!loading && !error && statusData && (
                 <>
-                    <SectionHeaderContainer>
-                        <CollapsibleSection
-                            isOpen={disabledExpanded}
-                            onClick={() => setDisabledExpanded(!disabledExpanded)}
-                        >
-                            <SectionTitle sectionType="disabled">
-                                📦 DISABLED MODELS ({statusData.summary.disabled_count})
-                                {disabledExpanded ? ' ▼' : ' ▶'}
+                    <StyledDescriptionSection isMobile={isMobile}>
+                        <CenteredContentContainer>
+                            <PageTitle>📊 API Status Dashboard 📊</PageTitle>
+                            <p>
+                                Real-time status of all cloud LLM providers and models.
+                                ✅ = Success, ❌ = Failure. Updates every 30 seconds.
+                            </p>
+                            <p>
+                                <strong>Summary:</strong> {statusData.summary.active_count} active •{' '}
+                                {statusData.summary.deprecated_count} deprecated •{' '}
+                                {statusData.summary.disabled_count} disabled •{' '}
+                                {statusData.summary.total_issues} issues
+                            </p>
+                        </CenteredContentContainer>
+                    </StyledDescriptionSection>
+
+                    {/* Active Models Section */}
+                    {statusData.active.length > 0 && (
+                        <SectionHeaderContainer>
+                            <SectionTitle sectionType="active">
+                                🟢 ACTIVE MODELS ({statusData.summary.active_count})
                             </SectionTitle>
                             <SectionDescription>
-                                Models we chose not to run (click to {disabledExpanded ? 'collapse' : 'expand'})
+                                Models currently being benchmarked (enabled, not deprecated)
                             </SectionDescription>
-                        </CollapsibleSection>
-                    </SectionHeaderContainer>
-                    {disabledExpanded && renderModelTable(statusData.disabled)}
+                        </SectionHeaderContainer>
+                    )}
+                    {renderModelTable(statusData.active)}
+
+                    {/* Deprecated Models Section */}
+                    {statusData.deprecated.length > 0 && (
+                        <>
+                            <SectionHeaderContainer>
+                                <SectionTitle sectionType="deprecated">
+                                    ⏸️ DEPRECATED BY PROVIDER ({statusData.summary.deprecated_count})
+                                </SectionTitle>
+                                <SectionDescription>
+                                    Models deprecated by provider but still in our benchmarks
+                                </SectionDescription>
+                            </SectionHeaderContainer>
+                            {renderModelTable(statusData.deprecated, true)}
+                        </>
+                    )}
+
+                    {/* Disabled Models Section */}
+                    {statusData.disabled.length > 0 && (
+                        <>
+                            <SectionHeaderContainer>
+                                <CollapsibleSection
+                                    isOpen={disabledExpanded}
+                                    onClick={() => setDisabledExpanded(!disabledExpanded)}
+                                >
+                                    <SectionTitle sectionType="disabled">
+                                        📦 DISABLED MODELS ({statusData.summary.disabled_count})
+                                        {disabledExpanded ? ' ▼' : ' ▶'}
+                                    </SectionTitle>
+                                    <SectionDescription>
+                                        Models we chose not to run (click to {disabledExpanded ? 'collapse' : 'expand'})
+                                    </SectionDescription>
+                                </CollapsibleSection>
+                            </SectionHeaderContainer>
+                            {disabledExpanded && renderModelTable(statusData.disabled)}
+                        </>
+                    )}
                 </>
             )}
             </MainContainer>

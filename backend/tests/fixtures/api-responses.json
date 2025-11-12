@@ -1,0 +1,182 @@
+{
+  "processed": {
+    "table": [
+      {
+        "provider": "OpenAI",
+        "providerCanonical": "openai",
+        "providerSlug": "openai",
+        "model_name": "gpt-4",
+        "modelCanonical": "gpt-4",
+        "modelSlug": "gpt-4",
+        "tokens_per_second_mean": 42.5,
+        "tokens_per_second_min": 35.2,
+        "tokens_per_second_max": 48.9,
+        "time_to_first_token_mean": 0.85,
+        "last_benchmark_date": "2025-11-12T10:30:00.000Z",
+        "lifecycle_status": "active",
+        "lifecycle_confidence": "high",
+        "lifecycle_computed_at": "2025-11-12T10:00:00.000Z",
+        "lifecycle_catalog_state": "available",
+        "lifecycle_metrics": {
+          "days_since_last_success": 0,
+          "recent_success_rate": 1.0,
+          "total_runs": 150
+        },
+        "lifecycle_reasons": ["Model is actively returning successful results"],
+        "lifecycle_recommended_actions": [],
+        "deprecated": false
+      },
+      {
+        "provider": "Anthropic",
+        "providerCanonical": "anthropic",
+        "providerSlug": "anthropic",
+        "model_name": "claude-3-opus",
+        "modelCanonical": "claude-3-opus",
+        "modelSlug": "claude-3-opus",
+        "tokens_per_second_mean": 38.2,
+        "tokens_per_second_min": 32.1,
+        "tokens_per_second_max": 44.3,
+        "time_to_first_token_mean": 0.92,
+        "last_benchmark_date": "2025-11-12T09:45:00.000Z",
+        "lifecycle_status": "active",
+        "lifecycle_confidence": "high",
+        "lifecycle_computed_at": "2025-11-12T10:00:00.000Z",
+        "lifecycle_catalog_state": "available",
+        "lifecycle_metrics": {
+          "days_since_last_success": 0,
+          "recent_success_rate": 1.0,
+          "total_runs": 200
+        },
+        "lifecycle_reasons": ["Model is actively returning successful results"],
+        "lifecycle_recommended_actions": [],
+        "deprecated": false
+      },
+      {
+        "provider": "Google",
+        "providerCanonical": "vertex",
+        "providerSlug": "vertex",
+        "model_name": "gemini-1.5-pro",
+        "modelCanonical": "gemini-1.5-pro",
+        "modelSlug": "gemini-15-pro",
+        "tokens_per_second_mean": 51.3,
+        "tokens_per_second_min": 45.7,
+        "tokens_per_second_max": 58.2,
+        "time_to_first_token_mean": 0.65,
+        "last_benchmark_date": "2025-11-12T11:00:00.000Z",
+        "lifecycle_status": "active",
+        "lifecycle_confidence": "high",
+        "lifecycle_computed_at": "2025-11-12T10:00:00.000Z",
+        "lifecycle_catalog_state": "available",
+        "lifecycle_metrics": {
+          "days_since_last_success": 0,
+          "recent_success_rate": 0.98,
+          "total_runs": 120
+        },
+        "lifecycle_reasons": ["Model is actively returning successful results"],
+        "lifecycle_recommended_actions": [],
+        "deprecated": false
+      },
+      {
+        "provider": "OpenAI",
+        "providerCanonical": "openai",
+        "providerSlug": "openai",
+        "model_name": "gpt-3.5-turbo",
+        "modelCanonical": "gpt-3.5-turbo",
+        "modelSlug": "gpt-35-turbo",
+        "tokens_per_second_mean": 65.8,
+        "tokens_per_second_min": 58.2,
+        "tokens_per_second_max": 72.1,
+        "time_to_first_token_mean": 0.42,
+        "last_benchmark_date": "2025-10-15T14:30:00.000Z",
+        "lifecycle_status": "stale",
+        "lifecycle_confidence": "medium",
+        "lifecycle_computed_at": "2025-11-12T10:00:00.000Z",
+        "lifecycle_catalog_state": "available",
+        "lifecycle_metrics": {
+          "days_since_last_success": 28,
+          "recent_success_rate": 0.0,
+          "total_runs": 180
+        },
+        "lifecycle_reasons": ["No successful benchmarks in 28 days"],
+        "lifecycle_recommended_actions": ["Investigate endpoint availability"],
+        "deprecated": false
+      },
+      {
+        "provider": "Bedrock",
+        "providerCanonical": "bedrock",
+        "providerSlug": "bedrock",
+        "model_name": "anthropic.claude-v2",
+        "modelCanonical": "anthropic.claude-v2",
+        "modelSlug": "anthropicclaude-v2",
+        "tokens_per_second_mean": 28.5,
+        "tokens_per_second_min": 24.1,
+        "tokens_per_second_max": 33.2,
+        "time_to_first_token_mean": 1.15,
+        "last_benchmark_date": "2025-09-01T10:00:00.000Z",
+        "lifecycle_status": "deprecated",
+        "lifecycle_confidence": "high",
+        "lifecycle_computed_at": "2025-11-12T10:00:00.000Z",
+        "lifecycle_catalog_state": "deprecated",
+        "lifecycle_metrics": {
+          "days_since_last_success": 72,
+          "recent_success_rate": 0.0,
+          "total_runs": 95
+        },
+        "lifecycle_reasons": ["Model marked as deprecated by provider"],
+        "lifecycle_recommended_actions": ["Migrate to claude-v3"],
+        "deprecated": true
+      }
+    ],
+    "timeSeries": {},
+    "distribution": {}
+  },
+  "status": {
+    "active": [
+      {
+        "provider": "openai",
+        "model_id": "gpt-4",
+        "lifecycle_status": "active",
+        "lifecycle_confidence": "high",
+        "last_success": "2025-11-12T10:30:00.000Z",
+        "lifecycle_metrics": {
+          "days_since_last_success": 0,
+          "recent_success_rate": 1.0,
+          "total_runs": 150
+        }
+      },
+      {
+        "provider": "anthropic",
+        "model_id": "claude-3-opus",
+        "lifecycle_status": "active",
+        "lifecycle_confidence": "high",
+        "last_success": "2025-11-12T09:45:00.000Z",
+        "lifecycle_metrics": {
+          "days_since_last_success": 0,
+          "recent_success_rate": 1.0,
+          "total_runs": 200
+        }
+      }
+    ],
+    "deprecated": [
+      {
+        "provider": "bedrock",
+        "model_id": "anthropic.claude-v2",
+        "lifecycle_status": "deprecated",
+        "lifecycle_confidence": "high",
+        "last_success": "2025-09-01T10:00:00.000Z",
+        "lifecycle_metrics": {
+          "days_since_last_success": 72,
+          "recent_success_rate": 0.0,
+          "total_runs": 95
+        }
+      }
+    ],
+    "disabled": [],
+    "summary": {
+      "active_count": 2,
+      "deprecated_count": 1,
+      "disabled_count": 0,
+      "total_issues": 1
+    }
+  }
+}

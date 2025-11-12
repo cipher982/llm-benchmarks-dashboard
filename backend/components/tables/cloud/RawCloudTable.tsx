@@ -158,7 +158,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                         {meta.icon && <span aria-hidden>{meta.icon}</span>}
                         <span>{meta.label}</span>
                         {confidenceLabel && effectiveStatus !== 'active' && (
-                            <span style={{ fontSize: '0.75em', opacity: 0.85 }}>({confidenceLabel})</span>
+                            <span style={{ fontSize: '0.75em' }}>({confidenceLabel})</span>
                         )}
                     </span>
                 );
@@ -224,14 +224,14 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                     if (diffHours < 1) {
                         const diffMinutes = Math.floor(diffMs / (1000 * 60));
                         displayText = `${diffMinutes}m ago`;
-                        textColor = '#2e7d32';
+                        textColor = '#1b5e20'; // WCAG AA compliant: 6.45:1 contrast
                     } else if (diffHours < 24) {
                         displayText = `${Math.floor(diffHours)}h ago`;
-                        textColor = '#2e7d32';
+                        textColor = '#1b5e20'; // WCAG AA compliant: 6.45:1 contrast
                     } else {
                         const diffDays = Math.floor(diffHours / 24);
                         displayText = `${diffDays}d ago`;
-                        textColor = diffDays > 2 ? '#ed6c02' : '#2e7d32';
+                        textColor = diffDays > 2 ? '#6b2900' : '#1b5e20'; // WCAG AA compliant colors
                     }
                 }
 

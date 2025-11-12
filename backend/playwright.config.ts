@@ -1,5 +1,18 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * Playwright Configuration for LLM Benchmarks Dashboard
+ *
+ * This configuration uses a custom test server script that automatically
+ * finds an available port, avoiding conflicts with other running services.
+ *
+ * To run tests:
+ * 1. Start test server: node tests/utils/start-test-server.js (in another terminal)
+ * 2. Run tests: npm run test:a11y
+ *
+ * Or use the webServer option below to start automatically.
+ */
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -7,8 +20,9 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+
   use: {
-    baseURL: process.env.TEST_URL || 'http://localhost:3000',
+    // baseURL will be set dynamically by the fixtures
     trace: 'on-first-retry',
   },
 
@@ -20,8 +34,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    // Start our custom test server that finds an available port
+    command: 'node tests/utils/start-test-server.js',
+    // Don't specify a URL - our fixtures will read the dynamic port
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     env: {
