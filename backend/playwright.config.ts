@@ -24,5 +24,9 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    env: {
+      // Provide MongoDB URI for dev server (use existing or mock)
+      MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/test-db',
+    },
   },
 });

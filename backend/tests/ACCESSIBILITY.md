@@ -14,6 +14,12 @@ Automated accessibility testing catches issues like poor color contrast, missing
 
 ## Quick Start
 
+### One-Time Setup
+```bash
+# Install Playwright browser (only needed once)
+npx playwright install chromium
+```
+
 ### Run Tests Locally
 ```bash
 # Run all accessibility tests
@@ -22,6 +28,8 @@ npm run test:a11y
 # Run with visual UI (see tests in browser)
 npm run test:a11y:ui
 ```
+
+**Note**: Tests will use your existing `.env` MongoDB connection or fall back to a mock connection string.
 
 ### What Gets Tested
 - `/status` - Status page
