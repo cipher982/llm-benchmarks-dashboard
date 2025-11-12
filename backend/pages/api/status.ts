@@ -27,7 +27,7 @@ function getRelativeTime(timestamp: Date): string {
 interface ModelStatus {
     provider: string;
     model: string;
-    last_run_timestamp: string;
+    last_run_timestamp: string | null;
     last_run_relative: string;
     runs: boolean[];
     status: 'healthy' | 'warning' | 'deprecated' | 'disabled';
@@ -57,12 +57,16 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     // OPTIMIZED APPROACH: Use aggregation to pre-group and limit, then merge in memory
     // This reduces 440+ individual queries to just 2 aggregation queries (~20x faster)
 
+    if (!mongoose.connection.db) {
+        throw new Error('Database connection not established');
+    }
+
     const ErrorsCollection = mongoose.connection.db.collection('errors_cloud');
 
     // Step 1: Get last MAX_RUNS metrics per model using aggregation
     // Use $topN to bound accumulation at MongoDB level (prevents memory overflow as data scales)
     const metricsPipeline = [
-        { $sort: { run_ts: -1 } },
+        { $sort: { run_ts: -1 as const } },
         {
             $group: {
                 _id: {
@@ -72,7 +76,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
                 runs: {
                     $topN: {
                         n: MAX_RUNS,
-                        sortBy: { run_ts: -1 },
+                        sortBy: { run_ts: -1 as const },
                         output: {
                             timestamp: "$run_ts",
                             success: { $literal: true }
@@ -96,7 +100,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     // Use $topN to bound accumulation at MongoDB level (prevents memory overflow as data scales)
     // Note: errors_cloud.ts is already a Date object (no conversion needed)
     const errorsPipeline = [
-        { $sort: { ts: -1 } },
+        { $sort: { ts: -1 as const } },
         {
             $group: {
                 _id: {
@@ -106,7 +110,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
                 runs: {
                     $topN: {
                         n: MAX_RUNS,
-                        sortBy: { ts: -1 },
+                        sortBy: { ts: -1 as const },
                         output: {
                             timestamp: "$ts",
                             success: { $literal: false }

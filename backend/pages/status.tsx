@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { styled } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { MainContainer, PageTitle } from '../components/design-system/components';
@@ -8,13 +7,24 @@ import {
     CenteredContentContainer,
     StyledTableContainer,
 } from '../components/StyledComponents';
-import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import { colors, typography } from '../components/design-system';
+import { colors } from '../components/design-system';
+import {
+    SectionHeaderContainer,
+    SectionTitle,
+    SectionDescription,
+    ProviderSection,
+    ProviderHeader,
+    StatusIndicator,
+    WarningBadge,
+    DeprecationDetails,
+    StyledTable,
+    CollapsibleSection,
+} from '../components/status';
 
 interface ModelData {
     provider: string;
@@ -42,133 +52,6 @@ interface StatusData {
         total_issues: number;
     };
 }
-
-// Styles
-const SectionHeaderContainer = styled('div')(({ theme }) => ({
-    marginBottom: theme.spacing(3),
-    marginTop: theme.spacing(2),
-}));
-
-const SectionTitle = styled('h2')<{ sectionType?: 'active' | 'deprecated' | 'disabled' }>(({ sectionType = 'active' }) => {
-    const borderColors = {
-        active: '#2d7a2d',
-        deprecated: '#d97706',
-        disabled: '#6b7280'
-    };
-
-    return {
-        fontSize: typography.sizes['2xl'],
-        fontWeight: typography.weights.semibold,
-        color: colors.textPrimary,
-        margin: '0',
-        padding: '12px 16px',
-        backgroundColor: colors.surfaceElevated,
-        borderLeft: `4px solid ${borderColors[sectionType]}`,
-        fontFamily: typography.fontFamily,
-    };
-});
-
-const SectionDescription = styled('p')({
-    fontSize: typography.sizes.base,
-    color: colors.textSecondary,
-    margin: '8px 16px',
-    fontFamily: typography.fontFamily,
-});
-
-const ProviderSection = styled('div')(({ theme }) => ({
-    width: '100%',
-    marginBottom: theme.spacing(2),
-}));
-
-const ProviderHeader = styled('h3')({
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    color: colors.textPrimary,
-    marginTop: '0',
-    marginBottom: '16px',
-    padding: '8px 0',
-    textAlign: 'center',
-    backgroundColor: colors.surfaceElevated,
-    borderTop: `1px solid ${colors.borderLight}`,
-    borderBottom: `1px solid ${colors.borderDark}`,
-    fontFamily: typography.fontFamily,
-});
-
-const StatusIndicator = styled('span')<{ status: string }>(({ status }) => {
-    const color = status === 'success' ? '#008000' : '#800000';
-    return {
-        color,
-        marginRight: '2px',
-        display: 'inline-block',
-        width: '16px',
-        textAlign: 'center',
-        fontSize: typography.sizes.base,
-        fontWeight: typography.weights.normal,
-    };
-});
-
-const WarningBadge = styled('span')<{ type: string }>(({ type }) => {
-    const colors = {
-        stale: { bg: '#fef3c7', text: '#92400e', border: '#fbbf24' },
-        infrequent: { bg: '#fef3c7', text: '#92400e', border: '#fbbf24' },
-        failures: { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' },
-        deprecated: { bg: '#ffedd5', text: '#9a3412', border: '#f97316' }
-    };
-
-    const style = type.startsWith('stale') ? colors.stale :
-                  type.startsWith('infrequent') ? colors.infrequent :
-                  type.startsWith('failures') ? colors.failures :
-                  colors.deprecated;
-
-    return {
-        display: 'inline-block',
-        padding: '2px 6px',
-        marginLeft: '4px',
-        fontSize: typography.sizes.xs,
-        fontFamily: typography.fontFamily,
-        backgroundColor: style.bg,
-        color: style.text,
-        border: `1px solid ${style.border}`,
-        borderRadius: '2px',
-    };
-});
-
-const DeprecationDetails = styled('div')({
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    padding: '4px 12px',
-    fontFamily: typography.fontFamily,
-    fontStyle: 'italic',
-});
-
-const StyledTable = styled(Table)({
-    backgroundColor: colors.surface,
-    '& .MuiTableCell-root': {
-        fontFamily: typography.fontFamily,
-        fontSize: typography.sizes.base,
-        color: colors.textPrimary,
-        borderBottom: `1px solid ${colors.borderMedium}`,
-        padding: '8px 12px',
-    },
-    '& .MuiTableHead-root': {
-        backgroundColor: colors.surfaceElevated,
-    },
-    '& .MuiTableRow-root': {
-        '&:hover': {
-            backgroundColor: colors.hover,
-        },
-    },
-});
-
-const CollapsibleSection = styled('div')<{ isOpen: boolean }>(({ isOpen }) => ({
-    cursor: 'pointer',
-    userSelect: 'none',
-    transition: 'all 0.2s ease',
-    opacity: isOpen ? 1 : 0.7,
-    '&:hover': {
-        opacity: 1,
-    },
-}));
 
 const StatusPage: React.FC = () => {
     const theme = useTheme();
@@ -263,10 +146,10 @@ const StatusPage: React.FC = () => {
                         <StyledTable size="small">
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Model</TableCell>
-                                    <TableCell>Last Run</TableCell>
-                                    <TableCell>Status History (Last 10 runs)</TableCell>
-                                    <TableCell>Status</TableCell>
+                                    <TableCell width="30%">Model</TableCell>
+                                    <TableCell width="15%">Last Run</TableCell>
+                                    <TableCell width="35%">Status History (Last 10 runs)</TableCell>
+                                    <TableCell width="20%">Status</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
