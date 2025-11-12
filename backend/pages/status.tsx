@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { MainContainer, PageTitle } from '../components/design-system/components';
@@ -25,64 +25,16 @@ import {
     StyledTable,
     CollapsibleSection,
 } from '../components/status';
-
-interface ModelData {
-    provider: string;
-    model: string;
-    last_run_timestamp: string | null;
-    last_run_relative: string;
-    runs: boolean[];
-    status: 'healthy' | 'warning' | 'deprecated' | 'disabled';
-    warnings: string[];
-    enabled?: boolean;
-    deprecated?: boolean;
-    deprecation_date?: string;
-    successor_model?: string;
-    disabled_reason?: string;
-}
-
-interface StatusData {
-    active: ModelData[];
-    deprecated: ModelData[];
-    disabled: ModelData[];
-    summary: {
-        active_count: number;
-        deprecated_count: number;
-        disabled_count: number;
-        total_issues: number;
-    };
-}
+import { useStatusData } from '../hooks/useStatusData';
+import { formatWarningLabel, groupModelsByProvider, ModelData } from '../utils/status/statusHelpers';
 
 const StatusPage: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const [statusData, setStatusData] = useState<StatusData | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
     const [disabledExpanded, setDisabledExpanded] = useState<boolean>(false);
 
-    const fetchStatusData = useCallback(async () => {
-        try {
-            const response = await fetch(`/api/status`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data: StatusData = await response.json();
-            console.log('Status API returned:', data);
-
-            setStatusData(data);
-            setLoading(false);
-        } catch (err: any) {
-            setError(err.message);
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchStatusData();
-        const interval = setInterval(fetchStatusData, 30000); // Refresh every 30 seconds
-        return () => clearInterval(interval);
-    }, [fetchStatusData]);
+    // Use custom hook for data fetching with 30-second refresh
+    const { statusData, loading, error } = useStatusData(30000);
 
     if (loading) {
         return (
@@ -115,28 +67,14 @@ const StatusPage: React.FC = () => {
     // Helper to render warning badges
     const renderWarnings = (warnings: string[]) => {
         return warnings.map((warning, idx) => {
-            const label = warning.startsWith('stale') ? `⚠️ Stale (${warning.split('_')[1]})` :
-                         warning.startsWith('infrequent') ? `⚠️ Infrequent (${warning.split('_')[1]})` :
-                         warning.startsWith('failures') ? `⚠️ ${warning.split('_')[1]} failures` :
-                         warning;
+            const label = formatWarningLabel(warning);
             return <WarningBadge key={idx} type={warning}>{label}</WarningBadge>;
         });
     };
 
-    // Helper to group models by provider
-    const groupByProvider = (models: ModelData[]) => {
-        return models.reduce((acc, model) => {
-            if (!acc[model.provider]) {
-                acc[model.provider] = [];
-            }
-            acc[model.provider].push(model);
-            return acc;
-        }, {} as Record<string, ModelData[]>);
-    };
-
     // Helper to render a model table section
     const renderModelTable = (models: ModelData[], showDeprecationDetails = false) => {
-        const groupedByProvider = groupByProvider(models);
+        const groupedByProvider = groupModelsByProvider(models);
 
         return Object.entries(groupedByProvider).map(([provider, providerModels]) => (
             <StyledTableContainer key={provider} isMobile={isMobile}>
