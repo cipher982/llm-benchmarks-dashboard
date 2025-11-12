@@ -60,6 +60,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     const ErrorsCollection = mongoose.connection.db.collection('errors_cloud');
 
     // Step 1: Get last MAX_RUNS metrics per model using aggregation
+    // Use $push with $slice to limit accumulation and prevent memory overflow
     const metricsPipeline = [
         { $sort: { run_ts: -1 } },
         {
@@ -85,9 +86,10 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
         }
     ];
 
-    const metrics = await CloudMetrics.aggregate(metricsPipeline);
+    const metrics = await CloudMetrics.aggregate(metricsPipeline, { allowDiskUse: true });
 
     // Step 2: Get last MAX_RUNS errors per model using aggregation
+    // Note: errors_cloud.ts is already a Date object (no conversion needed)
     const errorsPipeline = [
         { $sort: { ts: -1 } },
         {
@@ -113,7 +115,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
         }
     ];
 
-    const errors = await ErrorsCollection.aggregate(errorsPipeline).toArray();
+    const errors = await ErrorsCollection.aggregate(errorsPipeline, { allowDiskUse: true }).toArray();
 
     // Step 3: Merge in JavaScript (fast for small arrays)
     const modelMap = new Map();
