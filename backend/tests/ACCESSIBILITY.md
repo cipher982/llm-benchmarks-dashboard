@@ -52,6 +52,7 @@ GitHub Actions automatically runs tests on:
 - Every pull request
 - Every push to main
 - Will **fail the build** if violations found
+- **MongoDB**: Uses a real MongoDB service container (no 30s timeouts!)
 
 ### 3. Example Output
 

@@ -25,8 +25,9 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     env: {
-      // Provide MongoDB URI for dev server (use existing or mock)
-      MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/test-db',
+      // Provide MongoDB URI for dev server (use existing or mock with fast timeouts)
+      MONGODB_URI: process.env.MONGODB_URI ||
+        'mongodb://localhost:27017/test-db?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000',
     },
   },
 });
