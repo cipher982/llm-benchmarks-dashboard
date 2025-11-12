@@ -60,7 +60,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     const ErrorsCollection = mongoose.connection.db.collection('errors_cloud');
 
     // Step 1: Get last MAX_RUNS metrics per model using aggregation
-    // Use $push with $slice to limit accumulation and prevent memory overflow
+    // Use $topN to bound accumulation at MongoDB level (prevents memory overflow as data scales)
     const metricsPipeline = [
         { $sort: { run_ts: -1 } },
         {
@@ -70,9 +70,13 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
                     model_name: "$model_name"
                 },
                 runs: {
-                    $push: {
-                        timestamp: "$run_ts",
-                        success: { $literal: true }
+                    $topN: {
+                        n: MAX_RUNS,
+                        sortBy: { run_ts: -1 },
+                        output: {
+                            timestamp: "$run_ts",
+                            success: { $literal: true }
+                        }
                     }
                 }
             }
@@ -81,7 +85,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
             $project: {
                 provider: "$_id.provider",
                 model_name: "$_id.model_name",
-                runs: { $slice: ["$runs", MAX_RUNS] }
+                runs: 1
             }
         }
     ];
@@ -89,6 +93,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     const metrics = await CloudMetrics.aggregate(metricsPipeline, { allowDiskUse: true });
 
     // Step 2: Get last MAX_RUNS errors per model using aggregation
+    // Use $topN to bound accumulation at MongoDB level (prevents memory overflow as data scales)
     // Note: errors_cloud.ts is already a Date object (no conversion needed)
     const errorsPipeline = [
         { $sort: { ts: -1 } },
@@ -99,9 +104,13 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
                     model_name: "$model_name"
                 },
                 runs: {
-                    $push: {
-                        timestamp: "$ts",
-                        success: { $literal: false }
+                    $topN: {
+                        n: MAX_RUNS,
+                        sortBy: { ts: -1 },
+                        output: {
+                            timestamp: "$ts",
+                            success: { $literal: false }
+                        }
                     }
                 }
             }
@@ -110,7 +119,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
             $project: {
                 provider: "$_id.provider",
                 model_name: "$_id.model_name",
-                runs: { $slice: ["$runs", MAX_RUNS] }
+                runs: 1
             }
         }
     ];
