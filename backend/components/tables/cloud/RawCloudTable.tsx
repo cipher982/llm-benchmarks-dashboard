@@ -11,13 +11,13 @@ interface RawCloudTableProps {
 }
 
 const STATUS_DISPLAY: Record<string, { label: string; color: string; icon?: string }> = {
-    active: { label: 'Active', color: '#2e7d32', icon: '✓' },
-    monitor: { label: 'Monitor', color: '#f9a825', icon: '👀' },
-    failing: { label: 'Failing', color: '#d32f2f', icon: '⚠' },
-    stale: { label: 'Stale', color: '#ed6c02', icon: '⌛' },
-    likely_deprecated: { label: 'Likely Deprecated', color: '#d32f2f', icon: '⚠' },
-    deprecated: { label: 'Deprecated', color: '#d32f2f', icon: '⚠' },
-    disabled: { label: 'Disabled', color: '#616161', icon: '⏸' },
+    active: { label: 'Active', color: '#1b5e20', icon: '✓' },         // 6.45:1 contrast ✅
+    monitor: { label: 'Monitor', color: '#6b4700', icon: '👀' },      // Very dark amber for 4.5:1+
+    failing: { label: 'Failing', color: '#b71c1c', icon: '⚠' },       // 5.39:1 contrast ✅
+    stale: { label: 'Stale', color: '#6b2900', icon: '⌛' },           // Very dark orange for 4.5:1+
+    likely_deprecated: { label: 'Likely Deprecated', color: '#b71c1c', icon: '⚠' },
+    deprecated: { label: 'Deprecated', color: '#b71c1c', icon: '⚠' },
+    disabled: { label: 'Disabled', color: '#424242', icon: '⏸' },     // 8.24:1 contrast ✅
     never_succeeded: { label: 'Never Succeeded', color: '#fb8c00', icon: '⚠' },
 };
 

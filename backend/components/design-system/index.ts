@@ -43,7 +43,7 @@ export const colors = {
   pressed: '#B8B5A6',             // Warmer pressed state (was #A0A0A0)
   selected: '#316AC5',            // Windows 2000 selection blue (was #000080)
   selectedText: '#FFFFFF',        // Text on selected background
-  link: '#316AC5',                // Link color (same as selected for consistency)
+  link: '#0A246A',                // Darker link color for WCAG AA contrast (4.5:1) on beige
   
   // Additional NT-specific colors
   menuBar: '#D4D0C8',             // Menu bar background
