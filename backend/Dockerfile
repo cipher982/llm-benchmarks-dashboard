@@ -16,6 +16,7 @@ COPY styles/ ./styles/
 COPY utils/ ./utils/
 COPY models/ ./models/
 COPY types/ ./types/
+COPY hooks/ ./hooks/
 COPY scripts/ ./scripts/
 COPY server.js ./
 COPY next.config.mjs ./
