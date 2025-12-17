@@ -70,7 +70,10 @@ backend/.gitignore
 frontend/build
 
 pagespeed/
-.env*
+.env
+.env.local
+.env.*.local
+!.env.example
 backend/scripts/
 
 # Docker compose override for local development
