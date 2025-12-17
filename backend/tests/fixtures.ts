@@ -34,7 +34,7 @@ const apiFixtures = JSON.parse(fs.readFileSync(fixturesPath, 'utf8'));
  */
 async function mockApiRoutes(page: Page) {
   // Only mock our API endpoints, not Next.js internal requests
-  await page.route(/^.*\/api\/(processed|status|model)(\?.*)?$/, async (route) => {
+  await page.route(/^.*\/api\/(processed|status|model|local)(\?.*)?$/, async (route) => {
     const url = route.request().url();
 
     if (url.includes('/api/processed')) {
@@ -58,6 +58,12 @@ async function mockApiRoutes(page: Page) {
           timeSeries: {},
         }),
       });
+    } else if (url.includes('/api/local')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(apiFixtures.local),
+      });
     } else {
       // Let other requests pass through
       await route.continue();
@@ -73,14 +79,13 @@ export const test = base.extend({
     await use(url);
   },
 
-  // Note: API mocking disabled - tests use real API with .env.local MongoDB
-  // To re-enable mocking, uncomment the page fixture below
-  /*
+  // Enable API mocking in CI (no real database), use real API locally
   page: async ({ page }, use) => {
-    await mockApiRoutes(page);
+    if (process.env.CI) {
+      await mockApiRoutes(page);
+    }
     await use(page);
   },
-  */
 });
 
 export { expect } from '@playwright/test';

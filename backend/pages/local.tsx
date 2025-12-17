@@ -67,15 +67,29 @@ const LocalBenchmarks: FC = () => {
     if (loading) {
         console.log('Rendering loading state');
         return (
-            <LoadingContainer>
-                <StyledCircularProgress size={80} />
-            </LoadingContainer>
+            <>
+                <Head>
+                    <title>Local LLM Benchmarks - M3 Max Performance Testing</title>
+                    <meta name="description" content="Local LLM benchmarks on Apple M3 Max with 128GB RAM. Compare frameworks like transformers, GGUF, and HF-TGI for speed and GPU usage." />
+                </Head>
+                <LoadingContainer>
+                    <StyledCircularProgress size={80} />
+                </LoadingContainer>
+            </>
         );
     }
 
     if (error) {
         console.log('Rendering error state:', error);
-        return <div>Error: {error}</div>;
+        return (
+            <>
+                <Head>
+                    <title>Local LLM Benchmarks - M3 Max Performance Testing</title>
+                    <meta name="description" content="Local LLM benchmarks on Apple M3 Max with 128GB RAM. Compare frameworks like transformers, GGUF, and HF-TGI for speed and GPU usage." />
+                </Head>
+                <div>Error: {error}</div>
+            </>
+        );
     }
 
     console.log('Rendering main content');

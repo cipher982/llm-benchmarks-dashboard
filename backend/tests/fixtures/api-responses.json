@@ -178,5 +178,62 @@
       "disabled_count": 0,
       "total_issues": 1
     }
+  },
+  "local": {
+    "raw": [
+      {
+        "id": 1,
+        "framework": "llama.cpp",
+        "model_name": "llama-3.2-3b-instruct",
+        "model_size": 3000000000,
+        "formatted_model_size": "3B",
+        "tokens_per_second": 125.5,
+        "gpu_mem_usage": 2048,
+        "quantization_method": "GGUF",
+        "quantization_bits": "Q4_K_M",
+        "model_dtype": "float16"
+      },
+      {
+        "id": 2,
+        "framework": "ollama",
+        "model_name": "llama-3.2-3b-instruct",
+        "model_size": 3000000000,
+        "formatted_model_size": "3B",
+        "tokens_per_second": 118.3,
+        "gpu_mem_usage": 2100,
+        "quantization_method": "GGUF",
+        "quantization_bits": "Q4_K_M",
+        "model_dtype": "float16"
+      },
+      {
+        "id": 3,
+        "framework": "mlx",
+        "model_name": "llama-3.2-3b-instruct",
+        "model_size": 3000000000,
+        "formatted_model_size": "3B",
+        "tokens_per_second": 142.8,
+        "gpu_mem_usage": 1950,
+        "quantization_method": "MLX",
+        "quantization_bits": "4bit",
+        "model_dtype": "float16"
+      }
+    ],
+    "comparison": [
+      {
+        "model_name": "llama-3.2-3b-instruct",
+        "quantization_bits": "Q4_K_M",
+        "model_size": 3000000000,
+        "formatted_model_size": "3B",
+        "comparison": {
+          "llama.cpp": 125.5,
+          "ollama": 118.3,
+          "mlx": 142.8
+        },
+        "fastest_framework": "mlx"
+      }
+    ],
+    "fastestFrameworks": {
+      "llama-3.2-3b-instruct": "mlx"
+    }
   }
 }

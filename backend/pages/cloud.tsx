@@ -266,14 +266,28 @@ const CloudBenchmarks: React.FC = () => {
 
     if (initialLoading) {
         return (
-            <LoadingContainer>
-                <StyledCircularProgress size={80} aria-label="Loading benchmarks data" />
-            </LoadingContainer>
+            <>
+                <Head>
+                    <title>Cloud LLM Benchmarks - Speed & Performance Testing</title>
+                    <meta name="description" content="Real-time benchmarking of cloud LLM providers including OpenAI, Anthropic, Google, and more. Compare speed, reliability, and performance." />
+                </Head>
+                <LoadingContainer>
+                    <StyledCircularProgress size={80} aria-label="Loading benchmarks data" />
+                </LoadingContainer>
+            </>
         );
     }
 
     if (error) {
-        return <div>Error: {error}</div>;
+        return (
+            <>
+                <Head>
+                    <title>Cloud LLM Benchmarks - Speed & Performance Testing</title>
+                    <meta name="description" content="Real-time benchmarking of cloud LLM providers including OpenAI, Anthropic, Google, and more. Compare speed, reliability, and performance." />
+                </Head>
+                <div>Error: {error}</div>
+            </>
+        );
     }
 
     return (
