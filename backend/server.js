@@ -45,7 +45,7 @@ async function generateStaticData() {
     
     console.log(`📁 Created directories: ${apiDir}`);
     
-    const timeRanges = [3, 7, 12, 14];
+    const timeRanges = [3, 7, 12, 14, 30];
     console.log(`🎯 Generating ${timeRanges.length} static files...`);
     
     // Simple approach: Generate each file independently
