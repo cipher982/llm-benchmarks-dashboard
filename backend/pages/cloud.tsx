@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { lazy, Suspense } from "react";
+import { GetStaticProps } from "next";
 import Head from "next/head";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { Box } from "@mui/material";
+import fs from "fs/promises";
+import path from "path";
 import { MainContainer } from "../components/design-system/components";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
 import {
-    LoadingContainer,
     ChartLoadingContainer,
     StyledCircularProgress,
     CenteredContentContainer,
@@ -67,18 +69,27 @@ interface LifecycleSummaryResponse {
     rows: LifecycleSummaryRow[];
 }
 
-const CloudBenchmarks: React.FC = () => {
-    console.log('CloudBenchmarks component mounted');
+// Props from getStaticProps for SSR/ISR
+interface CloudPageProps {
+    initialSpeedDistData: SpeedDistributionPoint[];
+    initialTableData: TableRow[];
+    initialTableMeta: TableMetaSummary | null;
+    initialTimeSeriesData: TimeSeriesData;
+}
+
+const CloudBenchmarks: React.FC<CloudPageProps> = ({
+    initialSpeedDistData,
+    initialTableData,
+    initialTableMeta,
+    initialTimeSeriesData,
+}) => {
     const theme = useTheme();
 
-    // Separate state for each section
-    const [speedDistData, setSpeedDistData] = useState<SpeedDistributionPoint[]>([]);
-    const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>({
-        timestamps: [],
-        models: []
-    });
-    const [tableData, setTableData] = useState<TableRow[]>([]);
-    const [tableMeta, setTableMeta] = useState<TableMetaSummary | null>(null);
+    // Initialize state with SSR data (no loading spinner needed for initial render)
+    const [speedDistData, setSpeedDistData] = useState<SpeedDistributionPoint[]>(initialSpeedDistData);
+    const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>(initialTimeSeriesData);
+    const [tableData, setTableData] = useState<TableRow[]>(initialTableData);
+    const [tableMeta, setTableMeta] = useState<TableMetaSummary | null>(initialTableMeta);
     const [lifecycleSummary, setLifecycleSummary] = useState<LifecycleSummaryResponse | null>(null);
 
     // Separate time ranges for each section
@@ -88,15 +99,14 @@ const CloudBenchmarks: React.FC = () => {
 
     const [tableStatusFilter, setTableStatusFilter] = useState<TableStatusFilter>('all');
 
-    // Separate loading states for each section
+    // Loading states only used for client-side refetches (not initial render)
     const [distLoading, setDistLoading] = useState<boolean>(false);
     const [tableLoading, setTableLoading] = useState<boolean>(false);
     const [timeSeriesLoading, setTimeSeriesLoading] = useState<boolean>(false);
-    const [summaryLoading, setSummaryLoading] = useState<boolean>(false);
+    const [summaryLoading, setSummaryLoading] = useState<boolean>(true); // Only lifecycle needs initial fetch
 
     const [error, setError] = useState<string | null>(null);
     const [summaryError, setSummaryError] = useState<string | null>(null);
-    const [initialLoading, setInitialLoading] = useState<boolean>(true);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     // Fetch function for Speed Distribution section
@@ -213,65 +223,11 @@ const CloudBenchmarks: React.FC = () => {
         }
     }, []);
 
-    // Shared fetch for sections using the same days value (optimization)
-    const fetchSharedData = useCallback(async (days: number) => {
-        const res = await fetch(`/api/processed?days=${days}`, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
-        });
-
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        return res.json();
-    }, []);
-
-    // Initial data fetch for all sections (only on mount)
+    // Only fetch lifecycle summary on mount (other data comes from SSR)
     useEffect(() => {
-        const initializeData = async () => {
-            try {
-                // Optimization: if dist and table use the same days, fetch once
-                if (distDays === tableDays) {
-                    // Fetch shared data (30 days) once for both dist and table
-                    const [sharedData, timeSeriesRes] = await Promise.all([
-                        (async () => {
-                            setDistLoading(true);
-                            setTableLoading(true);
-                            const data = await fetchSharedData(distDays);
-                            if (data?.speedDistribution) {
-                                setSpeedDistData(data.speedDistribution);
-                            }
-                            if (data?.table) {
-                                setTableData(data.table);
-                                setTableMeta(data.meta?.table ?? null);
-                            }
-                            setDistLoading(false);
-                            setTableLoading(false);
-                            return data;
-                        })(),
-                        fetchTimeSeries(timeSeriesDays),
-                        fetchLifecycleSummaryData()
-                    ]);
-                } else {
-                    // Different days - fetch separately (fallback)
-                    await Promise.all([
-                        fetchSpeedDistribution(distDays),
-                        fetchTableData(tableDays),
-                        fetchTimeSeries(timeSeriesDays),
-                        fetchLifecycleSummaryData()
-                    ]);
-                }
-            } catch (err: any) {
-                console.error('Error initializing data:', err);
-                setError(err.message);
-            } finally {
-                setInitialLoading(false);
-            }
-        };
-        initializeData();
+        fetchLifecycleSummaryData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Empty array - only run on mount
+    }, []);
 
     // Time range change handlers for each section
     const handleDistTimeRangeChange = useCallback(async (days: number) => {
@@ -304,20 +260,6 @@ const CloudBenchmarks: React.FC = () => {
         setTimeSeriesDays(days);
         await fetchTimeSeries(days);
     }, [fetchTimeSeries]);
-
-    if (initialLoading) {
-        return (
-            <>
-                <Head>
-                    <title>Cloud LLM Benchmarks - Speed & Performance Testing</title>
-                    <meta name="description" content="Real-time benchmarking of cloud LLM providers including OpenAI, Anthropic, Google, and more. Compare speed, reliability, and performance." />
-                </Head>
-                <LoadingContainer>
-                    <StyledCircularProgress size={80} aria-label="Loading benchmarks data" />
-                </LoadingContainer>
-            </>
-        );
-    }
 
     if (error) {
         return (
@@ -515,6 +457,44 @@ const CloudBenchmarks: React.FC = () => {
             </MainContainer>
         </>
     );
+};
+
+// ISR: Pre-render page with static data, revalidate every 5 minutes
+export const getStaticProps: GetStaticProps<CloudPageProps> = async () => {
+    try {
+        const apiDir = path.join(process.cwd(), 'public', 'api');
+
+        // Read pre-generated static files
+        const [data30Raw, data14Raw] = await Promise.all([
+            fs.readFile(path.join(apiDir, 'processed-30days.json'), 'utf8'),
+            fs.readFile(path.join(apiDir, 'processed-14days.json'), 'utf8'),
+        ]);
+
+        const data30 = JSON.parse(data30Raw);
+        const data14 = JSON.parse(data14Raw);
+
+        return {
+            props: {
+                initialSpeedDistData: data30.speedDistribution || [],
+                initialTableData: data30.table || [],
+                initialTableMeta: data30.meta?.table || null,
+                initialTimeSeriesData: data14.timeSeries || { timestamps: [], models: [] },
+            },
+            revalidate: 300, // Revalidate every 5 minutes
+        };
+    } catch (error) {
+        console.error('getStaticProps error:', error);
+        // Return empty data if static files aren't available (fallback)
+        return {
+            props: {
+                initialSpeedDistData: [],
+                initialTableData: [],
+                initialTableMeta: null,
+                initialTimeSeriesData: { timestamps: [], models: [] },
+            },
+            revalidate: 60, // Retry sooner on error
+        };
+    }
 };
 
 export default CloudBenchmarks;
