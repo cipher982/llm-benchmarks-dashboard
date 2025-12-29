@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { lazy, Suspense } from "react";
-import { GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import Head from "next/head";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
@@ -459,12 +459,15 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     );
 };
 
-// ISR: Pre-render page with static data, revalidate every 5 minutes
-export const getStaticProps: GetStaticProps<CloudPageProps> = async () => {
+// SSR: Pre-render page with static file data on each request
+export const getServerSideProps: GetServerSideProps<CloudPageProps> = async ({ res }) => {
+    // Set cache headers for CDN/browser caching (5 min cache, 10 min stale-while-revalidate)
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+
     try {
         const apiDir = path.join(process.cwd(), 'public', 'api');
 
-        // Read pre-generated static files
+        // Read pre-generated static files (fast - they're on disk)
         const [data30Raw, data14Raw] = await Promise.all([
             fs.readFile(path.join(apiDir, 'processed-30days.json'), 'utf8'),
             fs.readFile(path.join(apiDir, 'processed-14days.json'), 'utf8'),
@@ -480,10 +483,9 @@ export const getStaticProps: GetStaticProps<CloudPageProps> = async () => {
                 initialTableMeta: data30.meta?.table || null,
                 initialTimeSeriesData: data14.timeSeries || { timestamps: [], models: [] },
             },
-            revalidate: 300, // Revalidate every 5 minutes
         };
     } catch (error) {
-        console.error('getStaticProps error:', error);
+        console.error('getServerSideProps error:', error);
         // Return empty data if static files aren't available (fallback)
         return {
             props: {
@@ -492,7 +494,6 @@ export const getStaticProps: GetStaticProps<CloudPageProps> = async () => {
                 initialTableMeta: null,
                 initialTimeSeriesData: { timestamps: [], models: [] },
             },
-            revalidate: 60, // Retry sooner on error
         };
     }
 };
