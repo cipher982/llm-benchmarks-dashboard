@@ -100,6 +100,7 @@ async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<b
             
             // Add headers to indicate static file serving
             res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
             res.setHeader('X-Cache-Status', 'STATIC-FILE');
             res.setHeader('X-Processing-Time', '1ms'); // Static files are instant
             
@@ -306,13 +307,14 @@ async function handler(
             const processedData = await cachedPromise;
             
             // Add debugging headers
+            res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
             res.setHeader("X-Cache-Status", "DEDUPLICATION-CACHE");
             res.setHeader("X-Model-Mapping", process.env.USE_DATABASE_MODELS === 'true' ? "database" : "hardcoded");
             res.setHeader("X-Processing-Time", `${Date.now() - requestStartTime}ms`);
-            
+
             return res.status(200).json(processedData);
         }
-        
+
         // Create new request promise with timeout and cache it
         const requestPromise = (async () => {
             try {
@@ -365,10 +367,11 @@ async function handler(
         const processedData = await requestPromise;
         
         // Add debugging headers
+        res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
         res.setHeader("X-Cache-Status", "DYNAMIC-GENERATION");
         res.setHeader("X-Model-Mapping", process.env.USE_DATABASE_MODELS === 'true' ? "database" : "hardcoded");
         res.setHeader("X-Processing-Time", `${Date.now() - requestStartTime}ms`);
-        
+
         // Return the processed data
         return res.status(200).json(processedData);
     } catch (error) {
