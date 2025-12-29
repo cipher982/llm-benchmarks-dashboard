@@ -213,17 +213,58 @@ const CloudBenchmarks: React.FC = () => {
         }
     }, []);
 
+    // Shared fetch for sections using the same days value (optimization)
+    const fetchSharedData = useCallback(async (days: number) => {
+        const res = await fetch(`/api/processed?days=${days}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        return res.json();
+    }, []);
+
     // Initial data fetch for all sections (only on mount)
     useEffect(() => {
         const initializeData = async () => {
             try {
-                // Fetch all sections in parallel with their default time ranges
-                await Promise.all([
-                    fetchSpeedDistribution(distDays),
-                    fetchTableData(tableDays),
-                    fetchTimeSeries(timeSeriesDays),
-                    fetchLifecycleSummaryData()
-                ]);
+                // Optimization: if dist and table use the same days, fetch once
+                if (distDays === tableDays) {
+                    // Fetch shared data (30 days) once for both dist and table
+                    const [sharedData, timeSeriesRes] = await Promise.all([
+                        (async () => {
+                            setDistLoading(true);
+                            setTableLoading(true);
+                            const data = await fetchSharedData(distDays);
+                            if (data?.speedDistribution) {
+                                setSpeedDistData(data.speedDistribution);
+                            }
+                            if (data?.table) {
+                                setTableData(data.table);
+                                setTableMeta(data.meta?.table ?? null);
+                            }
+                            setDistLoading(false);
+                            setTableLoading(false);
+                            return data;
+                        })(),
+                        fetchTimeSeries(timeSeriesDays),
+                        fetchLifecycleSummaryData()
+                    ]);
+                } else {
+                    // Different days - fetch separately (fallback)
+                    await Promise.all([
+                        fetchSpeedDistribution(distDays),
+                        fetchTableData(tableDays),
+                        fetchTimeSeries(timeSeriesDays),
+                        fetchLifecycleSummaryData()
+                    ]);
+                }
+            } catch (err: any) {
+                console.error('Error initializing data:', err);
+                setError(err.message);
             } finally {
                 setInitialLoading(false);
             }
