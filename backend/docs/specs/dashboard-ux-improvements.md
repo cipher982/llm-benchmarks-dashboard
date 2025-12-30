@@ -1,6 +1,6 @@
 # Dashboard UX Improvements Spec
 
-**Status:** In Progress
+**Status:** Implemented
 **Created:** 2025-12-30
 **Protocol:** SDP-1
 
