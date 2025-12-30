@@ -371,9 +371,8 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             ...d,
             model_name: `${d.provider}-${d.model_name}`,
             display_name: d.model_name,
-            // NOTE: 140 cap is INTENTIONAL. Fast outliers (Groq/Cerebras at 200-400 tok/s)
-            // compress the chart and hide variance in the 0-140 range where ~90% of models live.
-            // See commit 0cca826 for context on why this was reverted after removal.
+            // NOTE: 140 cap is INTENTIONAL until split-axis chart is implemented.
+            // See docs/specs/split-axis-chart.md for the planned solution.
             tokens_per_second: d.tokens_per_second.filter(val => val <= 140)
         }))
         .filter(d => d.tokens_per_second.length > 0);
