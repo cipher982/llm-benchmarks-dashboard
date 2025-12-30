@@ -47,7 +47,7 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
         () => [
             { label: "Models Tracked", value: `${data.models.length}` },
             { label: "Median Tokens / Second", value: formatNumber(data.summary.tokensPerSecondMean) },
-            { label: "Median Time to First Token (ms)", value: formatNumber(data.summary.timeToFirstTokenMean) },
+            { label: "Median Time to First Token (ms)", value: formatNumber((data.summary.timeToFirstTokenMean ?? 0) * 1000) },
             { label: "Last Updated", value: formatTimestamp(data.summary.latestRunAt) },
         ],
         [data]
@@ -83,7 +83,7 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
         }
 
         if (data.summary.timeToFirstTokenMean) {
-            const ttft = data.summary.timeToFirstTokenMean;
+            const ttft = data.summary.timeToFirstTokenMean * 1000; // Convert to ms
             const latencyRating = ttft < 500 ? "excellent" : ttft < 1000 ? "good" : ttft < 2000 ? "moderate" : "high";
             items.push(`Median time to first token across the fleet is ${formatNumber(ttft)} ms, showing ${latencyRating} responsiveness for interactive applications.`);
         }
@@ -111,7 +111,7 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
         tokensPerSecondMean: model.tokensPerSecondMean ?? 0,
         tokensPerSecondMin: model.tokensPerSecondMin ?? model.tokensPerSecondMean ?? 0,
         tokensPerSecondMax: model.tokensPerSecondMax ?? model.tokensPerSecondMean ?? 0,
-        timeToFirstTokenMean: model.timeToFirstTokenMean ?? 0,
+        timeToFirstTokenMean: (model.timeToFirstTokenMean ?? 0) * 1000, // Convert to ms
     }));
 
     const faqItems = [
@@ -209,7 +209,7 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
                         tokensPerSecondMean: model.tokensPerSecondMean ?? 0,
                         tokensPerSecondMin: model.tokensPerSecondMin ?? 0,
                         tokensPerSecondMax: model.tokensPerSecondMax ?? 0,
-                        timeToFirstTokenMean: model.timeToFirstTokenMean ?? 0,
+                        timeToFirstTokenMean: (model.timeToFirstTokenMean ?? 0) * 1000, // Convert to ms
                     }))} />
                 </Section>
                 <Section title="Featured Models">
