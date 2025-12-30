@@ -84,7 +84,7 @@ const transformTimeSeries = (data: ModelPageData): TimeSeriesData | null => {
 const buildFaq = (data: ModelPageData) => [
     {
         question: `How fast is ${data.displayName}?`,
-        answer: `The latest rolling average throughput is ${formatNumber(data.summary.tokensPerSecondMean)} tokens per second with an average time to first token of ${formatNumber(data.summary.timeToFirstTokenMean)} ms across ${data.summary.runCount} recent runs.`,
+        answer: `The latest rolling average throughput is ${formatNumber(data.summary.tokensPerSecondMean)} tokens per second with an average time to first token of ${formatNumber((data.summary.timeToFirstTokenMean ?? 0) * 1000)} ms across ${data.summary.runCount} recent runs.`,
     },
     {
         question: "How often are these benchmarks updated?",
@@ -114,7 +114,7 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
     const metrics = useMemo(
         () => [
             { label: "Avg Tokens / Second", value: formatNumber(data.summary.tokensPerSecondMean) },
-            { label: "Avg Time to First Token (ms)", value: formatNumber(data.summary.timeToFirstTokenMean) },
+            { label: "Avg Time to First Token (ms)", value: formatNumber((data.summary.timeToFirstTokenMean ?? 0) * 1000) },
             { label: "Runs Analysed", value: `${data.summary.runCount}` },
             { label: "Last Updated", value: formatTimestamp(data.summary.latestRunAt) },
         ],
@@ -150,7 +150,7 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
             }
         }
         if (data.summary.timeToFirstTokenMean) {
-            const ttft = data.summary.timeToFirstTokenMean;
+            const ttft = data.summary.timeToFirstTokenMean * 1000; // Convert to ms
             const latencyRating = ttft < 500 ? "excellent" : ttft < 1000 ? "good" : ttft < 2000 ? "moderate" : "high";
             items.push(`Average time to first token is ${formatNumber(ttft)} ms (${latencyRating} latency), ${latencyRating === "excellent" || latencyRating === "good" ? "suitable" : "consider alternatives"} for latency-sensitive workloads.`);
         }
