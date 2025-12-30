@@ -276,12 +276,13 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
         },
         {
             accessorKey: 'time_to_first_token_mean',
-            header: 'First Token',
+            header: 'First Token (ms)',
             size: 120,
             cell: ({ getValue }) => {
                 const value = getValue() as number;
                 if (value === undefined || value === null) return '0.00';
-                return Number(value).toFixed(2);
+                // Convert from seconds to milliseconds
+                return Number(value * 1000).toFixed(2);
             },
         },
     ], []);
