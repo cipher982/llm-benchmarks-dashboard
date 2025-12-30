@@ -113,8 +113,8 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                         .style("stroke-width", 4);
 
                     const tooltipHtml = isDeprecated
-                        ? `${modelData.display_name}<br/>⚠ Deprecated<br/>Mean: ${modelData.mean_tokens_per_second.toFixed(2)} tokens/s`
-                        : `${modelData.display_name}<br/>Mean: ${modelData.mean_tokens_per_second.toFixed(2)} tokens/s`;
+                        ? `${modelData.display_name}<br/>⚠ Deprecated<br/>Avg: ${modelData.mean_tokens_per_second.toFixed(2)} tokens/s`
+                        : `${modelData.display_name}<br/>Avg: ${modelData.mean_tokens_per_second.toFixed(2)} tokens/s`;
 
                     tooltip
                         .style("opacity", 1)

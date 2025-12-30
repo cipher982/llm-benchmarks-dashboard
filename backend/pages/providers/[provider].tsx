@@ -46,8 +46,8 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
     const metrics = useMemo(
         () => [
             { label: "Models Tracked", value: `${data.models.length}` },
-            { label: "Median Tokens / Second", value: formatNumber(data.summary.tokensPerSecondMean) },
-            { label: "Median Time to First Token (ms)", value: formatNumber((data.summary.timeToFirstTokenMean ?? 0) * 1000) },
+            { label: "Avg Tokens / Second", value: formatNumber(data.summary.tokensPerSecondMean) },
+            { label: "Avg Time to First Token (ms)", value: formatNumber((data.summary.timeToFirstTokenMean ?? 0) * 1000) },
             { label: "Last Updated", value: formatTimestamp(data.summary.latestRunAt) },
         ],
         [data]
@@ -85,7 +85,7 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
         if (data.summary.timeToFirstTokenMean) {
             const ttft = data.summary.timeToFirstTokenMean * 1000; // Convert to ms
             const latencyRating = ttft < 500 ? "excellent" : ttft < 1000 ? "good" : ttft < 2000 ? "moderate" : "high";
-            items.push(`Median time to first token across the fleet is ${formatNumber(ttft)} ms, showing ${latencyRating} responsiveness for interactive applications.`);
+            items.push(`Avg time to first token across the fleet is ${formatNumber(ttft)} ms, showing ${latencyRating} responsiveness for interactive applications.`);
         }
 
         // Calculate consistency across models

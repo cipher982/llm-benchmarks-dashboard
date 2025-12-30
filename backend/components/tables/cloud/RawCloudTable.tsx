@@ -246,7 +246,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
         },
         {
             accessorKey: 'tokens_per_second_mean',
-            header: 'Toks/Sec (Mean)',
+            header: 'Toks/Sec (Avg)',
             size: 150,
             cell: ({ getValue }) => {
                 const value = getValue() as number;
