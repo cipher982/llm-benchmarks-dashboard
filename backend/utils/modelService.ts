@@ -273,7 +273,7 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         tokensPerSecondMean: row.tokens_per_second_mean,
         tokensPerSecondMin: row.tokens_per_second_min,
         tokensPerSecondMax: row.tokens_per_second_max,
-        timeToFirstTokenMean: row.time_to_first_token_mean,
+        timeToFirstTokenMean: row.time_to_first_token_mean * 1000, // Convert seconds to ms
     }));
 
     const summary = buildSummaryFromTable(matchingTableRows, rawSampleCount, runCount, latestRunAt);
