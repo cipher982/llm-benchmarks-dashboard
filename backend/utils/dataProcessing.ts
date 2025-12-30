@@ -371,7 +371,7 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             ...d,
             model_name: `${d.provider}-${d.model_name}`,
             display_name: d.model_name,
-            tokens_per_second: d.tokens_per_second.filter(val => val <= 140)
+            tokens_per_second: d.tokens_per_second  // No filter - show all data
         }))
         .filter(d => d.tokens_per_second.length > 0);
     

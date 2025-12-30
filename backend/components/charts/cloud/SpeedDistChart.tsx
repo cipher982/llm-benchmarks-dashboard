@@ -36,8 +36,12 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
     }, [width, height, margin]);
 
     const setupScales = useCallback(() => {
-        x.domain([0, 140]);
-        const maxDensity = d3.max(data, d => 
+        // Auto-scale x-domain to data range with padding
+        const maxSpeed = d3.max(data, d =>
+            d.density_points ? d3.max(d.density_points, p => p.x) || 0 : 0
+        ) || 150;
+        x.domain([0, Math.ceil(maxSpeed / 50) * 50]); // Round up to nearest 50
+        const maxDensity = d3.max(data, d =>
             d.density_points ? d3.max(d.density_points, p => p.y) || 0 : 0
         ) || 0;
         y.domain([0, maxDensity * 1.1]); // Add 10% padding
