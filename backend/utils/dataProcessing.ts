@@ -4,11 +4,13 @@ import connectToMongoDB from './connectToMongoDB';
 import mongoose from 'mongoose';
 import { getProviderDisplayName } from './providerMetadata';
 import logger from './logger';
+import { cached } from './cache';
 
 const SAMPLE_SIZE = 100; // Number of points to sample for speed distribution
 const PRECISION = 2; // Number of decimal places to keep
 const MINUTES_INTERVAL = 30; // Data points are 30 minutes apart
 const TARGET_DATA_POINTS = 144; // Target number of data points for time series (3 days worth at 30min intervals)
+const SNAPSHOT_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 // Deprecation snapshot schema
 const SnapshotSchema = new mongoose.Schema({
@@ -32,14 +34,16 @@ const DeprecationSnapshot = mongoose.models.DeprecationSnapshot ||
 
 // Fetch deprecation snapshots
 async function fetchDeprecationSnapshots() {
-    try {
-        await connectToMongoDB();
-        const snapshots = await DeprecationSnapshot.find({}).lean();
-        return snapshots || [];
-    } catch (error) {
-        console.error('Error fetching deprecation snapshots:', error);
-        return [];
-    }
+    return cached('deprecation-snapshots', SNAPSHOT_CACHE_TTL, async () => {
+        try {
+            await connectToMongoDB();
+            const snapshots = await DeprecationSnapshot.find({}).lean();
+            return snapshots || [];
+        } catch (error) {
+            console.error('Error fetching deprecation snapshots:', error);
+            return [];
+        }
+    });
 }
 
 // Time Series Processing

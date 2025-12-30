@@ -4,6 +4,7 @@ import connectToMongoDB from './connectToMongoDB';
 import mongoose from 'mongoose';
 import { createSlug } from './seoUtils';
 import { getProviderDisplayName } from './providerMetadata';
+import { cached, clearCache } from './cache';
 
 // Model schema for the models collection
 const ModelSchema = new mongoose.Schema({
@@ -37,8 +38,7 @@ const LifecycleStatusSchema = new mongoose.Schema({
 const LifecycleStatusModel = mongoose.models.ModelLifecycleStatus ||
   mongoose.model('ModelLifecycleStatus', LifecycleStatusSchema, 'model_status');
 
-
-// Cache for model mappings to avoid repeated DB queries
+// Cache types
 interface LifecycleMetrics {
   last_success?: string;
   successes_7d?: number;
@@ -69,8 +69,6 @@ interface ModelMetadata {
   lifecycle?: LifecycleMetadata;
 }
 
-let modelMappingCache: { [key: string]: ModelMetadata } | null = null;
-let cacheTimestamp: number = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 const toIsoString = (value: unknown): string | undefined => {
@@ -111,51 +109,10 @@ const toStringArray = (value: unknown): string[] | undefined => {
 };
 
 /**
- * Get model metadata from database (display name and deprecation info)
- * Uses caching with multiple fallback layers for reliability
+ * Get or refresh the model mapping cache from database
  */
-async function getModelMetadata(provider: string, modelId: string): Promise<ModelMetadata> {
-  try {
-    // Check cache first
-    const now = Date.now();
-    if (modelMappingCache && (now - cacheTimestamp) < CACHE_TTL) {
-      const cacheKey = `${provider}:${modelId}`;
-      if (modelMappingCache[cacheKey]) {
-        return modelMappingCache[cacheKey];
-      }
-    }
-
-    // Refresh cache if needed (with timeout protection)
-    if (!modelMappingCache || (now - cacheTimestamp) >= CACHE_TTL) {
-      const refreshPromise = refreshModelMappingCache();
-      // Don't wait more than 2 seconds for cache refresh
-      await Promise.race([
-        refreshPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Cache refresh timeout')), 2000))
-      ]);
-    }
-
-    // Try cache again after refresh
-    const cacheKey = `${provider}:${modelId}`;
-
-    if (modelMappingCache && modelMappingCache[cacheKey]) {
-        return modelMappingCache[cacheKey];
-    }
-
-    // Fallback: return original model name if not found
-    return { display_name: modelId };
-
-  } catch (error) {
-    // Multiple fallback strategies - never fail completely
-    return { display_name: modelId };
-  }
-}
-
-/**
- * Refresh the model mapping cache from database
- */
-async function refreshModelMappingCache(): Promise<void> {
-  try {
+async function getModelMappingCache(): Promise<{ [key: string]: ModelMetadata }> {
+  return cached('model-mapping-cache', CACHE_TTL, async () => {
     await connectToMongoDB();
 
     const models = await Model.find({}, {
@@ -166,7 +123,7 @@ async function refreshModelMappingCache(): Promise<void> {
       deprecation_date: 1,
       successor_model: 1,
       deprecation_reason: 1
-    });
+    }).lean();
 
     const newCache: { [key: string]: ModelMetadata } = {};
     models.forEach(model => {
@@ -192,7 +149,7 @@ async function refreshModelMappingCache(): Promise<void> {
       metrics: 1
     }).lean();
 
-    lifecycleStatuses.forEach(status => {
+    lifecycleStatuses.forEach((status: any) => {
       const cacheKey = `${status.provider}:${status.model_id}`;
       const existing = newCache[cacheKey] || { display_name: status.model_id };
 
@@ -210,11 +167,16 @@ async function refreshModelMappingCache(): Promise<void> {
       };
     });
 
-    modelMappingCache = newCache;
-    cacheTimestamp = Date.now();
-  } catch (error) {
-    // Silently fail - cache will remain as-is
-  }
+    return newCache;
+  });
+}
+
+function getModelMetadataSync(
+  provider: string,
+  modelId: string,
+  cache: { [key: string]: ModelMetadata }
+): ModelMetadata {
+  return cache[`${provider}:${modelId}`] || { display_name: modelId };
 }
 
 /**
@@ -224,9 +186,7 @@ async function refreshModelMappingCache(): Promise<void> {
 export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBenchmark[]> => {
   try {
     // Ensure cache is loaded
-    if (!modelMappingCache) {
-      await refreshModelMappingCache();
-    }
+    const modelMappingCache = await getModelMappingCache();
 
     // Group data by provider-model combination for processing
     const modelGroups = new Map<string, ProcessedData[]>();
@@ -240,7 +200,7 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
 
       const providerCanonical = item.providerCanonical ?? item.provider;
       const modelCanonical = item.modelCanonical ?? item.model_name;
-      const metadata = await getModelMetadata(providerCanonical, modelCanonical);
+      const metadata = getModelMetadataSync(providerCanonical, modelCanonical, modelMappingCache);
 
       const groupKey = JSON.stringify({
         providerCanonical,
@@ -382,8 +342,7 @@ export const mapModelNames = async (data: ProcessedData[], useDatabase: boolean 
  * Utility function to clear the cache (useful for testing)
  */
 export const clearModelMappingCache = (): void => {
-  modelMappingCache = null;
-  cacheTimestamp = 0;
+  clearCache('model-mapping-cache');
 };
 
 export default mapModelNamesDB;

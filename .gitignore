@@ -76,5 +76,9 @@ pagespeed/
 !.env.example
 backend/scripts/
 
+# test artifacts
+backend/playwright-report/
+backend/test-results/
+
 # Docker compose override for local development
 docker-compose.override.yml

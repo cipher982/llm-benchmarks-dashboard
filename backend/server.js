@@ -30,7 +30,7 @@ function isAuthorizedAdmin(req) {
 const hostname = '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
-// Static data generation - SIMPLIFIED: Direct generation for each range
+// Static data generation (cron)
 async function generateStaticData() {
   console.log('🔄 Starting static data generation...');
   const startTime = Date.now();
@@ -43,47 +43,34 @@ async function generateStaticData() {
     await fs.mkdir(publicDir, { recursive: true });
     await fs.mkdir(apiDir, { recursive: true });
     
-    console.log(`📁 Created directories: ${apiDir}`);
-    
+    console.log(`📁 Target directory: ${apiDir}`);
+
     const timeRanges = [3, 7, 12, 14, 30];
-    console.log(`🎯 Generating ${timeRanges.length} static files...`);
-    
-    // Simple approach: Generate each file independently
     const results = [];
-    
+
+    console.log(`🎯 Generating ${timeRanges.length} processed files...`);
+
     for (const days of timeRanges) {
       const fileStart = Date.now();
       console.log(`📊 Generating ${days}-day file...`);
       
       try {
-        // Direct API call for the exact range needed
         const response = await fetch(`http://localhost:${port}/api/processed?days=${days}&bypass_static=true`);
-        if (!response.ok) {
-          throw new Error(`API call failed: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`API failed: ${response.status}`);
         
         const data = await response.json();
-        
-        // Write static file
         const filename = `processed-${days}days.json`;
         const filepath = path.join(apiDir, filename);
-        
-        console.log(`  📝 Writing ${filename}...`);
         await fs.writeFile(filepath, JSON.stringify(data));
-        
-        // Verify file was written
         const stats = await fs.stat(filepath);
+
         const duration = Date.now() - fileStart;
-        
-        console.log(`  ✅ Generated ${filename} (${Math.round(stats.size/1024)}KB) in ${duration}ms`);
-        console.log(`  📊 ${data.timeSeries?.models?.length || 0} models, ${data.table?.length || 0} table rows`);
-        
         results.push({ days, success: true, duration, size: stats.size });
-        
-      } catch (error) {
+        console.log(`  ✅ Generated ${filename} (${Math.round(stats.size / 1024)}KB) in ${duration}ms`);
+      } catch (err) {
         const duration = Date.now() - fileStart;
-        console.error(`  ❌ Failed to generate ${days}-day file:`, error.message);
-        results.push({ days, success: false, error: error.message, duration });
+        results.push({ days, success: false, duration, error: err?.message || String(err) });
+        console.error(`  ❌ Failed ${days}-day: ${err?.message || err}`);
       }
     }
     

@@ -113,7 +113,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const fetchSpeedDistribution = useCallback(async (days: number) => {
         try {
             setDistLoading(true);
-            const res = await fetch(`/api/processed?days=${days}`, {
+            const res = await fetch(`/api/processed?days=${days}&include=dist`, {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' }
             });
@@ -142,7 +142,10 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         try {
             setTableLoading(true);
             const filterToUse = overrideFilter ?? tableStatusFilter;
-            const params = new URLSearchParams({ days: String(days) });
+            const params = new URLSearchParams({ 
+                days: String(days),
+                include: 'table'
+            });
 
             if (filterToUse === 'hideFlagged') {
                 params.set('hideFlagged', 'true');
@@ -199,7 +202,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const fetchTimeSeries = useCallback(async (days: number) => {
         try {
             setTimeSeriesLoading(true);
-            const res = await fetch(`/api/processed?days=${days}`, {
+            const res = await fetch(`/api/processed?days=${days}&include=series`, {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' }
             });

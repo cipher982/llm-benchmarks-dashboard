@@ -65,12 +65,13 @@ function parseLifecycleFilters(req: NextApiRequest): TableFilterOptions | undefi
     return filters;
 }
 
-function buildCacheKey(days: number, filters?: TableFilterOptions): string {
+function buildCacheKey(days: number, filters?: TableFilterOptions, include?: string[]): string {
     const allowedKey = filters?.allowedStatuses
         ? Array.from(filters.allowedStatuses).sort().join('|')
         : 'all';
     const hideKey = filters?.hideFlagged ? 'hide' : 'show';
-    return `processed-${days}days-${allowedKey}-${hideKey}`;
+    const includeKey = include ? [...include].sort().join(',') : 'all';
+    return `processed-${days}days-${allowedKey}-${hideKey}-${includeKey}`;
 }
 
 // Request deduplication cache to prevent multiple identical expensive requests
@@ -130,10 +131,23 @@ function parseTimeRange(req: NextApiRequest) {
 
 // This is the shared processing function used by both processed.ts and model.ts endpoints
 // Performance optimization metrics are added here
-export async function processAllMetrics(rawMetrics: any[], days: number, options?: { tableFilters?: TableFilterOptions }) {
+export async function processAllMetrics(
+    rawMetrics: any[], 
+    days: number, 
+    options?: { 
+        tableFilters?: TableFilterOptions,
+        include?: string[] // Optional projections: 'table', 'dist', 'series'
+    }
+) {
     const pipelineStartTime = process.hrtime.bigint();
     logger.info(`🚀 processAllMetrics started with ${rawMetrics.length} raw metrics for ${days} days`);
     
+    // Determine which projections to run
+    const include = options?.include || ['table', 'dist', 'series'];
+    const shouldRunDist = include.includes('dist');
+    const shouldRunSeries = include.includes('series');
+    const shouldRunTable = include.includes('table');
+
     // Transform data first since other operations depend on it
     const startTime = process.hrtime.bigint();
     logger.info(`🔄 Starting cleanTransformCloud on ${rawMetrics.length} metrics...`);
@@ -166,38 +180,48 @@ export async function processAllMetrics(rawMetrics: any[], days: number, options
     // - timeSeriesData: UNIQUE models only - each gets chart with multiple provider lines  
     // - tableData: ALL provider-model combinations - raw data table with clean names
     const startTimeParallel = process.hrtime.bigint();
-    logger.info(`🚀 Starting parallel processing with ${mappedData.length} mapped metrics...`);
+    logger.info(`🚀 Starting parallel processing with ${mappedData.length} mapped metrics (include: ${include.join(',')})...`);
     
     const tableFilters = options?.tableFilters;
 
-    let speedDistData, timeSeriesData, tableData;
+    let speedDistData: any[] = [];
+    let timeSeriesData: any = { timestamps: [], models: [] };
+    let tableData: any[] = [];
+
     try {
-        [speedDistData, timeSeriesData, tableData] = await Promise.all([
-            (async () => {
+        const tasks: Promise<any>[] = [];
+        
+        if (shouldRunDist) {
+            tasks.push((async () => {
                 const start = process.hrtime.bigint();
                 logger.info(`🔄 Starting processSpeedDistData...`);
-                const result = await processSpeedDistData(mappedData);
+                speedDistData = await processSpeedDistData(mappedData);
                 const end = process.hrtime.bigint();
-                logger.info(`✅ processSpeedDistData took ${(end - start) / 1000000n}ms, result length: ${result.length}`);
-                return result;
-            })(),
-            (async () => {
+                logger.info(`✅ processSpeedDistData took ${(end - start) / 1000000n}ms, result length: ${speedDistData.length}`);
+            })());
+        }
+
+        if (shouldRunSeries) {
+            tasks.push((async () => {
                 const start = process.hrtime.bigint();
                 logger.info(`🔄 Starting processTimeSeriesData...`);
-                const result = await processTimeSeriesData(mappedData, days);
+                timeSeriesData = await processTimeSeriesData(mappedData, days);
                 const end = process.hrtime.bigint();
-                logger.info(`✅ processTimeSeriesData took ${(end - start) / 1000000n}ms, models: ${result.models?.length || 0}`);
-                return result;
-            })(),
-            (async () => {
+                logger.info(`✅ processTimeSeriesData took ${(end - start) / 1000000n}ms, models: ${timeSeriesData.models?.length || 0}`);
+            })());
+        }
+
+        if (shouldRunTable) {
+            tasks.push((async () => {
                 const start = process.hrtime.bigint();
                 logger.info(`🔄 Starting processRawTableData...`);
-                const result = await processRawTableData(mappedData, tableFilters);
+                tableData = await processRawTableData(mappedData, tableFilters);
                 const end = process.hrtime.bigint();
-                logger.info(`✅ processRawTableData took ${(end - start) / 1000000n}ms, rows: ${result.length}`);
-                return result;
-            })()
-        ]);
+                logger.info(`✅ processRawTableData took ${(end - start) / 1000000n}ms, rows: ${tableData.length}`);
+            })());
+        }
+
+        await Promise.all(tasks);
         const endTimeParallel = process.hrtime.bigint();
         logger.info(`🎯 All parallel processing took ${(endTimeParallel - startTimeParallel) / 1000000n}ms`);
     } catch (parallelError) {
@@ -208,6 +232,7 @@ export async function processAllMetrics(rawMetrics: any[], days: number, options
 
     // Centralized data validation: ensure timestamps and values align
     const validateTimeSeriesData = (ts: any) => {
+        if (!shouldRunSeries) return;
         const timestamps = ts?.timestamps || [];
         const expected = timestamps.length;
         const errors: string[] = [];
@@ -229,15 +254,15 @@ export async function processAllMetrics(rawMetrics: any[], days: number, options
     validateTimeSeriesData(timeSeriesData);
 
     // Log sizes for analysis
-    if (speedDistData.length > 0) {
+    if (shouldRunDist && speedDistData.length > 0) {
         logger.info(`First model density points sample: ${
             JSON.stringify(speedDistData[0].density_points.slice(0, 3))
         }`);
     }
     logger.info('📏 Data sizes (KB):');
-    logger.info(`Speed Distribution: ${(JSON.stringify(speedDistData).length / 1024).toFixed(2)}`);
-    logger.info(`Time Series: ${(JSON.stringify(timeSeriesData).length / 1024).toFixed(2)}`);
-    logger.info(`Table: ${(JSON.stringify(tableData).length / 1024).toFixed(2)}`);
+    if (shouldRunDist) logger.info(`Speed Distribution: ${(JSON.stringify(speedDistData).length / 1024).toFixed(2)}`);
+    if (shouldRunSeries) logger.info(`Time Series: ${(JSON.stringify(timeSeriesData).length / 1024).toFixed(2)}`);
+    if (shouldRunTable) logger.info(`Table: ${(JSON.stringify(tableData).length / 1024).toFixed(2)}`);
 
     const appliedFilters = tableFilters
         ? {
@@ -248,19 +273,22 @@ export async function processAllMetrics(rawMetrics: any[], days: number, options
         }
         : undefined;
 
-    const finalResult = roundNumbers({
-        speedDistribution: speedDistData,
-        timeSeries: timeSeriesData,
-        table: tableData,
+    const resultPayload: any = {
         meta: {
             table: {
                 totalRows: mappedData.length,
-                filteredRows: tableData.length,
+                filteredRows: shouldRunTable ? tableData.length : 0,
                 flaggedStatuses: Array.from(FLAGGED_STATUSES),
                 appliedFilters
             }
         }
-    });
+    };
+
+    if (shouldRunDist) resultPayload.speedDistribution = speedDistData;
+    if (shouldRunSeries) resultPayload.timeSeries = timeSeriesData;
+    if (shouldRunTable) resultPayload.table = tableData;
+
+    const finalResult = roundNumbers(resultPayload);
     
     const pipelineEndTime = process.hrtime.bigint();
     logger.info(`🏁 Total processAllMetrics pipeline took ${(pipelineEndTime - pipelineStartTime) / 1000000n}ms`);
@@ -284,8 +312,32 @@ async function handler(
         const days = timeRange.days;
         const lifecycleFilters = parseLifecycleFilters(req);
         
+        // Parse include projections
+        const includeParam = req.query.include;
+        let include: string[] | undefined;
+        if (typeof includeParam === 'string') {
+            include = includeParam.split(',').map(token => token.trim().toLowerCase()).filter(Boolean);
+        } else if (Array.isArray(includeParam)) {
+            include = includeParam.join(',').split(',').map(token => token.trim().toLowerCase()).filter(Boolean);
+        }
+        if (include && include.length > 0) {
+            const allowed = new Set(['table', 'dist', 'series']);
+            include = include.filter(token => allowed.has(token));
+            if (include.length === 0) {
+                include = undefined;
+            }
+        } else {
+            include = undefined;
+        }
+
         // Check if static file serving should be bypassed
-        const useStatic = req.query.bypass_static !== "true" && !lifecycleFilters; // Static only when unfiltered
+        // Static only when unfiltered AND all projections included (or default)
+        const isFullRequest = !include || (
+            include.includes('table') && 
+            include.includes('dist') && 
+            include.includes('series')
+        );
+        const useStatic = req.query.bypass_static !== "true" && !lifecycleFilters && isFullRequest;
         
         // First priority: Try to serve static file (unless bypassed)
         if (useStatic) {
@@ -299,7 +351,7 @@ async function handler(
         logger.info(`Static file not available for days=${days}, generating dynamically`);
         
         // Implement request deduplication to prevent race conditions
-        const cacheKey = buildCacheKey(days, lifecycleFilters);
+        const cacheKey = buildCacheKey(days, lifecycleFilters, include);
         
         if (requestCache.has(cacheKey)) {
             logger.info(`🔄 Request deduplication: using cached promise for ${cacheKey}`);
@@ -348,6 +400,7 @@ async function handler(
                     }
                     return await processAllMetrics(metricsArray, days, {
                         tableFilters: lifecycleFilters,
+                        include: include
                     });
                 })();
                 
@@ -380,7 +433,25 @@ async function handler(
         // Clean up cache on error if needed
         const timeRange = parseTimeRange(req);
         const lifecycleFilters = parseLifecycleFilters(req);
-        const cacheKey = buildCacheKey(timeRange.days, lifecycleFilters);
+
+        const includeParam = req.query.include;
+        let include: string[] | undefined;
+        if (typeof includeParam === 'string') {
+            include = includeParam.split(',').map(token => token.trim().toLowerCase()).filter(Boolean);
+        } else if (Array.isArray(includeParam)) {
+            include = includeParam.join(',').split(',').map(token => token.trim().toLowerCase()).filter(Boolean);
+        }
+        if (include && include.length > 0) {
+            const allowed = new Set(['table', 'dist', 'series']);
+            include = include.filter(token => allowed.has(token));
+            if (include.length === 0) {
+                include = undefined;
+            }
+        } else {
+            include = undefined;
+        }
+
+        const cacheKey = buildCacheKey(timeRange.days, lifecycleFilters, include);
         if (requestCache.has(cacheKey)) {
             requestCache.delete(cacheKey);
         }
