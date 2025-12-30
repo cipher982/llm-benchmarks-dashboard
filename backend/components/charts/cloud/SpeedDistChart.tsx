@@ -12,6 +12,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
     const theme = useTheme();
     const d3Container = useRef<HTMLDivElement | null>(null);
     const svgRef = useRef<SVGSVGElement | null>(null);
+    const clipId = useMemo(() => `speed-dist-clip-${Math.random().toString(36).slice(2, 10)}`, []);
     const margin = useMemo(() => ({ top: 30, right: 30, bottom: 70, left: 80 }), []);
     const width = 1100 - margin.left - margin.right;
     const height = 600 - margin.top - margin.bottom;
@@ -31,9 +32,20 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
             .style("background", "transparent");
 
         svgRef.current = svg.node();
+
+        svg.append("defs")
+            .append("clipPath")
+            .attr("id", clipId)
+            .attr("clipPathUnits", "userSpaceOnUse")
+            .append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", width)
+            .attr("height", height);
+
         return svg.append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
-    }, [width, height, margin]);
+    }, [width, height, margin, clipId]);
 
     const setupScales = useCallback(() => {
         // Auto-scale x-domain to data range with padding
@@ -78,10 +90,15 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
         svg.selectAll(".density-path").remove();
         svg.selectAll(".model-label").remove();
 
+        const [xMin, xMax] = x.domain();
+
         data.forEach((modelData, index) => {
             if (!modelData.density_points) return;
 
-            const maxDensityPoint = modelData.density_points.reduce((prev, current) => 
+            const visibleDensityPoints = modelData.density_points.filter(p => p.x >= xMin && p.x <= xMax);
+            if (visibleDensityPoints.length === 0) return;
+
+            const maxDensityPoint = visibleDensityPoints.reduce((prev, current) =>
                 (prev.y > current.y) ? prev : current
             );
 
@@ -103,10 +120,11 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
 
             // Draw density path
             svg.append("path")
-                .datum(modelData.density_points)
+                .datum(visibleDensityPoints)
                 .attr("class", "density-path")
                 .attr("id", lineId)
                 .attr("d", line)
+                .attr("clip-path", `url(#${clipId})`)
                 .style("fill", "none")
                 .style("stroke", strokeColor)
                 .style("stroke-width", strokeWidth)
@@ -141,6 +159,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 .attr("id", textId)
                 .attr("x", x(maxDensityPoint.x))
                 .attr("y", y(maxDensityPoint.y))
+                .attr("clip-path", `url(#${clipId})`)
                 .attr("dx", "0.5em")
                 .attr("dy", "-0.5em")
                 .style("fill", labelColor)
@@ -149,7 +168,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
                 .style("opacity", opacity)
                 .text(labelText);
         });
-    }, [data, x, y, theme]);
+    }, [data, x, y, theme, clipId]);
 
     const drawLabels = useCallback((svg: d3.Selection<SVGGElement, unknown, null, undefined>) => {
         // Remove existing labels
