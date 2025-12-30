@@ -238,7 +238,10 @@ export function buildModelSeoMetadata({
   const canonicalPath = `/models/${providerSlug}/${modelSlug}`;
   const canonical = `${baseUrl}${canonicalPath}`;
   const speed = formatNumber(summary.tokensPerSecondMean);
-  const ttft = formatNumber(summary.timeToFirstTokenMean);
+  // Convert TTFT from seconds to milliseconds
+  const ttft = summary.timeToFirstTokenMean !== null && summary.timeToFirstTokenMean !== undefined
+    ? formatNumber(summary.timeToFirstTokenMean * 1000)
+    : undefined;
   const title = `${displayName} by ${providerName} Benchmarks – LLM Benchmarks`;
   const descriptionParts = [
     `Benchmarks for ${displayName} by ${providerName}.`,
@@ -319,7 +322,10 @@ export function buildProviderSeoMetadata({
   const canonicalPath = `/providers/${providerSlug}`;
   const canonical = `${baseUrl}${canonicalPath}`;
   const speed = formatNumber(summary.tokensPerSecondMean);
-  const ttft = formatNumber(summary.timeToFirstTokenMean);
+  // Convert TTFT from seconds to milliseconds
+  const ttft = summary.timeToFirstTokenMean !== null && summary.timeToFirstTokenMean !== undefined
+    ? formatNumber(summary.timeToFirstTokenMean * 1000)
+    : undefined;
   const title = `${providerName} LLM Benchmarks – Performance & Latency`;
   const descriptionParts = [`Performance benchmarks covering ${summary.modelCount} ${providerName} models.`];
   if (speed) {
