@@ -48,7 +48,9 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data }) => {
     }, [width, height, margin, clipId]);
 
     const setupScales = useCallback(() => {
-        // Fixed domain to show variance in common speed range (outliers >140 excluded from data)
+        // NOTE: 140 cap is INTENTIONAL - do not "fix" by auto-scaling to data range.
+        // Fast outliers (Groq/Cerebras 200-400 tok/s) compress the chart and hide
+        // variance where ~90% of models live. Data is also filtered at dataProcessing.ts.
         x.domain([0, 140]);
         const maxDensity = d3.max(data, d =>
             d.density_points ? d3.max(d.density_points, p => p.y) || 0 : 0
