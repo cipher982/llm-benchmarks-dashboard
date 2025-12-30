@@ -371,9 +371,8 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             ...d,
             model_name: `${d.provider}-${d.model_name}`,
             display_name: d.model_name,
-            // NOTE: 140 cap is INTENTIONAL until split-axis chart is implemented.
-            // See docs/specs/split-axis-chart.md for the planned solution.
-            tokens_per_second: d.tokens_per_second.filter(val => val <= 140)
+            // No filter - split-axis chart handles all data
+            tokens_per_second: d.tokens_per_second
         }))
         .filter(d => d.tokens_per_second.length > 0);
     
