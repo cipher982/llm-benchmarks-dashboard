@@ -117,6 +117,10 @@ export const QuickAnswerModule: React.FC<QuickAnswerModuleProps> = ({ tableData 
 
     const fastestModels = tableData
         .filter(row => {
+            // Must have valid slugs for linking
+            if (!row.providerSlug || !row.modelSlug) return false;
+            // Skip deprecated models
+            if (row.deprecated) return false;
             // Only active models (no lifecycle_status or status is 'active')
             const isActive = !row.lifecycle_status || row.lifecycle_status === 'active';
             // Updated within 24h

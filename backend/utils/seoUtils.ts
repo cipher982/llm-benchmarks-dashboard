@@ -329,7 +329,7 @@ export function buildProviderSeoMetadata({
   const title = `${providerName} LLM Benchmarks – Performance & Latency`;
   const descriptionParts = [`Performance benchmarks covering ${summary.modelCount} ${providerName} models.`];
   if (speed) {
-    descriptionParts.push(`Median throughput ${speed} tokens/sec`);
+    descriptionParts.push(`Average throughput ${speed} tokens/sec`);
   }
   if (ttft) {
     descriptionParts.push(`time to first token ${ttft} ms.`);
