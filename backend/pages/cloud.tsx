@@ -24,6 +24,7 @@ import {
 } from "../components/StyledComponents";
 import { TimeRangeSelector } from "../components/TimeRangeSelector";
 import { LifecycleSelector } from "../components/LifecycleSelector";
+import { QuickAnswerModule } from "../components/QuickAnswerModule";
 
 const TimeSeriesChart = lazy(() => import("../components/charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTable"));
@@ -300,46 +301,10 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                         does not require purchasing dedicated endpoints for hosting (why some models may appear
                         to be missing). If you have any more suggestions let me know on GitHub!! 😊
                     </p>
-                    <Box
-                        sx={{
-                            mt: 2,
-                            p: 2,
-                            border: '1px solid #d0d0d0',
-                            borderRadius: 1,
-                            backgroundColor: '#fafafa'
-                        }}
-                    >
-                        <strong>
-                            Lifecycle snapshot{lifecycleSummary?.generatedAt ? ` (${new Date(lifecycleSummary.generatedAt).toLocaleString()})` : ''}
-                        </strong>
-                        {summaryLoading ? (
-                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>Loading status summary…</div>
-                        ) : summaryError ? (
-                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem', color: '#d32f2f' }}>
-                                Failed to load lifecycle summary. ({summaryError})
-                            </div>
-                        ) : lifecycleSummary && lifecycleSummary.rows.length ? (
-                            <ul style={{ marginTop: '0.4rem', paddingLeft: '1.2rem', fontSize: '0.85rem' }}>
-                                {lifecycleSummary.rows.map((row) => (
-                                    <li key={row.provider}>
-                                        <strong>{row.provider}</strong>: {row.flaggedTotal} flagged / {row.total} total
-                                        {row.sampleReasons && Object.keys(row.sampleReasons).length > 0 && (
-                                            <span style={{ marginLeft: '0.4rem', color: '#555' }}>
-                                                – {Object.entries(row.sampleReasons)
-                                                    .map(([status, reason]) => `${status}: ${reason}`)
-                                                    .slice(0, 2)
-                                                    .join(' | ')}
-                                            </span>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>No lifecycle summary available.</div>
-                        )}
-                    </Box>
                 </CenteredContentContainer>
             </StyledDescriptionSection>
+
+            <QuickAnswerModule tableData={tableData} />
 
             <StyledChartContainer isMobile={isMobile}>
                 <SectionHeaderWithControl>
@@ -436,6 +401,48 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                     </Box>
                 </TableContentContainer>
             </StyledTableContainer>
+
+            <StyledDescriptionSection isMobile={isMobile}>
+                <CenteredContentContainer>
+                    <Box
+                        sx={{
+                            p: 2,
+                            border: '1px solid #d0d0d0',
+                            borderRadius: 1,
+                            backgroundColor: '#fafafa'
+                        }}
+                    >
+                        <strong>
+                            Lifecycle snapshot{lifecycleSummary?.generatedAt ? ` (${new Date(lifecycleSummary.generatedAt).toLocaleString()})` : ''}
+                        </strong>
+                        {summaryLoading ? (
+                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>Loading status summary…</div>
+                        ) : summaryError ? (
+                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem', color: '#d32f2f' }}>
+                                Failed to load lifecycle summary. ({summaryError})
+                            </div>
+                        ) : lifecycleSummary && lifecycleSummary.rows.length ? (
+                            <ul style={{ marginTop: '0.4rem', paddingLeft: '1.2rem', fontSize: '0.85rem' }}>
+                                {lifecycleSummary.rows.map((row) => (
+                                    <li key={row.provider}>
+                                        <strong>{row.provider}</strong>: {row.flaggedTotal} flagged / {row.total} total
+                                        {row.sampleReasons && Object.keys(row.sampleReasons).length > 0 && (
+                                            <span style={{ marginLeft: '0.4rem', color: '#555' }}>
+                                                – {Object.entries(row.sampleReasons)
+                                                    .map(([status, reason]) => `${status}: ${reason}`)
+                                                    .slice(0, 2)
+                                                    .join(' | ')}
+                                            </span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>No lifecycle summary available.</div>
+                        )}
+                    </Box>
+                </CenteredContentContainer>
+            </StyledDescriptionSection>
 
             {timeSeriesData?.timestamps && timeSeriesData.timestamps.length > 0 && (
                 <StyledChartContainer isMobile={isMobile}>
