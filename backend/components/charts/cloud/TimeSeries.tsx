@@ -28,6 +28,45 @@ interface ChartDataPoint {
 }
 
 const COVERAGE_THRESHOLD = 10;
+const MAX_FILL_GAP = 2; // Fill gaps of 1-2 nulls, keep gaps of 3+ as breaks (real outages)
+
+/**
+ * Fill small gaps in time series data to avoid splotchy charts from timing misalignment.
+ * Gaps of 1-2 consecutive nulls are filled with the last known value.
+ * Gaps of 3+ consecutive nulls are preserved (representing real outages).
+ */
+const fillSmallGaps = (values: (number | null)[]): (number | null)[] => {
+    const result = [...values];
+    let i = 0;
+
+    while (i < result.length) {
+        if (result[i] === null) {
+            // Found a null, count consecutive nulls
+            let gapStart = i;
+            let gapEnd = i;
+            while (gapEnd < result.length && result[gapEnd] === null) {
+                gapEnd++;
+            }
+            const gapLength = gapEnd - gapStart;
+
+            // Only fill small gaps (1-2 nulls)
+            if (gapLength <= MAX_FILL_GAP) {
+                // Find the last known value before the gap
+                const lastValue = gapStart > 0 ? result[gapStart - 1] : null;
+                if (lastValue !== null) {
+                    for (let j = gapStart; j < gapEnd; j++) {
+                        result[j] = lastValue;
+                    }
+                }
+            }
+            i = gapEnd;
+        } else {
+            i++;
+        }
+    }
+
+    return result;
+};
 
 const getProviderCoverage = (provider: TimeSeriesProvider): number => {
     const values = provider.values || [];
@@ -223,16 +262,30 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
 
     // Transform the data for the chart
     // For split providers, we need unique keys for real vs snapshot segments
+    // Small gaps (1-2 nulls) are filled to avoid splotchy charts from timing jitter
+    // Large gaps (3+ nulls) are preserved to show real outages
     const chartData = useMemo(() => {
+        // Pre-process: fill small gaps for each provider's values
+        const filledValuesMap = new Map<string, (number | null)[]>();
+        data.models.forEach(model => {
+            model.providers.forEach(provider => {
+                if (provider.values) {
+                    const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
+                    const key = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
+                    filledValuesMap.set(key, fillSmallGaps(provider.values));
+                }
+            });
+        });
+
         return data.timestamps.map((timestamp, index) => {
             const point: ChartDataPoint = { timestamp };
             data.models.forEach(model => {
                 model.providers.forEach(provider => {
                     if (provider.values) {
-                        // Use segment in key if it exists (for split lines)
                         const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
                         const key = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
-                        point[key] = provider.values[index] ?? null;
+                        const filledValues = filledValuesMap.get(key);
+                        point[key] = filledValues ? filledValues[index] : null;
                     }
                 });
             });
