@@ -19,6 +19,7 @@
     "test:pipeline": "jest tests/pipeline.canonical.test.js --testTimeout=30000",
     "test:contract": "jest tests/api.canonical-contract.test.js --testTimeout=30000",
     "test:canonical": "jest tests/pipeline.canonical.test.js tests/api.canonical-contract.test.js --testTimeout=30000",
+    "test:timeseries": "jest tests/timeseries.test.js --testTimeout=30000",
     "test:a11y": "playwright test tests/accessibility.test.ts",
     "test:a11y:ui": "playwright test tests/accessibility.test.ts --ui"
   },
