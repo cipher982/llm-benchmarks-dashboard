@@ -62,9 +62,10 @@ async function generateSitemap(): Promise<string> {
       FLAGGED_STATUSES.has(entry.lifecycleStatus) &&
       entry.lifecycleStatus !== 'deprecated';
 
-    // Include if: has enough data span AND has recent data AND not flagged (or is deprecated)
+    // Include if: has enough data span AND has recent data AND not flagged (or is deprecated with recent data)
+    // Note: Even deprecated models need recent data to avoid 404s from getModelPageData
     if (!hasEnoughData) return false;
-    if (!hasRecentData && entry.lifecycleStatus !== 'deprecated') return false;
+    if (!hasRecentData) return false; // All models need recent data to render
     if (isFlaggedNotDeprecated) return false;
     return true;
   });
