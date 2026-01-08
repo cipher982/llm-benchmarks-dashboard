@@ -58,20 +58,27 @@ const roundToNearest30Minutes = (timestamp: number): number => {
 const generateTimestampRange = (days: number) => {
     const intervalsPerDay = (24 * 60) / MINUTES_INTERVAL;
     const totalIntervals = Math.ceil(days * intervalsPerDay);
-    
-    // Calculate sampling interval to achieve target data points
-    const samplingInterval = Math.max(1, Math.floor(totalIntervals / TARGET_DATA_POINTS));
+
+    // Calculate number of output points (capped at TARGET_DATA_POINTS)
     const nRuns = Math.min(totalIntervals, TARGET_DATA_POINTS);
-    
+
     const now = new Date();
     const roundedNow = roundToNearest30Minutes(now.getTime());
     const endTimestamp = roundedNow;
     const startTimestamp = endTimestamp - (totalIntervals - 1) * MINUTES_INTERVAL * 60 * 1000;
-    
-    // Generate timestamps with appropriate sampling interval
-    return Array.from({ length: nRuns }, (_, i) => 
-        startTimestamp + (i * samplingInterval * MINUTES_INTERVAL * 60 * 1000)
-    );
+
+    // Generate timestamps evenly distributed across the full range
+    // This ensures the last timestamp reaches endTimestamp, not a partial range
+    if (nRuns <= 1) {
+        return [endTimestamp];
+    }
+
+    return Array.from({ length: nRuns }, (_, i) => {
+        // Linearly interpolate from startTimestamp to endTimestamp
+        const progress = i / (nRuns - 1);
+        const timestamp = startTimestamp + progress * (endTimestamp - startTimestamp);
+        return roundToNearest30Minutes(timestamp);
+    });
 };
 
 const findClosestTimestamp = (
