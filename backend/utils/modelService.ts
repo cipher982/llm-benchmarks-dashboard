@@ -4,6 +4,10 @@ import { processAllMetrics } from "../pages/api/processed";
 import type { ModelPageData, ProviderModelEntry, ProviderPageData, SummaryMetrics } from "../types/ModelPages";
 import type { ProcessedData as ProcessedDataBundle, TableRow } from "../types/ProcessedData";
 import { getProviderDisplayName } from "./providerMetadata";
+import { FLAGGED_STATUSES } from "./lifecycleSummary";
+
+// Shared threshold for SEO - pages with less data span get noindex
+export const SEO_MIN_DATA_SPAN_DAYS = 30;
 
 // BenchmarkMetrics is authored in CommonJS
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -127,8 +131,33 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
             $group: {
                 _id: { provider: "$provider", model_name: "$model_name" },
                 latestRunAt: { $max: "$run_ts" },
+                firstRunAt: { $min: "$run_ts" },
                 displayName: { $last: "$display_name" },
             },
+        },
+        {
+            // Lookup lifecycle status from model_status collection
+            // Use $sort + $limit to ensure deterministic results if multiple docs exist
+            $lookup: {
+                from: "model_status",
+                let: { p: "$_id.provider", m: "$_id.model_name" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ["$provider", "$$p"] },
+                                    { $eq: ["$model_id", "$$m"] }
+                                ]
+                            }
+                        }
+                    },
+                    { $sort: { computed_at: -1 } },
+                    { $limit: 1 },
+                    { $project: { status: 1, _id: 0 } }
+                ],
+                as: "lifecycle"
+            }
         },
         {
             $project: {
@@ -137,6 +166,8 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
                 model: "$_id.model_name",
                 displayName: "$displayName",
                 latestRunAt: "$latestRunAt",
+                firstRunAt: "$firstRunAt",
+                lifecycleStatus: { $arrayElemAt: ["$lifecycle.status", 0] },
             },
         },
         {
@@ -150,6 +181,17 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
         const providerSlug = createSlug(providerCanonical);
         const modelCanonical = entry.model;
         const modelSlug = createSlug(modelCanonical);
+
+        // Calculate data span in days with NaN protection
+        let dataSpanDays: number | undefined;
+        if (entry.firstRunAt && entry.latestRunAt) {
+            const first = entry.firstRunAt instanceof Date ? entry.firstRunAt : new Date(entry.firstRunAt);
+            const latest = entry.latestRunAt instanceof Date ? entry.latestRunAt : new Date(entry.latestRunAt);
+            const span = Math.floor((latest.getTime() - first.getTime()) / (1000 * 60 * 60 * 24));
+            // Guard against NaN or negative values from invalid dates
+            dataSpanDays = Number.isFinite(span) && span >= 0 ? span : undefined;
+        }
+
         return {
             provider: providerDisplay,
             providerCanonical,
@@ -159,6 +201,9 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
             modelSlug,
             displayName: entry.displayName || modelCanonical,
             latestRunAt: toIsoDate(entry.latestRunAt),
+            firstRunAt: toIsoDate(entry.firstRunAt),
+            dataSpanDays,
+            lifecycleStatus: entry.lifecycleStatus || undefined,
         };
     });
     inventoryCacheFetchedAt = Date.now();
@@ -294,6 +339,16 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         })
         .slice(0, 6);
 
+    // Determine if page should be noindexed (thin content or problematic lifecycle status)
+    // Note: deprecated is in FLAGGED_STATUSES but we treat it specially (allow indexing with enough data)
+    const dataSpanDays = resolved.dataSpanDays ?? 0;
+    const lifecycleStatus = resolved.lifecycleStatus;
+    const isDeprecated = lifecycleStatus === 'deprecated';
+    const isFlaggedNotDeprecated = lifecycleStatus
+        ? FLAGGED_STATUSES.has(lifecycleStatus) && lifecycleStatus !== 'deprecated'
+        : false;
+    const shouldNoIndex = dataSpanDays < SEO_MIN_DATA_SPAN_DAYS || isFlaggedNotDeprecated;
+
     return {
         provider: providerDisplay,
         providerCanonical: resolved.providerCanonical,
@@ -308,6 +363,11 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         tableRows,
         relatedModels,
         alternatives,
+        // SEO/Lifecycle fields
+        lifecycleStatus,
+        dataSpanDays,
+        isDeprecated,
+        shouldNoIndex,
     };
 }
 

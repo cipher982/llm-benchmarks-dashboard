@@ -1,6 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { corsMiddleware } from "../../utils/apiMiddleware";
-import { getProviderModelInventory } from "../../utils/modelService";
+import { getProviderModelInventory, SEO_MIN_DATA_SPAN_DAYS } from "../../utils/modelService";
+import { FLAGGED_STATUSES } from "../../utils/lifecycleSummary";
+
+const RECENCY_WINDOW_DAYS = 30; // Models must have data within this window to avoid 404
 
 const DEFAULT_HOST = "https://llm-benchmarks.com";
 
@@ -39,10 +42,39 @@ async function generateSitemap(): Promise<string> {
 
   const inventory = await getProviderModelInventory();
 
+  // Filter to only include models with meaningful content:
+  // - At least MIN_DATA_SPAN_DAYS days of data span
+  // - Has recent data (within RECENCY_WINDOW_DAYS) to avoid 404 from getModelPageData
+  // - Not flagged (stale, failing, etc.) unless deprecated (which has historical value)
+  const recencyCutoff = new Date();
+  recencyCutoff.setDate(recencyCutoff.getDate() - RECENCY_WINDOW_DAYS);
+
+  const indexableInventory = inventory.filter((entry) => {
+    const dataSpan = entry.dataSpanDays ?? 0;
+    const hasEnoughData = Number.isFinite(dataSpan) && dataSpan >= SEO_MIN_DATA_SPAN_DAYS;
+
+    // Check recency - model must have data within the window getModelPageData uses
+    const latestDate = entry.latestRunAt ? new Date(entry.latestRunAt) : null;
+    const hasRecentData = latestDate && latestDate >= recencyCutoff;
+
+    // Flagged check (excludes deprecated since we want to keep those)
+    const isFlaggedNotDeprecated = entry.lifecycleStatus &&
+      FLAGGED_STATUSES.has(entry.lifecycleStatus) &&
+      entry.lifecycleStatus !== 'deprecated';
+
+    // Include if: has enough data span AND has recent data AND not flagged (or is deprecated)
+    if (!hasEnoughData) return false;
+    if (!hasRecentData && entry.lifecycleStatus !== 'deprecated') return false;
+    if (isFlaggedNotDeprecated) return false;
+    return true;
+  });
+
+  console.log(`[Sitemap] Total inventory: ${inventory.length}, Indexable: ${indexableInventory.length}, Filtered out: ${inventory.length - indexableInventory.length}`);
+
   const providerEntriesMap = new Map<string, SitemapEntry>();
   const modelEntries: SitemapEntry[] = [];
 
-  inventory.forEach((entry) => {
+  indexableInventory.forEach((entry) => {
     const providerUrl = `${hostname}/providers/${entry.providerSlug}`;
     if (!providerEntriesMap.has(providerUrl)) {
       providerEntriesMap.set(providerUrl, {
@@ -58,10 +90,12 @@ async function generateSitemap(): Promise<string> {
       }
     }
 
+    // Deprecated models get slightly lower priority
+    const priority = entry.lifecycleStatus === 'deprecated' ? "0.6" : "0.8";
     modelEntries.push({
       loc: `${hostname}/models/${entry.providerSlug}/${entry.modelSlug}`,
-      changefreq: "daily",
-      priority: "0.8",
+      changefreq: entry.lifecycleStatus === 'deprecated' ? "monthly" : "daily",
+      priority,
       lastmod: entry.latestRunAt,
     });
   });

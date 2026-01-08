@@ -7,6 +7,9 @@ export interface ProviderModelEntry {
     modelSlug: string;
     displayName: string;
     latestRunAt?: string;
+    firstRunAt?: string;
+    dataSpanDays?: number;
+    lifecycleStatus?: string;
     tokensPerSecondMean?: number;
     timeToFirstTokenMean?: number;
     tokensPerSecondMin?: number;
@@ -76,6 +79,11 @@ export interface ModelPageData {
     }>;
     relatedModels: ProviderModelEntry[];
     alternatives: ProviderModelEntry[];
+    // SEO/Lifecycle fields
+    lifecycleStatus?: string;
+    dataSpanDays?: number;
+    isDeprecated?: boolean;
+    shouldNoIndex?: boolean;
 }
 
 export interface ProviderPageData {

@@ -12,6 +12,7 @@ import FAQAccordion from "../../../components/model/FAQAccordion";
 import RelatedLinks from "../../../components/model/RelatedLinks";
 import ModelMetricTable from "../../../components/model/ModelMetricTable";
 import InsightList from "../../../components/model/InsightList";
+import DeprecationBanner from "../../../components/model/DeprecationBanner";
 import SpeedDistChart from "../../../components/charts/cloud/SpeedDistChart";
 import TimeSeriesChart from "../../../components/charts/cloud/TimeSeries";
 import { buildModelSeoMetadata } from "../../../utils/seoUtils";
@@ -20,6 +21,9 @@ import { getProviderWebsite } from "../../../utils/providerMetadata";
 import type { ModelPageData, ProviderModelEntry } from "../../../types/ModelPages";
 import type { SeoMetadata } from "../../../utils/seoUtils";
 import type { SpeedDistributionPoint, TimeSeriesData } from "../../../types/ProcessedData";
+
+// Lifecycle statuses that warrant showing a warning banner
+const BANNER_STATUSES = new Set(['deprecated', 'likely_deprecated', 'stale', 'failing', 'disabled', 'never_succeeded']);
 
 interface ModelDetailPageProps {
     data: ModelPageData;
@@ -110,6 +114,8 @@ const buildRelatedLinks = (providerSlug: string, related: ProviderModelEntry[], 
 
 const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
     const providerWebsite = getProviderWebsite(data.providerCanonical);
+    const showBanner = data.lifecycleStatus && BANNER_STATUSES.has(data.lifecycleStatus);
+    const robotsContent = data.shouldNoIndex ? "noindex,follow" : "index,follow";
 
     const metrics = useMemo(
         () => [
@@ -192,7 +198,7 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                 <title>{seo.title}</title>
                 <meta name="description" content={seo.description} />
                 <meta name="keywords" content={seo.keywords} />
-                <meta name="robots" content="index,follow" />
+                <meta name="robots" content={robotsContent} />
                 <link rel="canonical" href={seo.canonical} />
                 <meta property="og:title" content={seo.openGraph.title} />
                 <meta property="og:description" content={seo.openGraph.description} />
@@ -241,6 +247,13 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                 }
                 breadcrumbs={<PageBreadcrumbs items={breadcrumbs} />}
             >
+                {showBanner && (
+                    <DeprecationBanner
+                        modelName={data.displayName}
+                        status={data.lifecycleStatus!}
+                        lastUpdated={data.summary.latestRunAt}
+                    />
+                )}
                 <Section title="Benchmark Overview">
                     <MetricSummaryGrid items={metrics} />
                 </Section>
