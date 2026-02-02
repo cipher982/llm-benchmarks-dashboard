@@ -34,8 +34,7 @@ async function generateSitemap(): Promise<string> {
   const hostname = process.env.FRONTEND_URL || DEFAULT_HOST;
 
   const mainEntries: SitemapEntry[] = [
-    { loc: `${hostname}/`, changefreq: "daily", priority: "1.0" },
-    { loc: `${hostname}/cloud`, changefreq: "daily", priority: "0.9" },
+    { loc: `${hostname}/cloud`, changefreq: "daily", priority: "1.0" },
     { loc: `${hostname}/local`, changefreq: "weekly", priority: "0.6" },
     { loc: `${hostname}/status`, changefreq: "weekly", priority: "0.4" },
   ];
