@@ -5,7 +5,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
     return {
         redirect: {
             destination: '/cloud',
-            permanent: false,
+            permanent: true,
         },
     };
 };
