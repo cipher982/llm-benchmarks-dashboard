@@ -6,6 +6,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { trackUmamiEvent } from '../utils/analytics';
 
 const NavBarContainer = styled('div')(({ theme }) => ({
     display: 'flex',
@@ -184,6 +185,31 @@ const NavLink: React.FC<NavLinkProps> = ({ href, children }) => {
 };
 
 const Navbar: React.FC = () => {
+    const pathname = usePathname();
+
+    const handleGitHubClick = () => {
+        trackUmamiEvent('github_click', {
+            source: 'navbar',
+            path: pathname || '/unknown',
+        });
+        window.open("https://github.com/cipher982/llm-benchmarks", "_blank");
+    };
+
+    const handleDroseClick = () => {
+        trackUmamiEvent('drose_click', {
+            source: 'navbar',
+            path: pathname || '/unknown',
+        });
+        window.open("https://drose.io", "_blank");
+    };
+
+    const handleStatusClick = () => {
+        trackUmamiEvent('status_click', {
+            source: 'navbar',
+            path: pathname || '/unknown',
+        });
+    };
+
     return (
         <NavBarContainer>
             <LinksContainer>
@@ -195,7 +221,7 @@ const Navbar: React.FC = () => {
                     variant="outlined"
                     size="small"
                     aria-label="Open GitHub repository"
-                    onClick={() => window.open("https://github.com/cipher982/llm-benchmarks", "_blank")}
+                    onClick={handleGitHubClick}
                 >
                     <GitHubIcon />
                 </StyledIconButton>
@@ -203,13 +229,13 @@ const Navbar: React.FC = () => {
                     variant="outlined"
                     size="small"
                     aria-label="Visit drose.io"
-                    onClick={() => window.open("https://drose.io", "_blank")}
+                    onClick={handleDroseClick}
                 >
                     <PersonOutlineIcon />
                     <ResponsiveButtonText>drose.io</ResponsiveButtonText>
                 </StyledButton>
                 <Link href="/status" passHref legacyBehavior>
-                    <StatusLinkButton aria-label="View API status">
+                    <StatusLinkButton aria-label="View API status" onClick={handleStatusClick}>
                         <CheckCircleOutlineIcon />
                         <ResponsiveButtonText>API Status</ResponsiveButtonText>
                     </StatusLinkButton>

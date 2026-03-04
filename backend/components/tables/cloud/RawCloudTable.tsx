@@ -5,6 +5,7 @@ import Link from 'next/link';
 import TanStackTable from '../TanStackTable';
 import { colors } from '../../../components/design-system';
 import { Tooltip } from '@mui/material';
+import { trackUmamiEvent } from '../../../utils/analytics';
 
 interface RawCloudTableProps {
     data: TableRow[];
@@ -39,6 +40,13 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                     <Link
                         href={`/providers/${providerSlug}`}
                         style={{ color: colors.link, textDecoration: 'underline' }}
+                        onClick={() =>
+                            trackUmamiEvent('provider_click', {
+                                source: 'cloud_table',
+                                provider: row.original.providerCanonical,
+                                providerSlug: row.original.providerSlug,
+                            })
+                        }
                     >
                         {providerName}
                     </Link>
@@ -64,6 +72,15 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                         <Link
                             href={`/models/${providerSlug}/${modelSlug}`}
                             style={{ color: colors.link, textDecoration: 'underline' }}
+                            onClick={() =>
+                                trackUmamiEvent('model_click', {
+                                    source: 'cloud_table',
+                                    provider: row.original.providerCanonical,
+                                    providerSlug: row.original.providerSlug,
+                                    model: row.original.modelCanonical,
+                                    modelSlug: row.original.modelSlug,
+                                })
+                            }
                         >
                             {modelLabel}
                         </Link>

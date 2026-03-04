@@ -3,6 +3,7 @@ import { styled } from '@mui/material/styles';
 import Link from 'next/link';
 import { TableRow } from '../types/ProcessedData';
 import { colors } from './design-system';
+import { trackUmamiEvent } from '../utils/analytics';
 
 const ModuleContainer = styled('div')(({ theme }) => ({
     backgroundColor: colors.surface,
@@ -167,7 +168,19 @@ export const QuickAnswerModule: React.FC<QuickAnswerModuleProps> = ({ tableData 
                                             passHref
                                             legacyBehavior
                                         >
-                                            <ModelLink>{modelLabel}</ModelLink>
+                                            <ModelLink
+                                                onClick={() =>
+                                                    trackUmamiEvent('model_click', {
+                                                        source: 'quick_answer_module',
+                                                        provider: row.providerCanonical,
+                                                        providerSlug: row.providerSlug,
+                                                        model: row.modelCanonical,
+                                                        modelSlug: row.modelSlug,
+                                                    })
+                                                }
+                                            >
+                                                {modelLabel}
+                                            </ModelLink>
                                         </Link>
                                     </td>
                                     <td>{row.provider}</td>

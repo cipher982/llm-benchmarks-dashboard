@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { lazy, Suspense } from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
@@ -26,6 +26,7 @@ import { TimeRangeSelector } from "../components/TimeRangeSelector";
 import { LifecycleSelector } from "../components/LifecycleSelector";
 import { QuickAnswerModule } from "../components/QuickAnswerModule";
 import { buildStaticPageSeoMetadata } from "../utils/seoUtils";
+import { trackUmamiEvent } from "../utils/analytics";
 
 const TimeSeriesChart = lazy(() => import("../components/charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTable"));
@@ -118,6 +119,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const [summaryError, setSummaryError] = useState<string | null>(null);
     const [timeSeriesError, setTimeSeriesError] = useState<string | null>(null);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const hasTrackedCloudView = useRef(false);
 
     // Fetch function for Speed Distribution section
     const fetchSpeedDistribution = useCallback(async (days: number) => {
@@ -243,6 +245,21 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         fetchTimeSeries(timeSeriesDays);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (hasTrackedCloudView.current) {
+            return;
+        }
+
+        trackUmamiEvent('cloud_page_view', {
+            source: 'cloud_page',
+            initialTableRows: initialTableData.length,
+            defaultDistDays: 30,
+            defaultTableDays: 30,
+            defaultTimeSeriesDays: 14,
+        });
+        hasTrackedCloudView.current = true;
+    }, [initialTableData.length]);
 
     // Time range change handlers for each section
     const handleDistTimeRangeChange = useCallback(async (days: number) => {

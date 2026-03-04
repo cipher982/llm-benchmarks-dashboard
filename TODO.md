@@ -21,6 +21,12 @@ Repository: `llm-benchmarks-dashboard`
   Scope: trim initial SSR payload and lazy-fetch heavy data section(s) without breaking UX.
 - [x] Task 6: Verification + release pass.
   Scope: run a11y tests/smoke checks, update notes, and prepare final ship summary.
+- [x] Task 7: Add core Umami outcome tracking events.
+  Scope: `cloud_page_view`, `provider_click`, `model_click`, `status_click`, `github_click`, `drose_click`.
+- [ ] Task 8: Add conversion-first hero block on `/cloud`.
+  Scope: quick paths for lowest latency, highest throughput, and most stable (7D) with CTA actions.
+- [ ] Task 9: Verify growth iteration and finalize audit notes.
+  Scope: lint/build/smoke checks and completion summary.
 
 ---
 
@@ -55,3 +61,18 @@ Repository: `llm-benchmarks-dashboard`
 - Status: Completed
 - Finish statement: Completed final verification pass, shipped remaining metadata polish, and prepared this TODO as an audit-ready work log.
 - Notes: Added real manifest metadata (`name`, `short_name`, `description`, `start_url`, theme/background colors). Verification run: `npm --prefix backend run lint` (passes with one pre-existing warning in `pages/admin.tsx`), `npm --prefix backend run build` (passes; provider/model static-path generation logs Mongo timeout warnings in this environment but build completes), and local smoke checks confirmed `/cloud` now renders canonical/robots/JSON-LD with valid heading order, no empty links, and one `<main>` landmark. Production probe still showed old `/sitemap.xml` behavior at check time, indicating deployment propagation lag outside this local git ship step.
+
+### Task 7
+- Status: Completed
+- Finish statement: Completed core Umami outcome event instrumentation across cloud landing and global navigation interactions.
+- Notes: Added shared tracker helper (`utils/analytics.ts`) and wired events: `cloud_page_view` on `/cloud` mount, `provider_click` and `model_click` in cloud tables/quick-answer links, and `status_click`/`github_click`/`drose_click` in navbar actions. Verification: lint/build pass with unchanged pre-existing admin hook warning and expected intermittent Mongo timeout logs during static path generation.
+
+### Task 8
+- Status: Pending
+- Finish statement: Pending
+- Notes: Pending
+
+### Task 9
+- Status: Pending
+- Finish statement: Pending
+- Notes: Pending
