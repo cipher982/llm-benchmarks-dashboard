@@ -44,7 +44,7 @@ Repository: `llm-benchmarks-dashboard`
 ### Task 4
 - Status: Completed
 - Finish statement: Completed navigation semantic cleanup for the status CTA without changing visual behavior.
-- Notes: Replaced the nested `<a><button /></a>` pattern with a single anchor-button element (`MuiButton component=\"a\"` under `Link`) in `NavBar.tsx`, preventing invalid nested interactive controls while preserving keyboard and screen-reader semantics. Lint passes with the same pre-existing admin warning.
+- Notes: Replaced the nested `<a><button /></a>` pattern with a single styled anchor CTA under `Link` in `NavBar.tsx`, preventing invalid nested interactive controls while preserving keyboard and screen-reader semantics. Lint passes with the same pre-existing admin warning.
 
 ### Task 5
 - Status: Completed
