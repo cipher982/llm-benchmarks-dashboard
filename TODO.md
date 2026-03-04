@@ -1,0 +1,57 @@
+# SEO + UX/UI Iteration TODO
+
+Last updated: 2026-03-04
+Repository: `llm-benchmarks-dashboard`
+
+## Execution Rules
+- Work one task at a time.
+- Commit each atomic task before starting the next.
+- After each task, mark it done and append completion notes in the audit log section.
+
+## Tasks
+- [ ] Task 1: Fix critical accessibility/data integrity issues on landing pages.
+  Scope: empty anchor text fallbacks, heading hierarchy order, main landmark semantics.
+- [ ] Task 2: Add complete SEO head metadata to `/cloud`, `/local`, `/status`.
+  Scope: canonical, robots, OG, Twitter, consistent title/description handling.
+- [ ] Task 3: Harden sitemap/robots discoverability.
+  Scope: add `/sitemap.xml` route, allow `HEAD` for sitemap endpoint, update robots sitemap target.
+- [ ] Task 4: Fix navigation semantics/UX issues.
+  Scope: avoid nested interactive controls, keep accessibility and keyboard behavior clean.
+- [ ] Task 5: Reduce `/cloud` landing payload and improve mobile performance.
+  Scope: trim initial SSR payload and lazy-fetch heavy data section(s) without breaking UX.
+- [ ] Task 6: Verification + release pass.
+  Scope: run a11y tests/smoke checks, update notes, and prepare final ship summary.
+
+---
+
+## Completion Audit Log
+
+### Task 1
+- Status: Pending
+- Finish statement: Pending
+- Notes: Pending
+
+### Task 2
+- Status: Pending
+- Finish statement: Pending
+- Notes: Pending
+
+### Task 3
+- Status: Pending
+- Finish statement: Pending
+- Notes: Pending
+
+### Task 4
+- Status: Pending
+- Finish statement: Pending
+- Notes: Pending
+
+### Task 5
+- Status: Pending
+- Finish statement: Pending
+- Notes: Pending
+
+### Task 6
+- Status: Pending
+- Finish statement: Pending
+- Notes: Pending
