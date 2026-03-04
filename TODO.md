@@ -25,7 +25,7 @@ Repository: `llm-benchmarks-dashboard`
   Scope: `cloud_page_view`, `provider_click`, `model_click`, `status_click`, `github_click`, `drose_click`.
 - [x] Task 8: Add conversion-first hero block on `/cloud`.
   Scope: quick paths for lowest latency, highest throughput, and most stable (7D) with CTA actions.
-- [ ] Task 9: Verify growth iteration and finalize audit notes.
+- [x] Task 9: Verify growth iteration and finalize audit notes.
   Scope: lint/build/smoke checks and completion summary.
 
 ---
@@ -73,6 +73,6 @@ Repository: `llm-benchmarks-dashboard`
 - Notes: Added `CloudDecisionHero` component with three recommendation cards (lowest TTFT, highest throughput, most stable 7D), linked cards to provider/model landing pages with Umami tracking, and wired CTA behavior to force full table into 7-day mode then scroll directly to the full results section. Added dedicated quick-path fetch/state in `cloud.tsx` using `include=table&days=7&hideFlagged=true` and resilience states (loading/error/empty) without impacting primary page render. Verification: lint/build pass with unchanged pre-existing admin hook warning and known Mongo timeout logs during static-path generation; local smoke check confirmed hero title and `full-results-section` anchor are present in rendered `/cloud` HTML.
 
 ### Task 9
-- Status: Pending
-- Finish statement: Pending
-- Notes: Pending
+- Status: Completed
+- Finish statement: Completed final growth-iteration verification pass and closed this TODO as an auditable task log.
+- Notes: Verification run after Task 8 ship: `npm --prefix backend run lint` passes with unchanged pre-existing warning in `pages/admin.tsx`; `npm --prefix backend run build` passes with known intermittent Mongo timeout logs during provider/model static path generation in local env but successful Next build output; local `/cloud` smoke probes confirmed quick-path hero markers (`Pick A Path In 10 Seconds`), loading state (`Loading 7-day recommendations`), and full results anchor (`full-results-section`) in rendered HTML. No additional regressions identified in the modified files.
