@@ -204,6 +204,49 @@ export interface SeoMetadata extends SeoBaseArgs {
 
 const DEFAULT_BASE_URL = "https://llm-benchmarks.com";
 
+export interface StaticPageSeoArgs {
+  baseUrl?: string;
+  path: string;
+  title: string;
+  description: string;
+  keywords?: string;
+}
+
+export function buildStaticPageSeoMetadata({
+  baseUrl = DEFAULT_BASE_URL,
+  path,
+  title,
+  description,
+  keywords = "LLM benchmarks, AI model performance, latency, tokens per second",
+}: StaticPageSeoArgs): SeoMetadata {
+  const canonical = `${baseUrl}${path}`;
+
+  return {
+    title,
+    description,
+    canonical,
+    keywords,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: canonical,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: title,
+      description,
+      url: canonical,
+    },
+  };
+}
+
 function formatNumber(value: number | null | undefined, digits = 2): string | undefined {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return undefined;

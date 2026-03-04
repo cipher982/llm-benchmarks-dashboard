@@ -28,11 +28,19 @@ import {
 } from '../components/status';
 import { useStatusData } from '../hooks/useStatusData';
 import { formatWarningLabel, groupModelsByProvider, ModelData } from '../utils/status/statusHelpers';
+import { buildStaticPageSeoMetadata } from '../utils/seoUtils';
 
 const StatusPage: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [disabledExpanded, setDisabledExpanded] = useState<boolean>(false);
+
+    const statusSeo = buildStaticPageSeoMetadata({
+        path: '/status',
+        title: 'API Status - LLM Benchmarks',
+        description: 'Real-time status of cloud LLM providers and models. Monitor API health, deprecations, and issues.',
+        keywords: 'LLM API status, provider uptime, model reliability, benchmark health dashboard',
+    });
 
     // Use custom hook for data fetching with 30-second refresh
     const { statusData, loading, error } = useStatusData(30000);
@@ -133,8 +141,21 @@ const StatusPage: React.FC = () => {
     return (
         <>
             <Head>
-                <title>API Status - LLM Benchmarks</title>
-                <meta name="description" content="Real-time status of cloud LLM providers and models. Monitor API health, deprecations, and issues." />
+                <title>{statusSeo.title}</title>
+                <meta name="description" content={statusSeo.description} />
+                <meta name="keywords" content={statusSeo.keywords} />
+                <meta name="robots" content="index,follow" />
+                <link rel="canonical" href={statusSeo.canonical} />
+                <meta property="og:title" content={statusSeo.openGraph.title} />
+                <meta property="og:description" content={statusSeo.openGraph.description} />
+                <meta property="og:type" content={statusSeo.openGraph.type} />
+                <meta property="og:url" content={statusSeo.openGraph.url} />
+                <meta name="twitter:card" content={statusSeo.twitter.card} />
+                <meta name="twitter:title" content={statusSeo.twitter.title} />
+                <meta name="twitter:description" content={statusSeo.twitter.description} />
+                {statusSeo.jsonLd && (
+                    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(statusSeo.jsonLd) }} />
+                )}
             </Head>
             <MainContainer isMobile={isMobile}>
 

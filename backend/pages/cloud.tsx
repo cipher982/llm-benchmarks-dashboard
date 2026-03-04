@@ -25,6 +25,7 @@ import {
 import { TimeRangeSelector } from "../components/TimeRangeSelector";
 import { LifecycleSelector } from "../components/LifecycleSelector";
 import { QuickAnswerModule } from "../components/QuickAnswerModule";
+import { buildStaticPageSeoMetadata } from "../utils/seoUtils";
 
 const TimeSeriesChart = lazy(() => import("../components/charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTable"));
@@ -43,6 +44,15 @@ const FLAGGED_STATUSES = [
 
 
 const FLAGGED_STATUS_SET = new Set(FLAGGED_STATUSES);
+
+const cloudSeo = buildStaticPageSeoMetadata({
+    path: "/cloud",
+    title: "Cloud LLM Benchmarks - Speed & Performance Testing",
+    description:
+        "Real-time benchmarking of cloud LLM providers including OpenAI, Anthropic, Google, and more. Compare speed, reliability, and performance.",
+    keywords:
+        "cloud LLM benchmarks, AI model speed, tokens per second, latency benchmarks, OpenAI benchmark, Anthropic benchmark, Google Vertex benchmark",
+});
 
 interface TableMetaSummary {
     totalRows: number;
@@ -269,8 +279,21 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         return (
             <>
                 <Head>
-                    <title>Cloud LLM Benchmarks - Speed & Performance Testing</title>
-                    <meta name="description" content="Real-time benchmarking of cloud LLM providers including OpenAI, Anthropic, Google, and more. Compare speed, reliability, and performance." />
+                    <title>{cloudSeo.title}</title>
+                    <meta name="description" content={cloudSeo.description} />
+                    <meta name="keywords" content={cloudSeo.keywords} />
+                    <meta name="robots" content="index,follow" />
+                    <link rel="canonical" href={cloudSeo.canonical} />
+                    <meta property="og:title" content={cloudSeo.openGraph.title} />
+                    <meta property="og:description" content={cloudSeo.openGraph.description} />
+                    <meta property="og:type" content={cloudSeo.openGraph.type} />
+                    <meta property="og:url" content={cloudSeo.openGraph.url} />
+                    <meta name="twitter:card" content={cloudSeo.twitter.card} />
+                    <meta name="twitter:title" content={cloudSeo.twitter.title} />
+                    <meta name="twitter:description" content={cloudSeo.twitter.description} />
+                    {cloudSeo.jsonLd && (
+                        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cloudSeo.jsonLd) }} />
+                    )}
                 </Head>
                 <div>Error: {error}</div>
             </>
@@ -280,8 +303,21 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     return (
         <>
             <Head>
-                <title>Cloud LLM Benchmarks - Speed & Performance Testing</title>
-                <meta name="description" content="Real-time benchmarking of cloud LLM providers including OpenAI, Anthropic, Google, and more. Compare speed, reliability, and performance." />
+                <title>{cloudSeo.title}</title>
+                <meta name="description" content={cloudSeo.description} />
+                <meta name="keywords" content={cloudSeo.keywords} />
+                <meta name="robots" content="index,follow" />
+                <link rel="canonical" href={cloudSeo.canonical} />
+                <meta property="og:title" content={cloudSeo.openGraph.title} />
+                <meta property="og:description" content={cloudSeo.openGraph.description} />
+                <meta property="og:type" content={cloudSeo.openGraph.type} />
+                <meta property="og:url" content={cloudSeo.openGraph.url} />
+                <meta name="twitter:card" content={cloudSeo.twitter.card} />
+                <meta name="twitter:title" content={cloudSeo.twitter.title} />
+                <meta name="twitter:description" content={cloudSeo.twitter.description} />
+                {cloudSeo.jsonLd && (
+                    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cloudSeo.jsonLd) }} />
+                )}
             </Head>
             <MainContainer isMobile={isMobile}>
                 <StyledDescriptionSection isMobile={isMobile}>

@@ -11,7 +11,7 @@ Repository: `llm-benchmarks-dashboard`
 ## Tasks
 - [x] Task 1: Fix critical accessibility/data integrity issues on landing pages.
   Scope: empty anchor text fallbacks, heading hierarchy order, main landmark semantics.
-- [ ] Task 2: Add complete SEO head metadata to `/cloud`, `/local`, `/status`.
+- [x] Task 2: Add complete SEO head metadata to `/cloud`, `/local`, `/status`.
   Scope: canonical, robots, OG, Twitter, consistent title/description handling.
 - [ ] Task 3: Harden sitemap/robots discoverability.
   Scope: add `/sitemap.xml` route, allow `HEAD` for sitemap endpoint, update robots sitemap target.
@@ -32,9 +32,9 @@ Repository: `llm-benchmarks-dashboard`
 - Notes: Updated model link labels to fallback safely when `model_name` is missing, changed section heading components to use `h2` instead of `h4`, converted `MainContainer` to `main` and removed nested app-level `MainContainer`, and added `aria-label` on local-page loading spinner. Build completed successfully (`npm --prefix backend run build`) with existing external Mongo timeout warnings during static path generation but no compile/type errors.
 
 ### Task 2
-- Status: Pending
-- Finish statement: Pending
-- Notes: Pending
+- Status: Completed
+- Finish statement: Completed shared SEO metadata rollout for all top-level landing routes (`/cloud`, `/local`, `/status`).
+- Notes: Added `buildStaticPageSeoMetadata` helper in `seoUtils.ts` and wired full head tags (canonical, robots, OG, Twitter, JSON-LD, keywords) into all page states (loading/error/success where applicable) for Cloud, Local, and Status pages. Lint passes with one pre-existing warning in `pages/admin.tsx`.
 
 ### Task 3
 - Status: Pending

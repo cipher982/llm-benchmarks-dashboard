@@ -11,6 +11,7 @@ import { FastestFrameworks } from '../utils/transformations';
 import { MainContainer } from '../components/design-system/components';
 import { calculateMB } from '../utils/stats';
 import { LocalBenchmark } from '../types/LocalData';
+import { buildStaticPageSeoMetadata } from '../utils/seoUtils';
 import {
     LoadingContainer,
     StyledCircularProgress,
@@ -36,6 +37,15 @@ const LocalBenchmarks: FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const filteredBenchmarks = benchmarks.filter(benchmark => benchmark.gpu_mem_usage > 1);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    const localSeo = buildStaticPageSeoMetadata({
+        path: '/local',
+        title: 'Local LLM Benchmarks - M3 Max Performance Testing',
+        description:
+            'Local LLM benchmarks on Apple M3 Max with 128GB RAM. Compare frameworks like transformers, GGUF, and HF-TGI for speed and GPU usage.',
+        keywords:
+            'local LLM benchmarks, Apple M3 Max, GGUF benchmark, transformers benchmark, HF-TGI benchmark, GPU memory vs speed',
+    });
 
     useEffect(() => {
         const fetchLocalBenchmarks = async () => {
@@ -69,8 +79,21 @@ const LocalBenchmarks: FC = () => {
         return (
             <>
                 <Head>
-                    <title>Local LLM Benchmarks - M3 Max Performance Testing</title>
-                    <meta name="description" content="Local LLM benchmarks on Apple M3 Max with 128GB RAM. Compare frameworks like transformers, GGUF, and HF-TGI for speed and GPU usage." />
+                    <title>{localSeo.title}</title>
+                    <meta name="description" content={localSeo.description} />
+                    <meta name="keywords" content={localSeo.keywords} />
+                    <meta name="robots" content="index,follow" />
+                    <link rel="canonical" href={localSeo.canonical} />
+                    <meta property="og:title" content={localSeo.openGraph.title} />
+                    <meta property="og:description" content={localSeo.openGraph.description} />
+                    <meta property="og:type" content={localSeo.openGraph.type} />
+                    <meta property="og:url" content={localSeo.openGraph.url} />
+                    <meta name="twitter:card" content={localSeo.twitter.card} />
+                    <meta name="twitter:title" content={localSeo.twitter.title} />
+                    <meta name="twitter:description" content={localSeo.twitter.description} />
+                    {localSeo.jsonLd && (
+                        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localSeo.jsonLd) }} />
+                    )}
                 </Head>
                 <LoadingContainer>
                     <StyledCircularProgress size={80} aria-label="Loading local benchmarks" />
@@ -84,8 +107,21 @@ const LocalBenchmarks: FC = () => {
         return (
             <>
                 <Head>
-                    <title>Local LLM Benchmarks - M3 Max Performance Testing</title>
-                    <meta name="description" content="Local LLM benchmarks on Apple M3 Max with 128GB RAM. Compare frameworks like transformers, GGUF, and HF-TGI for speed and GPU usage." />
+                    <title>{localSeo.title}</title>
+                    <meta name="description" content={localSeo.description} />
+                    <meta name="keywords" content={localSeo.keywords} />
+                    <meta name="robots" content="index,follow" />
+                    <link rel="canonical" href={localSeo.canonical} />
+                    <meta property="og:title" content={localSeo.openGraph.title} />
+                    <meta property="og:description" content={localSeo.openGraph.description} />
+                    <meta property="og:type" content={localSeo.openGraph.type} />
+                    <meta property="og:url" content={localSeo.openGraph.url} />
+                    <meta name="twitter:card" content={localSeo.twitter.card} />
+                    <meta name="twitter:title" content={localSeo.twitter.title} />
+                    <meta name="twitter:description" content={localSeo.twitter.description} />
+                    {localSeo.jsonLd && (
+                        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localSeo.jsonLd) }} />
+                    )}
                 </Head>
                 <div>Error: {error}</div>
             </>
@@ -96,8 +132,21 @@ const LocalBenchmarks: FC = () => {
     return (
         <>
             <Head>
-                <title>Local LLM Benchmarks - M3 Max Performance Testing</title>
-                <meta name="description" content="Local LLM benchmarks on Apple M3 Max with 128GB RAM. Compare frameworks like transformers, GGUF, and HF-TGI for speed and GPU usage." />
+                <title>{localSeo.title}</title>
+                <meta name="description" content={localSeo.description} />
+                <meta name="keywords" content={localSeo.keywords} />
+                <meta name="robots" content="index,follow" />
+                <link rel="canonical" href={localSeo.canonical} />
+                <meta property="og:title" content={localSeo.openGraph.title} />
+                <meta property="og:description" content={localSeo.openGraph.description} />
+                <meta property="og:type" content={localSeo.openGraph.type} />
+                <meta property="og:url" content={localSeo.openGraph.url} />
+                <meta name="twitter:card" content={localSeo.twitter.card} />
+                <meta name="twitter:title" content={localSeo.twitter.title} />
+                <meta name="twitter:description" content={localSeo.twitter.description} />
+                {localSeo.jsonLd && (
+                    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localSeo.jsonLd) }} />
+                )}
             </Head>
             <MainContainer isMobile={isMobile}>
                 <StyledDescriptionSection isMobile={isMobile}>
