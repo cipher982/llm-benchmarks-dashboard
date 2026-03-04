@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://llm-benchmarks.com/api/sitemap
+Sitemap: https://llm-benchmarks.com/sitemap.xml
 
 # As a condition of accessing this website, you agree to abide by the following
 # content signals:

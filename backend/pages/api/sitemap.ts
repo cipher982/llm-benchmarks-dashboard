@@ -30,7 +30,7 @@ function buildUrl(entry: SitemapEntry): string {
   return lines.join("\n");
 }
 
-async function generateSitemap(): Promise<string> {
+export async function generateSitemap(): Promise<string> {
   const hostname = process.env.FRONTEND_URL || DEFAULT_HOST;
 
   const mainEntries: SitemapEntry[] = [
@@ -115,7 +115,8 @@ async function generateSitemap(): Promise<string> {
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.setHeader("Allow", "GET, HEAD");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
@@ -123,6 +124,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const sitemap = await generateSitemap();
     res.setHeader("Content-Type", "application/xml");
     res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
+    if (req.method === "HEAD") {
+      res.status(200).end();
+      return;
+    }
     res.status(200).send(sitemap);
   } catch (error) {
     console.error("Error generating sitemap:", error);

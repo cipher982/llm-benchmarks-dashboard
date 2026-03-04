@@ -13,7 +13,7 @@ Repository: `llm-benchmarks-dashboard`
   Scope: empty anchor text fallbacks, heading hierarchy order, main landmark semantics.
 - [x] Task 2: Add complete SEO head metadata to `/cloud`, `/local`, `/status`.
   Scope: canonical, robots, OG, Twitter, consistent title/description handling.
-- [ ] Task 3: Harden sitemap/robots discoverability.
+- [x] Task 3: Harden sitemap/robots discoverability.
   Scope: add `/sitemap.xml` route, allow `HEAD` for sitemap endpoint, update robots sitemap target.
 - [ ] Task 4: Fix navigation semantics/UX issues.
   Scope: avoid nested interactive controls, keep accessibility and keyboard behavior clean.
@@ -37,9 +37,9 @@ Repository: `llm-benchmarks-dashboard`
 - Notes: Added `buildStaticPageSeoMetadata` helper in `seoUtils.ts` and wired full head tags (canonical, robots, OG, Twitter, JSON-LD, keywords) into all page states (loading/error/success where applicable) for Cloud, Local, and Status pages. Lint passes with one pre-existing warning in `pages/admin.tsx`.
 
 ### Task 3
-- Status: Pending
-- Finish statement: Pending
-- Notes: Pending
+- Status: Completed
+- Finish statement: Completed sitemap endpoint hardening and crawler discoverability improvements.
+- Notes: Exported sitemap generator for reuse, added `HEAD` support with proper `Allow` header on `/api/sitemap`, created public `/sitemap.xml` route via SSR page, and updated `robots.txt` to the canonical sitemap URL. Lint passes with unchanged pre-existing warning in `pages/admin.tsx`.
 
 ### Task 4
 - Status: Pending
