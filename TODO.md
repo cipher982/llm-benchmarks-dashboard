@@ -23,7 +23,7 @@ Repository: `llm-benchmarks-dashboard`
   Scope: run a11y tests/smoke checks, update notes, and prepare final ship summary.
 - [x] Task 7: Add core Umami outcome tracking events.
   Scope: `cloud_page_view`, `provider_click`, `model_click`, `status_click`, `github_click`, `drose_click`.
-- [ ] Task 8: Add conversion-first hero block on `/cloud`.
+- [x] Task 8: Add conversion-first hero block on `/cloud`.
   Scope: quick paths for lowest latency, highest throughput, and most stable (7D) with CTA actions.
 - [ ] Task 9: Verify growth iteration and finalize audit notes.
   Scope: lint/build/smoke checks and completion summary.
@@ -68,9 +68,9 @@ Repository: `llm-benchmarks-dashboard`
 - Notes: Added shared tracker helper (`utils/analytics.ts`) and wired events: `cloud_page_view` on `/cloud` mount, `provider_click` and `model_click` in cloud tables/quick-answer links, and `status_click`/`github_click`/`drose_click` in navbar actions. Verification: lint/build pass with unchanged pre-existing admin hook warning and expected intermittent Mongo timeout logs during static path generation.
 
 ### Task 8
-- Status: Pending
-- Finish statement: Pending
-- Notes: Pending
+- Status: Completed
+- Finish statement: Completed conversion-first quick-path hero on `/cloud` and connected it to actionable navigation and table workflow.
+- Notes: Added `CloudDecisionHero` component with three recommendation cards (lowest TTFT, highest throughput, most stable 7D), linked cards to provider/model landing pages with Umami tracking, and wired CTA behavior to force full table into 7-day mode then scroll directly to the full results section. Added dedicated quick-path fetch/state in `cloud.tsx` using `include=table&days=7&hideFlagged=true` and resilience states (loading/error/empty) without impacting primary page render. Verification: lint/build pass with unchanged pre-existing admin hook warning and known Mongo timeout logs during static-path generation; local smoke check confirmed hero title and `full-results-section` anchor are present in rendered `/cloud` HTML.
 
 ### Task 9
 - Status: Pending

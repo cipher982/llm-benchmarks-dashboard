@@ -25,6 +25,7 @@ import {
 import { TimeRangeSelector } from "../components/TimeRangeSelector";
 import { LifecycleSelector } from "../components/LifecycleSelector";
 import { QuickAnswerModule } from "../components/QuickAnswerModule";
+import { CloudDecisionHero, QuickPathId, QuickPathOption } from "../components/CloudDecisionHero";
 import { buildStaticPageSeoMetadata } from "../utils/seoUtils";
 import { trackUmamiEvent } from "../utils/analytics";
 
@@ -45,6 +46,117 @@ const FLAGGED_STATUSES = [
 
 
 const FLAGGED_STATUS_SET = new Set(FLAGGED_STATUSES);
+
+const formatModelLabel = (row: TableRow): string => {
+    return row.model_name || row.modelCanonical || row.modelSlug || "unknown-model";
+};
+
+const formatProviderLabel = (row: TableRow): string => {
+    return row.provider || row.providerCanonical || row.providerSlug || "unknown-provider";
+};
+
+const isEligibleQuickPathRow = (row: TableRow): boolean => {
+    if (!row.providerSlug || !row.modelSlug) {
+        return false;
+    }
+
+    if (row.deprecated) {
+        return false;
+    }
+
+    const status = row.lifecycle_status || "active";
+    return status === "active";
+};
+
+const buildQuickPathOptions = (rows: TableRow[]): QuickPathOption[] => {
+    const eligibleRows = rows.filter(isEligibleQuickPathRow);
+    if (!eligibleRows.length) {
+        return [];
+    }
+
+    const byLowestLatency = [...eligibleRows]
+        .filter((row) => Number.isFinite(row.time_to_first_token_mean) && row.time_to_first_token_mean > 0)
+        .sort((a, b) => a.time_to_first_token_mean - b.time_to_first_token_mean);
+
+    const byHighestThroughput = [...eligibleRows]
+        .filter((row) => Number.isFinite(row.tokens_per_second_mean) && row.tokens_per_second_mean > 0)
+        .sort((a, b) => b.tokens_per_second_mean - a.tokens_per_second_mean);
+
+    const byStability = [...eligibleRows]
+        .filter((row) => {
+            const mean = row.tokens_per_second_mean;
+            const min = row.tokens_per_second_min;
+            const max = row.tokens_per_second_max;
+            return Number.isFinite(mean) && Number.isFinite(min) && Number.isFinite(max) && mean > 0 && max >= min;
+        })
+        .sort((a, b) => {
+            const aSpread = (a.tokens_per_second_max - a.tokens_per_second_min) / a.tokens_per_second_mean;
+            const bSpread = (b.tokens_per_second_max - b.tokens_per_second_min) / b.tokens_per_second_mean;
+            return aSpread - bSpread;
+        });
+
+    const usedRows = new Set<string>();
+    const pickDistinctRow = (candidates: TableRow[]): TableRow | null => {
+        for (const row of candidates) {
+            const key = `${row.providerSlug}/${row.modelSlug}`;
+            if (!usedRows.has(key)) {
+                usedRows.add(key);
+                return row;
+            }
+        }
+        return candidates[0] ?? null;
+    };
+
+    const quickPaths: QuickPathOption[] = [];
+
+    const latencyRow = pickDistinctRow(byLowestLatency);
+    if (latencyRow) {
+        quickPaths.push({
+            id: "lowest_latency",
+            title: "Lowest First-Token Wait",
+            subtitle: "Best if you care about responsiveness and snappy chat UX.",
+            metricLabel: "Avg TTFT",
+            metricValue: `${latencyRow.time_to_first_token_mean.toFixed(2)}s`,
+            modelName: formatModelLabel(latencyRow),
+            providerName: formatProviderLabel(latencyRow),
+            providerSlug: latencyRow.providerSlug,
+            modelSlug: latencyRow.modelSlug,
+        });
+    }
+
+    const throughputRow = pickDistinctRow(byHighestThroughput);
+    if (throughputRow) {
+        quickPaths.push({
+            id: "highest_throughput",
+            title: "Highest Token Throughput",
+            subtitle: "Best for long generations and bulk completion workloads.",
+            metricLabel: "Avg speed",
+            metricValue: `${Math.round(throughputRow.tokens_per_second_mean)} tok/s`,
+            modelName: formatModelLabel(throughputRow),
+            providerName: formatProviderLabel(throughputRow),
+            providerSlug: throughputRow.providerSlug,
+            modelSlug: throughputRow.modelSlug,
+        });
+    }
+
+    const stableRow = pickDistinctRow(byStability);
+    if (stableRow) {
+        const spreadRatio = (stableRow.tokens_per_second_max - stableRow.tokens_per_second_min) / stableRow.tokens_per_second_mean;
+        quickPaths.push({
+            id: "most_stable_7d",
+            title: "Most Stable Over 7 Days",
+            subtitle: "Best if you want predictable performance with less variance.",
+            metricLabel: "Speed spread",
+            metricValue: `${(spreadRatio * 100).toFixed(1)}%`,
+            modelName: formatModelLabel(stableRow),
+            providerName: formatProviderLabel(stableRow),
+            providerSlug: stableRow.providerSlug,
+            modelSlug: stableRow.modelSlug,
+        });
+    }
+
+    return quickPaths;
+};
 
 const cloudSeo = buildStaticPageSeoMetadata({
     path: "/cloud",
@@ -101,6 +213,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const [tableData, setTableData] = useState<TableRow[]>(initialTableData);
     const [tableMeta, setTableMeta] = useState<TableMetaSummary | null>(initialTableMeta);
     const [lifecycleSummary, setLifecycleSummary] = useState<LifecycleSummaryResponse | null>(null);
+    const [quickPathOptions, setQuickPathOptions] = useState<QuickPathOption[]>([]);
 
     // Separate time ranges for each section
     const [distDays, setDistDays] = useState<number>(30);
@@ -114,10 +227,12 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const [tableLoading, setTableLoading] = useState<boolean>(false);
     const [timeSeriesLoading, setTimeSeriesLoading] = useState<boolean>(true);
     const [summaryLoading, setSummaryLoading] = useState<boolean>(true); // Only lifecycle needs initial fetch
+    const [quickPathLoading, setQuickPathLoading] = useState<boolean>(true);
 
     const [error, setError] = useState<string | null>(null);
     const [summaryError, setSummaryError] = useState<string | null>(null);
     const [timeSeriesError, setTimeSeriesError] = useState<string | null>(null);
+    const [quickPathError, setQuickPathError] = useState<string | null>(null);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const hasTrackedCloudView = useRef(false);
 
@@ -210,6 +325,34 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         }
     }, []);
 
+    const fetchQuickPathData = useCallback(async () => {
+        try {
+            setQuickPathLoading(true);
+            const res = await fetch('/api/processed?days=7&include=table&hideFlagged=true', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            const data = await res.json();
+            if (!data || !Array.isArray(data.table)) {
+                throw new Error('Invalid quick path table data received');
+            }
+
+            setQuickPathOptions(buildQuickPathOptions(data.table));
+            setQuickPathError(null);
+        } catch (err: any) {
+            console.error('Error fetching quick path data:', err);
+            setQuickPathError(err.message);
+            setQuickPathOptions([]);
+        } finally {
+            setQuickPathLoading(false);
+        }
+    }, []);
+
     // Fetch function for Time Series section
     const fetchTimeSeries = useCallback(async (days: number) => {
         try {
@@ -243,6 +386,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     useEffect(() => {
         fetchLifecycleSummaryData();
         fetchTimeSeries(timeSeriesDays);
+        fetchQuickPathData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -293,6 +437,24 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         await fetchTimeSeries(days);
     }, [fetchTimeSeries]);
 
+    const handleApplyQuickPath = useCallback(async (id: QuickPathId) => {
+        const hasOption = quickPathOptions.some((option) => option.id === id);
+        if (!hasOption) {
+            return;
+        }
+
+        setTableStatusFilter('all');
+        setTableDays(7);
+        await fetchTableData(7, 'all');
+
+        if (typeof window !== 'undefined') {
+            document.getElementById('full-results-section')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+        }
+    }, [fetchTableData, quickPathOptions]);
+
     if (error) {
         return (
             <>
@@ -338,9 +500,9 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 )}
             </Head>
             <MainContainer isMobile={isMobile}>
-                <StyledDescriptionSection isMobile={isMobile}>
-                    <CenteredContentContainer>
-                        <PageTitle>☁️ Cloud Benchmarks ☁️</PageTitle>
+            <StyledDescriptionSection isMobile={isMobile}>
+                <CenteredContentContainer>
+                    <PageTitle>☁️ Cloud Benchmarks ☁️</PageTitle>
                     <p>
                         I run cron jobs to periodically test the token generation speed of different cloud LLM providers.
                         The chart helps visualize the distributions of different speeds, as they can vary somewhat depending on the loads.
@@ -357,6 +519,13 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                     </p>
                 </CenteredContentContainer>
             </StyledDescriptionSection>
+
+            <CloudDecisionHero
+                options={quickPathOptions}
+                loading={quickPathLoading}
+                error={quickPathError}
+                onApplyQuickPath={handleApplyQuickPath}
+            />
 
             <QuickAnswerModule tableData={tableData} />
 
@@ -385,7 +554,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 </ChartContentContainer>
             </StyledChartContainer>
 
-            <StyledTableContainer isMobile={isMobile}>
+            <StyledTableContainer id="full-results-section" isMobile={isMobile}>
                 <SectionHeaderWithControl>
                     <SectionHeader>📚 Full Results 📚</SectionHeader>
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
