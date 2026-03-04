@@ -19,7 +19,7 @@ const ModuleContainer = styled('div')(({ theme }) => ({
     },
 }));
 
-const ModuleTitle = styled('h3')(({ theme }) => ({
+const ModuleTitle = styled('h2')(({ theme }) => ({
     margin: 0,
     marginBottom: theme.spacing(2),
     fontSize: '1.1rem',
@@ -149,26 +149,34 @@ export const QuickAnswerModule: React.FC<QuickAnswerModuleProps> = ({ tableData 
                         </tr>
                     </thead>
                     <tbody>
-                        {fastestModels.map((row, index) => (
-                            <tr key={`${row.providerCanonical}-${row.modelCanonical}`}>
-                                <td style={{ textAlign: 'center' }}>
-                                    <RankBadge>{index + 1}</RankBadge>
-                                </td>
-                                <td>
-                                    <Link
-                                        href={`/models/${row.providerSlug}/${row.modelSlug}`}
-                                        passHref
-                                        legacyBehavior
-                                    >
-                                        <ModelLink>{row.model_name}</ModelLink>
-                                    </Link>
-                                </td>
-                                <td>{row.provider}</td>
-                                <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                                    {Math.round(row.tokens_per_second_mean)} tok/s
-                                </td>
-                            </tr>
-                        ))}
+                        {fastestModels.map((row, index) => {
+                            const modelLabel =
+                                row.model_name ||
+                                row.modelCanonical ||
+                                row.modelSlug ||
+                                'unknown-model';
+
+                            return (
+                                <tr key={`${row.providerCanonical}-${row.modelCanonical}`}>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <RankBadge>{index + 1}</RankBadge>
+                                    </td>
+                                    <td>
+                                        <Link
+                                            href={`/models/${row.providerSlug}/${row.modelSlug}`}
+                                            passHref
+                                            legacyBehavior
+                                        >
+                                            <ModelLink>{modelLabel}</ModelLink>
+                                        </Link>
+                                    </td>
+                                    <td>{row.provider}</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                                        {Math.round(row.tokens_per_second_mean)} tok/s
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </ResultsTable>
             )}

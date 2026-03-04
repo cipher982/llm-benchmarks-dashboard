@@ -51,6 +51,11 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
             size: 200,
             cell: ({ row, getValue }) => {
                 const modelName = getValue() as string;
+                const modelLabel =
+                    modelName ||
+                    row.original.modelCanonical ||
+                    row.original.modelSlug ||
+                    'unknown-model';
                 const providerSlug = row.original.providerSlug;
                 const modelSlug = row.original.modelSlug;
 
@@ -60,11 +65,11 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                             href={`/models/${providerSlug}/${modelSlug}`}
                             style={{ color: colors.link, textDecoration: 'underline' }}
                         >
-                            {modelName}
+                            {modelLabel}
                         </Link>
                     );
                 }
-                return modelName;
+                return modelLabel;
             },
         },
         {

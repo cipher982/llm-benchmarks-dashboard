@@ -9,7 +9,7 @@ Repository: `llm-benchmarks-dashboard`
 - After each task, mark it done and append completion notes in the audit log section.
 
 ## Tasks
-- [ ] Task 1: Fix critical accessibility/data integrity issues on landing pages.
+- [x] Task 1: Fix critical accessibility/data integrity issues on landing pages.
   Scope: empty anchor text fallbacks, heading hierarchy order, main landmark semantics.
 - [ ] Task 2: Add complete SEO head metadata to `/cloud`, `/local`, `/status`.
   Scope: canonical, robots, OG, Twitter, consistent title/description handling.
@@ -27,9 +27,9 @@ Repository: `llm-benchmarks-dashboard`
 ## Completion Audit Log
 
 ### Task 1
-- Status: Pending
-- Finish statement: Pending
-- Notes: Pending
+- Status: Completed
+- Finish statement: Completed landing-page semantic/a11y integrity fixes and removed known empty-link outputs in table modules.
+- Notes: Updated model link labels to fallback safely when `model_name` is missing, changed section heading components to use `h2` instead of `h4`, converted `MainContainer` to `main` and removed nested app-level `MainContainer`, and added `aria-label` on local-page loading spinner. Build completed successfully (`npm --prefix backend run build`) with existing external Mongo timeout warnings during static path generation but no compile/type errors.
 
 ### Task 2
 - Status: Pending

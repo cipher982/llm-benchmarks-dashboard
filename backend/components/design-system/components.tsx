@@ -74,7 +74,7 @@ export const StyledCircularProgress = styled(CircularProgress)({
 /**
  * Main application container with responsive behavior
  */
-export const MainContainer = styled('div')<ResponsiveProps>(({ isMobile }) => ({
+export const MainContainer = styled('main')<ResponsiveProps>(({ isMobile }) => ({
   paddingTop: isMobile ? '70px' : '50px',
   margin: 0,
   backgroundColor: colors.background,
@@ -372,7 +372,7 @@ export const PageTitle = styled('h1')({
 /**
  * Section header
  */
-export const SectionHeader = styled('h4')({
+export const SectionHeader = styled('h2')({
   textAlign: 'center',
   color: colors.textPrimary,
   marginBottom: spacing.scale[4],

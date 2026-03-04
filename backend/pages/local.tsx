@@ -73,7 +73,7 @@ const LocalBenchmarks: FC = () => {
                     <meta name="description" content="Local LLM benchmarks on Apple M3 Max with 128GB RAM. Compare frameworks like transformers, GGUF, and HF-TGI for speed and GPU usage." />
                 </Head>
                 <LoadingContainer>
-                    <StyledCircularProgress size={80} />
+                    <StyledCircularProgress size={80} aria-label="Loading local benchmarks" />
                 </LoadingContainer>
             </>
         );

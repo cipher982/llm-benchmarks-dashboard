@@ -50,7 +50,7 @@ export const TableContentContainer = styled('div')<{ isMobile?: boolean }>(({ th
 }));
 
 // Section Headers
-export const SectionHeader = styled('h4')(({ theme }) => ({
+export const SectionHeader = styled('h2')(({ theme }) => ({
     textAlign: 'center',
     color: theme.palette.text.primary,
     marginBottom: theme.spacing(2),
