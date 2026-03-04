@@ -88,6 +88,37 @@ const StyledIconButton = styled(StyledButton)(({ theme }) => ({
     },
 }));
 
+const StatusLinkButton = styled('a')(({ theme }) => ({
+    color: theme.designSystem.colors.textPrimary,
+    backgroundColor: theme.designSystem.colors.surfaceElevated,
+    minWidth: 'auto',
+    padding: '4px 16px',
+    border: `2px outset ${theme.designSystem.colors.surfaceElevated}`,
+    borderRadius: 0,
+    gap: theme.spacing(1),
+    fontSize: '11px',
+    fontFamily: 'Tahoma, sans-serif',
+    textTransform: 'none',
+    textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    '& .MuiSvgIcon-root': {
+        color: theme.designSystem.colors.textPrimary,
+        fontSize: '16px',
+    },
+    '&:hover': {
+        backgroundColor: theme.designSystem.colors.hover,
+        border: `2px outset ${theme.designSystem.colors.surfaceElevated}`,
+    },
+    '&:active': {
+        border: `2px inset ${theme.designSystem.colors.surfaceElevated}`,
+    },
+    [theme.breakpoints.down('md')]: {
+        padding: '4px 8px',
+    },
+}));
+
 const NavLinkAnchor = styled('a')(({ theme }) => ({
     textDecoration: 'none',
     color: theme.designSystem.colors.textPrimary,
@@ -178,15 +209,10 @@ const Navbar: React.FC = () => {
                     <ResponsiveButtonText>drose.io</ResponsiveButtonText>
                 </StyledButton>
                 <Link href="/status" passHref legacyBehavior>
-                    <StyledButton
-                        component="a"
-                        variant="outlined"
-                        size="small"
-                        aria-label="View API status"
-                    >
+                    <StatusLinkButton aria-label="View API status">
                         <CheckCircleOutlineIcon />
                         <ResponsiveButtonText>API Status</ResponsiveButtonText>
-                    </StyledButton>
+                    </StatusLinkButton>
                 </Link>
             </ButtonsContainer>
         </NavBarContainer>

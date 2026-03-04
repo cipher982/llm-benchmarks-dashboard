@@ -19,7 +19,7 @@ Repository: `llm-benchmarks-dashboard`
   Scope: avoid nested interactive controls, keep accessibility and keyboard behavior clean.
 - [x] Task 5: Reduce `/cloud` landing payload and improve mobile performance.
   Scope: trim initial SSR payload and lazy-fetch heavy data section(s) without breaking UX.
-- [ ] Task 6: Verification + release pass.
+- [x] Task 6: Verification + release pass.
   Scope: run a11y tests/smoke checks, update notes, and prepare final ship summary.
 
 ---
@@ -52,6 +52,6 @@ Repository: `llm-benchmarks-dashboard`
 - Notes: Removed `initialTimeSeriesData` from `getServerSideProps`, fetches time-series client-side on mount, added dedicated time-series error state to prevent full-page failure, and kept chart section visible with loading/error/empty states. Local Next telemetry showed `/cloud` page data warning drop from ~397kB to ~307kB after change (~90kB reduction).
 
 ### Task 6
-- Status: Pending
-- Finish statement: Pending
-- Notes: Pending
+- Status: Completed
+- Finish statement: Completed final verification pass, shipped remaining metadata polish, and prepared this TODO as an audit-ready work log.
+- Notes: Added real manifest metadata (`name`, `short_name`, `description`, `start_url`, theme/background colors). Verification run: `npm --prefix backend run lint` (passes with one pre-existing warning in `pages/admin.tsx`), `npm --prefix backend run build` (passes; provider/model static-path generation logs Mongo timeout warnings in this environment but build completes), and local smoke checks confirmed `/cloud` now renders canonical/robots/JSON-LD with valid heading order, no empty links, and one `<main>` landmark. Production probe still showed old `/sitemap.xml` behavior at check time, indicating deployment propagation lag outside this local git ship step.
