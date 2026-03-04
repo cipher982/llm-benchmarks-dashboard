@@ -235,6 +235,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const [quickPathError, setQuickPathError] = useState<string | null>(null);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const hasTrackedCloudView = useRef(false);
+    const hasTrackedQuickPathsLoaded = useRef(false);
 
     // Fetch function for Speed Distribution section
     const fetchSpeedDistribution = useCallback(async (days: number) => {
@@ -405,6 +406,23 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         hasTrackedCloudView.current = true;
     }, [initialTableData.length]);
 
+    useEffect(() => {
+        if (hasTrackedQuickPathsLoaded.current) {
+            return;
+        }
+
+        if (quickPathLoading || quickPathError || quickPathOptions.length === 0) {
+            return;
+        }
+
+        trackUmamiEvent('quick_paths_loaded', {
+            source: 'cloud_decision_hero',
+            optionsCount: quickPathOptions.length,
+            optionIds: quickPathOptions.map((option) => option.id).join(','),
+        });
+        hasTrackedQuickPathsLoaded.current = true;
+    }, [quickPathError, quickPathLoading, quickPathOptions]);
+
     // Time range change handlers for each section
     const handleDistTimeRangeChange = useCallback(async (days: number) => {
         setDistDays(days);
@@ -413,14 +431,12 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
 
     const handleTableTimeRangeChange = useCallback(async (days: number) => {
         setTableDays(days);
+        trackUmamiEvent('table_days_change', {
+            source: 'table_time_selector',
+            selectedDays: days,
+        });
         await fetchTableData(days, tableStatusFilter);
     }, [fetchTableData, tableStatusFilter]);
-
-    const handleTableStatusFilterChange = useCallback(async (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const nextFilter = event.target.value as TableStatusFilter;
-        setTableStatusFilter(nextFilter);
-        await fetchTableData(tableDays, nextFilter);
-    }, [fetchTableData, tableDays]);
 
     const visibleFlaggedCount = useMemo(() => {
         return tableData.reduce((count, row) => {
@@ -566,6 +582,10 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                             value={tableStatusFilter}
                             onChange={(value) => {
                                 setTableStatusFilter(value);
+                                trackUmamiEvent('table_status_filter_change', {
+                                    source: 'lifecycle_selector',
+                                    filter: value,
+                                });
                                 fetchTableData(tableDays, value);
                             }}
                         />
