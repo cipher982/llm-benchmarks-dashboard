@@ -17,7 +17,7 @@ Repository: `llm-benchmarks-dashboard`
   Scope: add `/sitemap.xml` route, allow `HEAD` for sitemap endpoint, update robots sitemap target.
 - [x] Task 4: Fix navigation semantics/UX issues.
   Scope: avoid nested interactive controls, keep accessibility and keyboard behavior clean.
-- [ ] Task 5: Reduce `/cloud` landing payload and improve mobile performance.
+- [x] Task 5: Reduce `/cloud` landing payload and improve mobile performance.
   Scope: trim initial SSR payload and lazy-fetch heavy data section(s) without breaking UX.
 - [ ] Task 6: Verification + release pass.
   Scope: run a11y tests/smoke checks, update notes, and prepare final ship summary.
@@ -47,9 +47,9 @@ Repository: `llm-benchmarks-dashboard`
 - Notes: Replaced the nested `<a><button /></a>` pattern with a single anchor-button element (`MuiButton component=\"a\"` under `Link`) in `NavBar.tsx`, preventing invalid nested interactive controls while preserving keyboard and screen-reader semantics. Lint passes with the same pre-existing admin warning.
 
 ### Task 5
-- Status: Pending
-- Finish statement: Pending
-- Notes: Pending
+- Status: Completed
+- Finish statement: Completed first-pass `/cloud` payload reduction by moving heavy time-series data off initial SSR props.
+- Notes: Removed `initialTimeSeriesData` from `getServerSideProps`, fetches time-series client-side on mount, added dedicated time-series error state to prevent full-page failure, and kept chart section visible with loading/error/empty states. Local Next telemetry showed `/cloud` page data warning drop from ~397kB to ~307kB after change (~90kB reduction).
 
 ### Task 6
 - Status: Pending

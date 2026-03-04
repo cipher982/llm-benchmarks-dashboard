@@ -85,20 +85,18 @@ interface CloudPageProps {
     initialSpeedDistData: SpeedDistributionPoint[];
     initialTableData: TableRow[];
     initialTableMeta: TableMetaSummary | null;
-    initialTimeSeriesData: TimeSeriesData;
 }
 
 const CloudBenchmarks: React.FC<CloudPageProps> = ({
     initialSpeedDistData,
     initialTableData,
     initialTableMeta,
-    initialTimeSeriesData,
 }) => {
     const theme = useTheme();
 
     // Initialize state with SSR data (no loading spinner needed for initial render)
     const [speedDistData, setSpeedDistData] = useState<SpeedDistributionPoint[]>(initialSpeedDistData);
-    const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>(initialTimeSeriesData);
+    const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>({ timestamps: [], models: [] });
     const [tableData, setTableData] = useState<TableRow[]>(initialTableData);
     const [tableMeta, setTableMeta] = useState<TableMetaSummary | null>(initialTableMeta);
     const [lifecycleSummary, setLifecycleSummary] = useState<LifecycleSummaryResponse | null>(null);
@@ -113,11 +111,12 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     // Loading states only used for client-side refetches (not initial render)
     const [distLoading, setDistLoading] = useState<boolean>(false);
     const [tableLoading, setTableLoading] = useState<boolean>(false);
-    const [timeSeriesLoading, setTimeSeriesLoading] = useState<boolean>(false);
+    const [timeSeriesLoading, setTimeSeriesLoading] = useState<boolean>(true);
     const [summaryLoading, setSummaryLoading] = useState<boolean>(true); // Only lifecycle needs initial fetch
 
     const [error, setError] = useState<string | null>(null);
     const [summaryError, setSummaryError] = useState<string | null>(null);
+    const [timeSeriesError, setTimeSeriesError] = useState<string | null>(null);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     // Fetch function for Speed Distribution section
@@ -228,10 +227,11 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
             }
 
             setTimeSeriesData(data.timeSeries);
+            setTimeSeriesError(null);
             setError(null);
         } catch (err: any) {
             console.error('Error fetching time series:', err);
-            setError(err.message);
+            setTimeSeriesError(err.message);
         } finally {
             setTimeSeriesLoading(false);
         }
@@ -240,6 +240,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     // Only fetch lifecycle summary on mount (other data comes from SSR)
     useEffect(() => {
         fetchLifecycleSummaryData();
+        fetchTimeSeries(timeSeriesDays);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -480,26 +481,30 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 </CenteredContentContainer>
             </StyledDescriptionSection>
 
-            {timeSeriesData?.timestamps && timeSeriesData.timestamps.length > 0 && (
-                <StyledChartContainer isMobile={isMobile}>
-                    <SectionHeader>📈 Time Series 📈</SectionHeader>
-                    <ChartContentContainer>
-                        {timeSeriesLoading ? (
-                            <ChartLoadingContainer>
-                                <StyledCircularProgress size={60} aria-label="Loading time series chart" />
-                            </ChartLoadingContainer>
-                        ) : (
-                            <Suspense fallback={<StyledCircularProgress aria-label="Loading time series chart" />}>
-                                <TimeSeriesChart
-                                    data={timeSeriesData}
-                                    onTimeRangeChange={handleTimeSeriesTimeRangeChange}
-                                    selectedDays={timeSeriesDays}
-                                />
-                            </Suspense>
-                        )}
-                    </ChartContentContainer>
-                </StyledChartContainer>
-            )}
+            <StyledChartContainer isMobile={isMobile}>
+                <SectionHeader>📈 Time Series 📈</SectionHeader>
+                <ChartContentContainer>
+                    {timeSeriesLoading ? (
+                        <ChartLoadingContainer>
+                            <StyledCircularProgress size={60} aria-label="Loading time series chart" />
+                        </ChartLoadingContainer>
+                    ) : timeSeriesError ? (
+                        <div style={{ color: '#d32f2f', textAlign: 'center' }}>
+                            Failed to load time series data. ({timeSeriesError})
+                        </div>
+                    ) : timeSeriesData?.timestamps && timeSeriesData.timestamps.length > 0 ? (
+                        <Suspense fallback={<StyledCircularProgress aria-label="Loading time series chart" />}>
+                            <TimeSeriesChart
+                                data={timeSeriesData}
+                                onTimeRangeChange={handleTimeSeriesTimeRangeChange}
+                                selectedDays={timeSeriesDays}
+                            />
+                        </Suspense>
+                    ) : (
+                        <div style={{ textAlign: 'center' }}>No time series data available.</div>
+                    )}
+                </ChartContentContainer>
+            </StyledChartContainer>
             </MainContainer>
         </>
     );
@@ -514,20 +519,14 @@ export const getServerSideProps: GetServerSideProps<CloudPageProps> = async ({ r
         const apiDir = path.join(process.cwd(), 'public', 'api');
 
         // Read pre-generated static files (fast - they're on disk)
-        const [data30Raw, data14Raw] = await Promise.all([
-            fs.readFile(path.join(apiDir, 'processed-30days.json'), 'utf8'),
-            fs.readFile(path.join(apiDir, 'processed-14days.json'), 'utf8'),
-        ]);
-
+        const data30Raw = await fs.readFile(path.join(apiDir, 'processed-30days.json'), 'utf8');
         const data30 = JSON.parse(data30Raw);
-        const data14 = JSON.parse(data14Raw);
 
         return {
             props: {
                 initialSpeedDistData: data30.speedDistribution || [],
                 initialTableData: data30.table || [],
                 initialTableMeta: data30.meta?.table || null,
-                initialTimeSeriesData: data14.timeSeries || { timestamps: [], models: [] },
             },
         };
     } catch (error) {
@@ -538,7 +537,6 @@ export const getServerSideProps: GetServerSideProps<CloudPageProps> = async ({ r
                 initialSpeedDistData: [],
                 initialTableData: [],
                 initialTableMeta: null,
-                initialTimeSeriesData: { timestamps: [], models: [] },
             },
         };
     }
