@@ -88,11 +88,6 @@ const StyledIconButton = styled(StyledButton)(({ theme }) => ({
     },
 }));
 
-const ButtonLink = styled('a')({
-    textDecoration: 'none',
-    display: 'inline-flex',
-});
-
 const NavLinkAnchor = styled('a')(({ theme }) => ({
     textDecoration: 'none',
     color: theme.designSystem.colors.textPrimary,
@@ -183,16 +178,15 @@ const Navbar: React.FC = () => {
                     <ResponsiveButtonText>drose.io</ResponsiveButtonText>
                 </StyledButton>
                 <Link href="/status" passHref legacyBehavior>
-                    <ButtonLink>
-                        <StyledButton
-                            variant="outlined"
-                            size="small"
-                            aria-label="View API status"
-                        >
-                            <CheckCircleOutlineIcon />
-                            <ResponsiveButtonText>API Status</ResponsiveButtonText>
-                        </StyledButton>
-                    </ButtonLink>
+                    <StyledButton
+                        component="a"
+                        variant="outlined"
+                        size="small"
+                        aria-label="View API status"
+                    >
+                        <CheckCircleOutlineIcon />
+                        <ResponsiveButtonText>API Status</ResponsiveButtonText>
+                    </StyledButton>
                 </Link>
             </ButtonsContainer>
         </NavBarContainer>

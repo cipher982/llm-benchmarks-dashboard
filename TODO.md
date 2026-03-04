@@ -15,7 +15,7 @@ Repository: `llm-benchmarks-dashboard`
   Scope: canonical, robots, OG, Twitter, consistent title/description handling.
 - [x] Task 3: Harden sitemap/robots discoverability.
   Scope: add `/sitemap.xml` route, allow `HEAD` for sitemap endpoint, update robots sitemap target.
-- [ ] Task 4: Fix navigation semantics/UX issues.
+- [x] Task 4: Fix navigation semantics/UX issues.
   Scope: avoid nested interactive controls, keep accessibility and keyboard behavior clean.
 - [ ] Task 5: Reduce `/cloud` landing payload and improve mobile performance.
   Scope: trim initial SSR payload and lazy-fetch heavy data section(s) without breaking UX.
@@ -42,9 +42,9 @@ Repository: `llm-benchmarks-dashboard`
 - Notes: Exported sitemap generator for reuse, added `HEAD` support with proper `Allow` header on `/api/sitemap`, created public `/sitemap.xml` route via SSR page, and updated `robots.txt` to the canonical sitemap URL. Lint passes with unchanged pre-existing warning in `pages/admin.tsx`.
 
 ### Task 4
-- Status: Pending
-- Finish statement: Pending
-- Notes: Pending
+- Status: Completed
+- Finish statement: Completed navigation semantic cleanup for the status CTA without changing visual behavior.
+- Notes: Replaced the nested `<a><button /></a>` pattern with a single anchor-button element (`MuiButton component=\"a\"` under `Link`) in `NavBar.tsx`, preventing invalid nested interactive controls while preserving keyboard and screen-reader semantics. Lint passes with the same pre-existing admin warning.
 
 ### Task 5
 - Status: Pending
