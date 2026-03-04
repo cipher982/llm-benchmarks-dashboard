@@ -27,6 +27,12 @@ Repository: `llm-benchmarks-dashboard`
   Scope: quick paths for lowest latency, highest throughput, and most stable (7D) with CTA actions.
 - [x] Task 9: Verify growth iteration and finalize audit notes.
   Scope: lint/build/smoke checks and completion summary.
+- [x] Task 10: Expand cloud funnel instrumentation for actionable conversion analysis.
+  Scope: track recommendation readiness and table interaction events needed for weekly KPI attribution.
+- [x] Task 11: Add automated weekly Umami KPI digest job in `sauron-jobs`.
+  Scope: query live Umami Postgres metrics and email a weekly conversion digest for llm-benchmarks.
+- [x] Task 12: Verify automation SQL + finalize growth audit log updates.
+  Scope: run live SQL checks, lint/build where applicable, and close this iteration with notes.
 
 ---
 
@@ -76,3 +82,18 @@ Repository: `llm-benchmarks-dashboard`
 - Status: Completed
 - Finish statement: Completed final growth-iteration verification pass and closed this TODO as an auditable task log.
 - Notes: Verification run after Task 8 ship: `npm --prefix backend run lint` passes with unchanged pre-existing warning in `pages/admin.tsx`; `npm --prefix backend run build` passes with known intermittent Mongo timeout logs during provider/model static path generation in local env but successful Next build output; local `/cloud` smoke probes confirmed quick-path hero markers (`Pick A Path In 10 Seconds`), loading state (`Loading 7-day recommendations`), and full results anchor (`full-results-section`) in rendered HTML. No additional regressions identified in the modified files.
+
+### Task 10
+- Status: Completed
+- Finish statement: Completed second-pass cloud funnel event coverage for conversion attribution.
+- Notes: Added `quick_paths_loaded` (fires once when quick-path recommendations are available), `table_days_change` (time-range control interaction), and `table_status_filter_change` (lifecycle filter interaction) in `backend/pages/cloud.tsx`. Shipped in `llm-benchmarks-dashboard` commit `2a08f31`. Verification: `npm --prefix backend run lint` and `npm --prefix backend run build` pass with unchanged pre-existing admin hook warning and known intermittent Mongo timeout logs in static path generation.
+
+### Task 11
+- Status: Completed
+- Finish statement: Completed weekly automated KPI digest implementation using `sauron-jobs` conventions.
+- Notes: Added new job module at `~/git/sauron-jobs/jobs/llm_benchmarks/umami_weekly_digest.py` and registered `llm-bench-umami-weekly` in `~/git/sauron-jobs/manifest.py` (Monday cron). Job uses SSH+psql live Umami queries for funnel counts, source breakdowns, quick-path usage, top model clicks, and top paths, then sends a digest email via `send_digest_email`. Shipped in `sauron-jobs` commit `c1baeda`.
+
+### Task 12
+- Status: Completed
+- Finish statement: Completed live-query verification of automation SQL and finalized this extended audit log.
+- Notes: Live Umami schema and query checks were run directly against `clifford` (`website_event` + `event_data` tables) including all new digest SQL clauses; command results validated expected columns and successful query execution. Additional verification: `uv run python -m py_compile` on `sauron-jobs` changed files passed, and dashboard lint/build checks remained green with unchanged known warnings.
