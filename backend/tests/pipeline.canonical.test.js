@@ -95,6 +95,20 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       expect(result[0].tokens_per_second).toEqual([40, 60]);
       expect(result[0].tokens_per_second_mean).toBeCloseTo(50);
     });
+
+    test('treats unavailable time_to_first_token as missing latency data', () => {
+      const rawData = [
+        createRawBenchmark({ provider: 'deepinfra', model_name: 'reasoning-model', time_to_first_token: null })
+      ];
+
+      const result = cleanTransformCloud(rawData);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].tokens_per_second).toEqual([50]);
+      expect(result[0].time_to_first_token).toEqual([]);
+      expect(result[0].time_to_first_token_timestamps).toEqual([]);
+      expect(result[0].time_to_first_token_mean).toBe(0);
+    });
   });
 
   describe('Stage 2: mapModelNames (ProcessedData → CloudBenchmark)', () => {

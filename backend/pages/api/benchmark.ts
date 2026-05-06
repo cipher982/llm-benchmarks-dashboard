@@ -82,7 +82,7 @@ async function handler(
           tokens_per_second: doc.tokens_per_second || 0,
           provider: doc.provider || "",
           streaming: doc.streaming || false,
-          time_to_first_token: doc.time_to_first_token || 0
+          time_to_first_token: doc.time_to_first_token ?? null
         };
       });
       return cleanTransformCloud(formattedMetrics);
