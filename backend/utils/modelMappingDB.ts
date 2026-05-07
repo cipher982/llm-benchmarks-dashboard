@@ -62,6 +62,7 @@ interface LifecycleMetadata {
 
 interface ModelMetadata {
   display_name: string;
+  enabled?: boolean;
   deprecated?: boolean;
   deprecation_date?: string;
   successor_model?: string;
@@ -119,6 +120,7 @@ async function getModelMappingCache(): Promise<{ [key: string]: ModelMetadata }>
       provider: 1,
       model_id: 1,
       display_name: 1,
+      enabled: 1,
       deprecated: 1,
       deprecation_date: 1,
       successor_model: 1,
@@ -129,7 +131,8 @@ async function getModelMappingCache(): Promise<{ [key: string]: ModelMetadata }>
     models.forEach(model => {
       const cacheKey = `${model.provider}:${model.model_id}`;
       newCache[cacheKey] = {
-        display_name: model.display_name,
+        display_name: model.display_name || model.model_id,
+        enabled: model.enabled !== false,
         deprecated: model.deprecated,
         deprecation_date: model.deprecation_date,
         successor_model: model.successor_model,
@@ -257,11 +260,12 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
         time_to_first_token_max: -Infinity,
         time_to_first_token_quartiles: [0, 0, 0],
         display_name: modelDisplay,
+        enabled: metadata.enabled,
         deprecated: metadata.deprecated,
         deprecation_date: metadata.deprecation_date,
         successor_model: metadata.successor_model,
         last_benchmark_date: lastBenchmarkDate,
-        lifecycle_status: metadata.lifecycle?.status,
+        lifecycle_status: metadata.enabled === false ? 'disabled' : metadata.lifecycle?.status,
         lifecycle_confidence: metadata.lifecycle?.confidence,
         lifecycle_reasons: metadata.lifecycle?.reasons,
         lifecycle_recommended_actions: metadata.lifecycle?.recommended_actions,

@@ -22,6 +22,7 @@ export interface CloudBenchmark {
     run_ts?: Date;
 
     // Deprecation metadata
+    enabled?: boolean;
     deprecated?: boolean;
     deprecation_date?: string;
     successor_model?: string;

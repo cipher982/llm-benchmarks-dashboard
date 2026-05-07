@@ -486,6 +486,21 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
         tokens_per_second_max: 45,
         time_to_first_token_mean: 0.3,
         lifecycle_status: 'likely_deprecated'
+      }, {
+        _id: 'test-disabled',
+        provider: 'deepinfra',
+        providerCanonical: 'deepinfra',
+        providerSlug: 'deepinfra',
+        model_name: 'disabled-model',
+        modelCanonical: 'disabled-model',
+        modelSlug: 'disabled-model',
+        tokens_per_second: [36],
+        time_to_first_token: [0],
+        tokens_per_second_mean: 36,
+        tokens_per_second_min: 36,
+        tokens_per_second_max: 36,
+        time_to_first_token_mean: 0,
+        lifecycle_status: 'disabled'
       }];
 
       const result = await processRawTableData(cloudBenchmarks, { hideFlagged: true });
