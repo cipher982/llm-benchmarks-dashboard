@@ -78,6 +78,16 @@ const getProviderCoverage = (provider: TimeSeriesProvider): number => {
 const getVisibleProviders = (model: TimeSeriesModel): TimeSeriesProvider[] =>
     model.providers.filter((provider) => getProviderCoverage(provider) >= COVERAGE_THRESHOLD);
 
+const getFreshnessLineStyle = (provider: TimeSeriesProvider) => {
+    if (provider.freshness_status === 'critical') {
+        return { dash: '2 4', opacity: 0.45, width: 2.5 };
+    }
+    if (provider.freshness_status === 'stale') {
+        return { dash: '6 4', opacity: 0.65, width: 2.25 };
+    }
+    return { dash: undefined, opacity: 1, width: 2 };
+};
+
 // Memoized individual chart component
 const ModelChart = memo(({
     model,
@@ -198,12 +208,13 @@ const ModelChart = memo(({
                         {!isLoading && visibleProviders.map((provider, providerIndex) => {
                             const isSnapshot = provider.segment === 'snapshot';
                             const baseColor = getProviderColor(theme, provider.provider as Provider);
+                            const freshnessStyle = getFreshnessLineStyle(provider);
 
                             // Style snapshots as grey dashed lines, real data uses provider color
                             const strokeColor = isSnapshot ? '#999999' : baseColor;
-                            const strokeDasharray = isSnapshot ? '8 4' : undefined;
-                            const strokeWidth = isSnapshot ? 2.5 : 2;
-                            const strokeOpacity = isSnapshot ? 0.7 : 1;
+                            const strokeDasharray = isSnapshot ? '8 4' : freshnessStyle.dash;
+                            const strokeWidth = isSnapshot ? 2.5 : freshnessStyle.width;
+                            const strokeOpacity = isSnapshot ? 0.7 : freshnessStyle.opacity;
 
                             // Use segment suffix in dataKey to match chartData transformation
                             const segmentSuffix = provider.segment ? `-${provider.segment}` : '';

@@ -166,6 +166,8 @@ export async function processAllMetrics(
     let mappedData;
     try {
         mappedData = await mapModelNames(transformedData, useDbModels);
+        const { applyHealthMetadata } = await import('../../utils/modelHealth');
+        mappedData = await applyHealthMetadata(mappedData);
         const mappingEndTime = process.hrtime.bigint();
         logger.info(`🔧 Model mapping took ${(mappingEndTime - mappingStartTime) / 1000000n}ms, mappedDataLength=${mappedData.length}`);
     } catch (mappingError) {

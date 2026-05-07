@@ -35,4 +35,25 @@ const CloudSchema = new mongoose.Schema({
 });
 const CloudMetrics = mongoose.models.metrics_cloud_v2 || mongoose.model("metrics_cloud_v2", CloudSchema, "metrics_cloud_v2");
 
-module.exports = { LocalMetrics, CloudMetrics };
+const BenchModelHealthSchema = new mongoose.Schema({
+  provider: String,
+  model_id: String,
+  enabled: Boolean,
+  cadence_seconds: Number,
+  last_success_at: Date,
+  last_attempt_at: Date,
+  last_error_at: Date,
+  last_error_kind: String,
+  last_error_message: String,
+  consecutive_failures: Number,
+  successes_24h: Number,
+  failures_24h: Number,
+  deadline_misses_24h: Number,
+  staleness_seconds: Number,
+  freshness_status: String,
+  updated_at: Date,
+}, { collection: "bench_model_health" });
+const BenchModelHealth = mongoose.models.bench_model_health ||
+  mongoose.model("bench_model_health", BenchModelHealthSchema, "bench_model_health");
+
+module.exports = { LocalMetrics, CloudMetrics, BenchModelHealth };

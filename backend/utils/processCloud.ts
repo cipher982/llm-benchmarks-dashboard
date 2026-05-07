@@ -68,6 +68,10 @@ export interface ProcessedData {
     time_to_first_token_max: number;
     time_to_first_token_quartiles: number[];
     last_run_ts?: Date;
+    freshness_status?: string;
+    staleness_seconds?: number;
+    last_error_kind?: string;
+    consecutive_failures?: number;
 }
 
 /**

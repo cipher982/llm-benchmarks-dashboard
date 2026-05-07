@@ -10,6 +10,10 @@ export interface SpeedDistributionPoint {
     deprecation_date?: string;
     lifecycle_status?: string;
     lifecycle_confidence?: string;
+    freshness_status?: string;
+    staleness_seconds?: number;
+    last_error_kind?: string;
+    consecutive_failures?: number;
 }
 
 export interface TimeSeriesProvider {
@@ -31,6 +35,10 @@ export interface TimeSeriesProvider {
     };
     lifecycle_status?: string;
     lifecycle_confidence?: string;
+    freshness_status?: string;
+    staleness_seconds?: number;
+    last_error_kind?: string;
+    consecutive_failures?: number;
 }
 
 export interface TimeSeriesModel {
@@ -76,6 +84,10 @@ export interface TableRow {
         hard_failures_7d?: number;
         hard_failures_30d?: number;
     };
+    freshness_status?: string;
+    staleness_seconds?: number;
+    last_error_kind?: string;
+    consecutive_failures?: number;
 }
 
 export interface ProcessedData {

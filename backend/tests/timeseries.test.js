@@ -241,6 +241,23 @@ describe('Time Series Processing', () => {
       expect(provider.deprecation_date).toBe('2025-01-01');
     });
 
+    test('preserves scheduler freshness metadata in grouped data', async () => {
+      const data = [createMockBenchmark({
+        freshness_status: 'critical',
+        staleness_seconds: 7200,
+        last_error_kind: 'timeout',
+        consecutive_failures: 3,
+      })];
+
+      const result = await processTimeSeriesData(data, 3);
+      const provider = result.models[0].providers[0];
+
+      expect(provider.freshness_status).toBe('critical');
+      expect(provider.staleness_seconds).toBe(7200);
+      expect(provider.last_error_kind).toBe('timeout');
+      expect(provider.consecutive_failures).toBe(3);
+    });
+
   });
 
   describe('Output Structure', () => {

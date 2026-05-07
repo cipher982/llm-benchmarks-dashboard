@@ -254,6 +254,10 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
                 successor_model: benchmark.successor_model,
                 lifecycle_status: benchmark.lifecycle_status,
                 lifecycle_confidence: benchmark.lifecycle_confidence,
+                freshness_status: benchmark.freshness_status,
+                staleness_seconds: benchmark.staleness_seconds,
+                last_error_kind: benchmark.last_error_kind,
+                consecutive_failures: benchmark.consecutive_failures,
             };
         });
 
@@ -411,6 +415,10 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             deprecation_date: benchmark.deprecation_date,
             lifecycle_status: benchmark.lifecycle_status,
             lifecycle_confidence: benchmark.lifecycle_confidence,
+            freshness_status: benchmark.freshness_status,
+            staleness_seconds: benchmark.staleness_seconds,
+            last_error_kind: benchmark.last_error_kind,
+            consecutive_failures: benchmark.consecutive_failures,
         };
     });
 };

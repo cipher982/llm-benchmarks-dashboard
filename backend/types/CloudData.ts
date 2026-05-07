@@ -51,4 +51,10 @@ export interface CloudBenchmark {
         hard_failures_7d?: number;
         hard_failures_30d?: number;
     };
+
+    // Scheduler freshness metadata from bench_model_health
+    freshness_status?: string;
+    staleness_seconds?: number;
+    last_error_kind?: string;
+    consecutive_failures?: number;
 }
