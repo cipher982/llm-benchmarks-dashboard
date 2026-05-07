@@ -448,6 +448,7 @@ export const processRawTableData = async (data: CloudBenchmark[], filters?: Tabl
             generated_tokens_per_second_mean: benchmark.generated_tokens_per_second_mean !== undefined
                 ? Number(benchmark.generated_tokens_per_second_mean.toFixed(PRECISION))
                 : undefined,
+            throughput_basis: benchmark.throughput_basis,
             time_to_first_token_mean: Number(benchmark.time_to_first_token_mean.toFixed(PRECISION)),
             enabled: benchmark.enabled,
             deprecated: benchmark.deprecated,

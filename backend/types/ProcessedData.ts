@@ -55,6 +55,7 @@ export interface TableRow {
     tokens_per_second_min: number;
     tokens_per_second_max: number;
     generated_tokens_per_second_mean?: number;
+    throughput_basis?: 'visible' | 'legacy' | 'mixed';
     time_to_first_token_mean: number;
     deprecated?: boolean;
     deprecation_date?: string;

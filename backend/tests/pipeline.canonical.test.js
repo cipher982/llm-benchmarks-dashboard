@@ -127,6 +127,26 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       expect(result[0].tokens_per_second_mean).toBe(25);
       expect(result[0].generated_tokens_per_second).toEqual([100]);
       expect(result[0].generated_tokens_per_second_mean).toBe(100);
+      expect(result[0].throughput_basis).toBe('visible');
+    });
+
+    test('falls back to legacy throughput when visible-token throughput is unavailable', () => {
+      const rawData = [
+        createRawBenchmark({
+          provider: 'bedrock',
+          model_name: 'legacy-reasoning-model',
+          tokens_per_second: 50,
+          generated_tokens_per_second: 50,
+          visible_tokens_per_second: null
+        })
+      ];
+
+      const result = cleanTransformCloud(rawData);
+
+      expect(result[0].tokens_per_second).toEqual([50]);
+      expect(result[0].tokens_per_second_mean).toBe(50);
+      expect(result[0].generated_tokens_per_second_mean).toBe(50);
+      expect(result[0].throughput_basis).toBe('legacy');
     });
   });
 

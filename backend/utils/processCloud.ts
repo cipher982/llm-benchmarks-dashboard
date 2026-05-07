@@ -31,6 +31,8 @@ interface AggregatedData {
     display_name?: string;
     tokens_per_second: number[];
     generated_tokens_per_second: number[];
+    visible_throughput_samples: number;
+    legacy_throughput_samples: number;
     time_to_first_token: number[];
     run_timestamps: Date[];
     ttft_timestamps: Date[];
@@ -50,6 +52,7 @@ export interface ProcessedData {
     tokens_per_second_timestamps: Date[];  // Parallel array to tokens_per_second
     generated_tokens_per_second?: number[];
     generated_tokens_per_second_mean?: number;
+    throughput_basis?: 'visible' | 'legacy' | 'mixed';
     time_to_first_token: number[];
     time_to_first_token_timestamps: Date[];  // Parallel array to time_to_first_token
     tokens_per_second_mean: number;
@@ -91,6 +94,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             ? benchmark.generated_tokens_per_second
             : benchmark.tokens_per_second;
         const leaderboardTps = visibleTps ?? benchmark.tokens_per_second;
+        const hasVisibleThroughput = visibleTps !== null;
         
         const key = `${benchmark.model_name}-${benchmark.provider}`;
         
@@ -104,6 +108,8 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 display_name: benchmark.display_name,
                 tokens_per_second: [],
                 generated_tokens_per_second: [],
+                visible_throughput_samples: 0,
+                legacy_throughput_samples: 0,
                 time_to_first_token: [],
                 run_timestamps: [],
                 ttft_timestamps: []
@@ -113,6 +119,11 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         const entry = benchmarkMap.get(key)!;
         entry.tokens_per_second.push(leaderboardTps);
         entry.generated_tokens_per_second.push(generatedTps);
+        if (hasVisibleThroughput) {
+            entry.visible_throughput_samples += 1;
+        } else {
+            entry.legacy_throughput_samples += 1;
+        }
         // Collect timestamps for computing last benchmark date
         if (benchmark.run_ts) {
             const runTimestamp = new Date(benchmark.run_ts);
@@ -132,6 +143,9 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         const tps_max = calculateMax(benchmark.tokens_per_second);
         const tps_quartiles = calculateQuartiles(benchmark.tokens_per_second);
         const generatedTpsMean = calculateMean(benchmark.generated_tokens_per_second);
+        const throughputBasis = benchmark.visible_throughput_samples > 0 && benchmark.legacy_throughput_samples > 0
+            ? 'mixed'
+            : benchmark.visible_throughput_samples > 0 ? 'visible' : 'legacy';
         
         const hasTtft = benchmark.time_to_first_token.length > 0;
         const ttft_mean = hasTtft ? calculateMean(benchmark.time_to_first_token) : 0;
@@ -156,6 +170,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             tokens_per_second_timestamps: benchmark.run_timestamps,  // Preserve timestamps!
             generated_tokens_per_second: benchmark.generated_tokens_per_second,
             generated_tokens_per_second_mean: generatedTpsMean,
+            throughput_basis: throughputBasis,
             time_to_first_token: benchmark.time_to_first_token,
             time_to_first_token_timestamps: benchmark.ttft_timestamps,
             tokens_per_second_mean: tps_mean,

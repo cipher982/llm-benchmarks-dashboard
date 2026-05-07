@@ -268,12 +268,49 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
         },
         {
             accessorKey: 'tokens_per_second_mean',
-            header: 'Toks/Sec (Avg)',
+            header: () => (
+                <Tooltip title="Visible output tokens per second when available; legacy generated throughput otherwise." arrow>
+                    <span>Visible Toks/Sec</span>
+                </Tooltip>
+            ),
             size: 150,
             cell: ({ getValue }) => {
                 const value = getValue() as number;
                 if (value === undefined || value === null) return '0.00';
                 return Number(value).toFixed(2);
+            },
+        },
+        {
+            accessorKey: 'generated_tokens_per_second_mean',
+            header: () => (
+                <Tooltip title="Provider-reported generated throughput, including reasoning tokens when providers report them." arrow>
+                    <span>Generated Avg</span>
+                </Tooltip>
+            ),
+            size: 130,
+            cell: ({ getValue }) => {
+                const value = getValue() as number | undefined;
+                if (value === undefined || value === null) return '-';
+                return Number(value).toFixed(2);
+            },
+        },
+        {
+            accessorKey: 'throughput_basis',
+            header: 'Basis',
+            size: 95,
+            cell: ({ getValue }) => {
+                const value = getValue() as string | undefined;
+                const label = value === 'visible' ? 'Visible' : value === 'mixed' ? 'Mixed' : 'Legacy';
+                const title = value === 'visible'
+                    ? 'All recent samples have visible-token throughput.'
+                    : value === 'mixed'
+                        ? 'Recent samples mix visible-token throughput and legacy throughput.'
+                        : 'Recent samples use legacy throughput because visible-token throughput is unavailable.';
+                return (
+                    <Tooltip title={title} arrow>
+                        <span style={{ cursor: 'help' }}>{label}</span>
+                    </Tooltip>
+                );
             },
         },
         {

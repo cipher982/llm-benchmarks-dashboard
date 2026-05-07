@@ -626,6 +626,9 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                                 <span>
                                     Flagged statuses: {flaggedStatuses.join(', ')}
                                 </span>
+                                <span>
+                                    Throughput ranks visible output tokens when available; generated throughput remains shown for reasoning-heavy models.
+                                </span>
                             </div>
                         );
                     })()}
