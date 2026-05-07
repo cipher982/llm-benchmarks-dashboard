@@ -266,7 +266,10 @@ async function fetchProcessedBundle(provider: string, model: string | null, days
     }
 
     const rawMetrics = await CloudMetrics.find(query)
-        .select("provider model_name display_name tokens_per_second time_to_first_token run_ts")
+        .select(
+            "provider model_name display_name tokens_per_second generated_tokens_per_second " +
+            "visible_tokens_per_second time_to_first_token run_ts"
+        )
         .lean()
         .exec();
 
