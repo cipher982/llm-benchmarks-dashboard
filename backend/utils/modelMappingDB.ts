@@ -249,6 +249,8 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
         modelSlug: createSlug(originalModelCanonical), // Use the original model_id for the slug
         tokens_per_second: [],
         tokens_per_second_timestamps: [],  // Initialize timestamp array
+        generated_tokens_per_second: [],
+        generated_tokens_per_second_mean: 0,
         time_to_first_token: [],
         time_to_first_token_timestamps: [],  // Initialize timestamp array
         tokens_per_second_mean: 0,
@@ -278,6 +280,9 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
       items.forEach(item => {
         mergedItem.tokens_per_second.push(...item.tokens_per_second);
         mergedItem.tokens_per_second_timestamps.push(...item.tokens_per_second_timestamps);  // Preserve timestamps
+        if (item.generated_tokens_per_second) {
+          mergedItem.generated_tokens_per_second!.push(...item.generated_tokens_per_second);
+        }
         if (item.time_to_first_token) {
           mergedItem.time_to_first_token!.push(...item.time_to_first_token);
         }
@@ -285,6 +290,7 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
           mergedItem.time_to_first_token_timestamps!.push(...item.time_to_first_token_timestamps);  // Preserve timestamps
         }
         mergedItem.tokens_per_second_mean += item.tokens_per_second_mean;
+        mergedItem.generated_tokens_per_second_mean! += item.generated_tokens_per_second_mean ?? item.tokens_per_second_mean;
         mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
         mergedItem.tokens_per_second_max = Math.max(mergedItem.tokens_per_second_max, item.tokens_per_second_max);
         mergedItem.time_to_first_token_mean += item.time_to_first_token_mean;
@@ -306,6 +312,7 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
 
       // Calculate averages
       mergedItem.tokens_per_second_mean /= items.length;
+      mergedItem.generated_tokens_per_second_mean! /= items.length;
       mergedItem.time_to_first_token_mean /= items.length;
 
       return mergedItem;

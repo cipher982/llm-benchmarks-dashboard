@@ -15,6 +15,8 @@ export interface RawData {
     output_tokens: number;
     generate_time: number;
     tokens_per_second: number;
+    generated_tokens_per_second?: number | null;
+    visible_tokens_per_second?: number | null;
     provider: string;
     streaming: boolean;
     time_to_first_token: number | null;
@@ -28,6 +30,7 @@ interface AggregatedData {
     modelCanonical: string;
     display_name?: string;
     tokens_per_second: number[];
+    generated_tokens_per_second: number[];
     time_to_first_token: number[];
     run_timestamps: Date[];
     ttft_timestamps: Date[];
@@ -45,6 +48,8 @@ export interface ProcessedData {
     display_name?: string;
     tokens_per_second: number[];
     tokens_per_second_timestamps: Date[];  // Parallel array to tokens_per_second
+    generated_tokens_per_second?: number[];
+    generated_tokens_per_second_mean?: number;
     time_to_first_token: number[];
     time_to_first_token_timestamps: Date[];  // Parallel array to time_to_first_token
     tokens_per_second_mean: number;
@@ -78,6 +83,14 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             continue;
         }
         if (benchmark.tokens_per_second < 1) continue;
+
+        const visibleTps = typeof benchmark.visible_tokens_per_second === 'number' && benchmark.visible_tokens_per_second > 0
+            ? benchmark.visible_tokens_per_second
+            : null;
+        const generatedTps = typeof benchmark.generated_tokens_per_second === 'number' && benchmark.generated_tokens_per_second > 0
+            ? benchmark.generated_tokens_per_second
+            : benchmark.tokens_per_second;
+        const leaderboardTps = visibleTps ?? benchmark.tokens_per_second;
         
         const key = `${benchmark.model_name}-${benchmark.provider}`;
         
@@ -90,6 +103,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 modelCanonical: benchmark.model_name,
                 display_name: benchmark.display_name,
                 tokens_per_second: [],
+                generated_tokens_per_second: [],
                 time_to_first_token: [],
                 run_timestamps: [],
                 ttft_timestamps: []
@@ -97,7 +111,8 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         }
 
         const entry = benchmarkMap.get(key)!;
-        entry.tokens_per_second.push(benchmark.tokens_per_second);
+        entry.tokens_per_second.push(leaderboardTps);
+        entry.generated_tokens_per_second.push(generatedTps);
         // Collect timestamps for computing last benchmark date
         if (benchmark.run_ts) {
             const runTimestamp = new Date(benchmark.run_ts);
@@ -116,6 +131,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         const tps_min = calculateMin(benchmark.tokens_per_second);
         const tps_max = calculateMax(benchmark.tokens_per_second);
         const tps_quartiles = calculateQuartiles(benchmark.tokens_per_second);
+        const generatedTpsMean = calculateMean(benchmark.generated_tokens_per_second);
         
         const hasTtft = benchmark.time_to_first_token.length > 0;
         const ttft_mean = hasTtft ? calculateMean(benchmark.time_to_first_token) : 0;
@@ -138,6 +154,8 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             display_name: benchmark.display_name,
             tokens_per_second: benchmark.tokens_per_second,
             tokens_per_second_timestamps: benchmark.run_timestamps,  // Preserve timestamps!
+            generated_tokens_per_second: benchmark.generated_tokens_per_second,
+            generated_tokens_per_second_mean: generatedTpsMean,
             time_to_first_token: benchmark.time_to_first_token,
             time_to_first_token_timestamps: benchmark.ttft_timestamps,
             tokens_per_second_mean: tps_mean,

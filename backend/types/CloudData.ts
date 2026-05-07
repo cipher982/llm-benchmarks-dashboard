@@ -8,6 +8,8 @@ export interface CloudBenchmark {
     modelSlug: string;  // Slug derived from the canonical model identifier
     tokens_per_second: number[];
     tokens_per_second_timestamps: Date[];  // Parallel array to tokens_per_second
+    generated_tokens_per_second?: number[];
+    generated_tokens_per_second_mean?: number;
     time_to_first_token?: number[];  // Optional array for time to first token
     time_to_first_token_timestamps?: Date[];  // Parallel array to time_to_first_token
     tokens_per_second_mean: number;

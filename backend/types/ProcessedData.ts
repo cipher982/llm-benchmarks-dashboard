@@ -54,6 +54,7 @@ export interface TableRow {
     tokens_per_second_mean: number;
     tokens_per_second_min: number;
     tokens_per_second_max: number;
+    generated_tokens_per_second_mean?: number;
     time_to_first_token_mean: number;
     deprecated?: boolean;
     deprecation_date?: string;

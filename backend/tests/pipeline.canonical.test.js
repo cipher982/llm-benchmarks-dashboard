@@ -109,6 +109,25 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       expect(result[0].time_to_first_token_timestamps).toEqual([]);
       expect(result[0].time_to_first_token_mean).toBe(0);
     });
+
+    test('uses visible-token throughput for leaderboard metrics when available', () => {
+      const rawData = [
+        createRawBenchmark({
+          provider: 'deepinfra',
+          model_name: 'reasoning-model',
+          tokens_per_second: 100,
+          generated_tokens_per_second: 100,
+          visible_tokens_per_second: 25
+        })
+      ];
+
+      const result = cleanTransformCloud(rawData);
+
+      expect(result[0].tokens_per_second).toEqual([25]);
+      expect(result[0].tokens_per_second_mean).toBe(25);
+      expect(result[0].generated_tokens_per_second).toEqual([100]);
+      expect(result[0].generated_tokens_per_second_mean).toBe(100);
+    });
   });
 
   describe('Stage 2: mapModelNames (ProcessedData → CloudBenchmark)', () => {
