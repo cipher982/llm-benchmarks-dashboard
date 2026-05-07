@@ -3,6 +3,10 @@ import type { ProcessedData } from './processCloud';
 import { createSlug } from './seoUtils';
 import { getProviderDisplayName } from './providerMetadata';
 
+const meanOrZero = (values: number[]): number => {
+    if (values.length === 0) return 0;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+};
 
 export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] => {
     const modelNameMapping: { [key: string]: string } = {
@@ -373,6 +377,7 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
             tokens_per_second_timestamps: [],  // Initialize timestamp array
             generated_tokens_per_second: [],
             generated_tokens_per_second_mean: 0,
+            visible_tokens_per_second: [],
             throughput_basis: items.some(item => item.throughput_basis === 'mixed')
                 || (items.some(item => item.throughput_basis === 'visible') && items.some(item => item.throughput_basis === 'legacy'))
                     ? 'mixed'
@@ -395,6 +400,11 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
             mergedItem.tokens_per_second_timestamps.push(...item.tokens_per_second_timestamps);  // Preserve timestamps
             if (item.generated_tokens_per_second) {
                 mergedItem.generated_tokens_per_second!.push(...item.generated_tokens_per_second);
+            } else {
+                mergedItem.generated_tokens_per_second!.push(...item.tokens_per_second);
+            }
+            if (item.visible_tokens_per_second) {
+                mergedItem.visible_tokens_per_second!.push(...item.visible_tokens_per_second);
             }
             if (item.time_to_first_token) {
                 mergedItem.time_to_first_token!.push(...item.time_to_first_token);
@@ -402,11 +412,8 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
             if (item.time_to_first_token_timestamps) {
                 mergedItem.time_to_first_token_timestamps!.push(...item.time_to_first_token_timestamps);  // Preserve timestamps
             }
-            mergedItem.tokens_per_second_mean += item.tokens_per_second_mean;
-            mergedItem.generated_tokens_per_second_mean! += item.generated_tokens_per_second_mean ?? item.tokens_per_second_mean;
             mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
             mergedItem.tokens_per_second_max = Math.max(mergedItem.tokens_per_second_max, item.tokens_per_second_max);
-            mergedItem.time_to_first_token_mean += item.time_to_first_token_mean;
 
             if (item.time_to_first_token_min !== undefined) {
                 mergedItem.time_to_first_token_min = Math.min(
@@ -422,9 +429,9 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
             }
         });
 
-        mergedItem.tokens_per_second_mean /= items.length;
-        mergedItem.generated_tokens_per_second_mean! /= items.length;
-        mergedItem.time_to_first_token_mean /= items.length;
+        mergedItem.tokens_per_second_mean = meanOrZero(mergedItem.tokens_per_second);
+        mergedItem.generated_tokens_per_second_mean = meanOrZero(mergedItem.generated_tokens_per_second ?? []);
+        mergedItem.time_to_first_token_mean = meanOrZero(mergedItem.time_to_first_token ?? []);
 
         mergedData.push(mergedItem);
     });

@@ -124,6 +124,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       const result = cleanTransformCloud(rawData);
 
       expect(result[0].tokens_per_second).toEqual([25]);
+      expect(result[0].visible_tokens_per_second).toEqual([25]);
       expect(result[0].tokens_per_second_mean).toBe(25);
       expect(result[0].generated_tokens_per_second).toEqual([100]);
       expect(result[0].generated_tokens_per_second_mean).toBe(100);
@@ -376,6 +377,74 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
         expect(result).toHaveLength(1);
         expect(result[0].model_name).toBe('gpt-4');
         expect(result[0].tokens_per_second).toEqual([40, 60]);
+      });
+
+      test('recomputes grouped means from merged samples instead of averaging model means', () => {
+        const processedData = [
+          {
+            _id: 'test-1',
+            ...defaultProcessedFields,
+            provider: 'openai',
+            providerCanonical: 'openai',
+            model_name: 'gpt-4-0613',
+            modelCanonical: 'gpt-4-0613',
+            tokens_per_second: [10],
+            generated_tokens_per_second: [100],
+            visible_tokens_per_second: [10],
+            time_to_first_token: [0.1],
+            tokens_per_second_mean: 10,
+            generated_tokens_per_second_mean: 100,
+            throughput_basis: 'visible',
+            tokens_per_second_min: 10,
+            tokens_per_second_max: 10,
+            tokens_per_second_quartiles: [10, 10, 10],
+            time_to_first_token_mean: 0.1,
+            time_to_first_token_min: 0.1,
+            time_to_first_token_max: 0.1,
+            time_to_first_token_quartiles: [0.1, 0.1, 0.1]
+          },
+          {
+            _id: 'test-2',
+            provider: 'openai',
+            providerCanonical: 'openai',
+            model_name: 'gpt-4-0314',
+            modelCanonical: 'gpt-4-0314',
+            tokens_per_second: [30, 50, 70],
+            tokens_per_second_timestamps: [
+              new Date('2025-01-15T12:00:00Z'),
+              new Date('2025-01-15T12:01:00Z'),
+              new Date('2025-01-15T12:02:00Z')
+            ],
+            generated_tokens_per_second: [200, 300, 400],
+            visible_tokens_per_second: [30, 50, 70],
+            time_to_first_token: [0.2, 0.4, 0.6],
+            time_to_first_token_timestamps: [
+              new Date('2025-01-15T12:00:00Z'),
+              new Date('2025-01-15T12:01:00Z'),
+              new Date('2025-01-15T12:02:00Z')
+            ],
+            tokens_per_second_mean: 50,
+            generated_tokens_per_second_mean: 300,
+            throughput_basis: 'visible',
+            tokens_per_second_min: 30,
+            tokens_per_second_max: 70,
+            tokens_per_second_quartiles: [30, 50, 70],
+            time_to_first_token_mean: 0.4,
+            time_to_first_token_min: 0.2,
+            time_to_first_token_max: 0.6,
+            time_to_first_token_quartiles: [0.2, 0.4, 0.6]
+          }
+        ];
+
+        const result = mapModelNamesHardcoded(processedData);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].tokens_per_second).toEqual([10, 30, 50, 70]);
+        expect(result[0].visible_tokens_per_second).toEqual([10, 30, 50, 70]);
+        expect(result[0].generated_tokens_per_second).toEqual([100, 200, 300, 400]);
+        expect(result[0].tokens_per_second_mean).toBe(40);
+        expect(result[0].generated_tokens_per_second_mean).toBe(250);
+        expect(result[0].time_to_first_token_mean).toBeCloseTo(0.325);
       });
     });
 

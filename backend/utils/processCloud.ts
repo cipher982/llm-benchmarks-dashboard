@@ -31,6 +31,7 @@ interface AggregatedData {
     display_name?: string;
     tokens_per_second: number[];
     generated_tokens_per_second: number[];
+    visible_tokens_per_second: number[];
     visible_throughput_samples: number;
     legacy_throughput_samples: number;
     time_to_first_token: number[];
@@ -52,6 +53,7 @@ export interface ProcessedData {
     tokens_per_second_timestamps: Date[];  // Parallel array to tokens_per_second
     generated_tokens_per_second?: number[];
     generated_tokens_per_second_mean?: number;
+    visible_tokens_per_second?: number[];
     throughput_basis?: 'visible' | 'legacy' | 'mixed';
     time_to_first_token: number[];
     time_to_first_token_timestamps: Date[];  // Parallel array to time_to_first_token
@@ -108,6 +110,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 display_name: benchmark.display_name,
                 tokens_per_second: [],
                 generated_tokens_per_second: [],
+                visible_tokens_per_second: [],
                 visible_throughput_samples: 0,
                 legacy_throughput_samples: 0,
                 time_to_first_token: [],
@@ -120,6 +123,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         entry.tokens_per_second.push(leaderboardTps);
         entry.generated_tokens_per_second.push(generatedTps);
         if (hasVisibleThroughput) {
+            entry.visible_tokens_per_second.push(visibleTps);
             entry.visible_throughput_samples += 1;
         } else {
             entry.legacy_throughput_samples += 1;
@@ -170,6 +174,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             tokens_per_second_timestamps: benchmark.run_timestamps,  // Preserve timestamps!
             generated_tokens_per_second: benchmark.generated_tokens_per_second,
             generated_tokens_per_second_mean: generatedTpsMean,
+            visible_tokens_per_second: benchmark.visible_tokens_per_second,
             throughput_basis: throughputBasis,
             time_to_first_token: benchmark.time_to_first_token,
             time_to_first_token_timestamps: benchmark.ttft_timestamps,
