@@ -378,6 +378,7 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
             generated_tokens_per_second: [],
             generated_tokens_per_second_mean: 0,
             visible_tokens_per_second: [],
+            visible_tokens_per_second_timestamps: [],
             throughput_basis: items.some(item => item.throughput_basis === 'mixed')
                 || (items.some(item => item.throughput_basis === 'visible') && items.some(item => item.throughput_basis === 'legacy'))
                     ? 'mixed'
@@ -405,6 +406,9 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
             }
             if (item.visible_tokens_per_second) {
                 mergedItem.visible_tokens_per_second!.push(...item.visible_tokens_per_second);
+            }
+            if (item.visible_tokens_per_second_timestamps) {
+                mergedItem.visible_tokens_per_second_timestamps!.push(...item.visible_tokens_per_second_timestamps);
             }
             if (item.time_to_first_token) {
                 mergedItem.time_to_first_token!.push(...item.time_to_first_token);

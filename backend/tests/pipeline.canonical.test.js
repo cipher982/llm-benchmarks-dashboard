@@ -125,6 +125,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
 
       expect(result[0].tokens_per_second).toEqual([25]);
       expect(result[0].visible_tokens_per_second).toEqual([25]);
+      expect(result[0].visible_tokens_per_second_timestamps).toEqual([new Date('2025-01-15T12:00:00Z')]);
       expect(result[0].tokens_per_second_mean).toBe(25);
       expect(result[0].generated_tokens_per_second).toEqual([100]);
       expect(result[0].generated_tokens_per_second_mean).toBe(100);
@@ -391,6 +392,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
             tokens_per_second: [10],
             generated_tokens_per_second: [100],
             visible_tokens_per_second: [10],
+            visible_tokens_per_second_timestamps: [new Date('2025-01-15T12:00:00Z')],
             time_to_first_token: [0.1],
             tokens_per_second_mean: 10,
             generated_tokens_per_second_mean: 100,
@@ -417,6 +419,11 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
             ],
             generated_tokens_per_second: [200, 300, 400],
             visible_tokens_per_second: [30, 50, 70],
+            visible_tokens_per_second_timestamps: [
+              new Date('2025-01-15T12:00:00Z'),
+              new Date('2025-01-15T12:01:00Z'),
+              new Date('2025-01-15T12:02:00Z')
+            ],
             time_to_first_token: [0.2, 0.4, 0.6],
             time_to_first_token_timestamps: [
               new Date('2025-01-15T12:00:00Z'),
@@ -441,6 +448,12 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
         expect(result).toHaveLength(1);
         expect(result[0].tokens_per_second).toEqual([10, 30, 50, 70]);
         expect(result[0].visible_tokens_per_second).toEqual([10, 30, 50, 70]);
+        expect(result[0].visible_tokens_per_second_timestamps).toEqual([
+          new Date('2025-01-15T12:00:00Z'),
+          new Date('2025-01-15T12:00:00Z'),
+          new Date('2025-01-15T12:01:00Z'),
+          new Date('2025-01-15T12:02:00Z')
+        ]);
         expect(result[0].generated_tokens_per_second).toEqual([100, 200, 300, 400]);
         expect(result[0].tokens_per_second_mean).toBe(40);
         expect(result[0].generated_tokens_per_second_mean).toBe(250);

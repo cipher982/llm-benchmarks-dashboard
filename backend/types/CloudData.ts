@@ -11,6 +11,7 @@ export interface CloudBenchmark {
     generated_tokens_per_second?: number[];
     generated_tokens_per_second_mean?: number;
     visible_tokens_per_second?: number[];
+    visible_tokens_per_second_timestamps?: Date[];
     throughput_basis?: 'visible' | 'legacy' | 'mixed';
     time_to_first_token?: number[];  // Optional array for time to first token
     time_to_first_token_timestamps?: Date[];  // Parallel array to time_to_first_token

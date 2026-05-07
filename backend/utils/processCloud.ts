@@ -32,6 +32,7 @@ interface AggregatedData {
     tokens_per_second: number[];
     generated_tokens_per_second: number[];
     visible_tokens_per_second: number[];
+    visible_tokens_per_second_timestamps: Date[];
     visible_throughput_samples: number;
     legacy_throughput_samples: number;
     time_to_first_token: number[];
@@ -54,6 +55,7 @@ export interface ProcessedData {
     generated_tokens_per_second?: number[];
     generated_tokens_per_second_mean?: number;
     visible_tokens_per_second?: number[];
+    visible_tokens_per_second_timestamps?: Date[];
     throughput_basis?: 'visible' | 'legacy' | 'mixed';
     time_to_first_token: number[];
     time_to_first_token_timestamps: Date[];  // Parallel array to time_to_first_token
@@ -111,6 +113,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 tokens_per_second: [],
                 generated_tokens_per_second: [],
                 visible_tokens_per_second: [],
+                visible_tokens_per_second_timestamps: [],
                 visible_throughput_samples: 0,
                 legacy_throughput_samples: 0,
                 time_to_first_token: [],
@@ -132,6 +135,9 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         if (benchmark.run_ts) {
             const runTimestamp = new Date(benchmark.run_ts);
             entry.run_timestamps.push(runTimestamp);
+            if (hasVisibleThroughput) {
+                entry.visible_tokens_per_second_timestamps.push(runTimestamp);
+            }
             if (typeof benchmark.time_to_first_token === 'number' && Number.isFinite(benchmark.time_to_first_token)) {
                 entry.time_to_first_token.push(benchmark.time_to_first_token);
                 entry.ttft_timestamps.push(runTimestamp);
@@ -175,6 +181,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             generated_tokens_per_second: benchmark.generated_tokens_per_second,
             generated_tokens_per_second_mean: generatedTpsMean,
             visible_tokens_per_second: benchmark.visible_tokens_per_second,
+            visible_tokens_per_second_timestamps: benchmark.visible_tokens_per_second_timestamps,
             throughput_basis: throughputBasis,
             time_to_first_token: benchmark.time_to_first_token,
             time_to_first_token_timestamps: benchmark.ttft_timestamps,
