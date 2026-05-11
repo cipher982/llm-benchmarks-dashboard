@@ -202,6 +202,33 @@ describe('Time Series Processing', () => {
       expect(nullCount).toBeGreaterThan(5);
     });
 
+    test('plots generated throughput for visible-capable reasoning models', async () => {
+      const recentTimestamp = new Date(Date.now() - 15 * 60 * 1000);
+      const data = [createMockBenchmark({
+        provider: 'google',
+        providerCanonical: 'vertex',
+        providerSlug: 'vertex',
+        model_name: 'gemini-2.5-flash',
+        modelCanonical: 'gemini-2.5-flash',
+        modelSlug: 'gemini-25-flash',
+        tokens_per_second: [55],
+        generated_tokens_per_second: [55],
+        visible_tokens_per_second: [2.5],
+        visible_tokens_per_second_timestamps: [recentTimestamp],
+        tokens_per_second_timestamps: [recentTimestamp],
+        tokens_per_second_mean: 55,
+        generated_tokens_per_second_mean: 55,
+        throughput_basis: 'visible',
+      })];
+
+      const result = await processTimeSeriesData(data, 3);
+      const model = result.models.find(m => m.model_name === 'gemini-2.5-flash');
+      const provider = model.providers.find(p => p.providerCanonical === 'vertex');
+
+      expect(provider.values).toContain(55);
+      expect(provider.values).not.toContain(2.5);
+    });
+
   });
 
   describe('Model Grouping', () => {

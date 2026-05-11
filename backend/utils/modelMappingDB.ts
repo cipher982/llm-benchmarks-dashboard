@@ -308,9 +308,6 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
         if (item.time_to_first_token_timestamps) {
           mergedItem.time_to_first_token_timestamps!.push(...item.time_to_first_token_timestamps);  // Preserve timestamps
         }
-        mergedItem.tokens_per_second_min = Math.min(mergedItem.tokens_per_second_min, item.tokens_per_second_min);
-        mergedItem.tokens_per_second_max = Math.max(mergedItem.tokens_per_second_max, item.tokens_per_second_max);
-
         // Handle optional time_to_first_token values
         if (item.time_to_first_token_min !== undefined) {
           mergedItem.time_to_first_token_min = Math.min(
@@ -328,6 +325,12 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
 
       // Calculate averages from merged samples, not from per-canonical means.
       mergedItem.tokens_per_second_mean = meanOrZero(mergedItem.tokens_per_second);
+      mergedItem.tokens_per_second_min = mergedItem.tokens_per_second.length
+        ? Math.min(...mergedItem.tokens_per_second)
+        : 0;
+      mergedItem.tokens_per_second_max = mergedItem.tokens_per_second.length
+        ? Math.max(...mergedItem.tokens_per_second)
+        : 0;
       mergedItem.generated_tokens_per_second_mean = meanOrZero(mergedItem.generated_tokens_per_second ?? []);
       mergedItem.time_to_first_token_mean = meanOrZero(mergedItem.time_to_first_token ?? []);
 

@@ -456,6 +456,8 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
         ]);
         expect(result[0].generated_tokens_per_second).toEqual([100, 200, 300, 400]);
         expect(result[0].tokens_per_second_mean).toBe(40);
+        expect(result[0].tokens_per_second_min).toBe(10);
+        expect(result[0].tokens_per_second_max).toBe(70);
         expect(result[0].generated_tokens_per_second_mean).toBe(250);
         expect(result[0].time_to_first_token_mean).toBeCloseTo(0.325);
       });
