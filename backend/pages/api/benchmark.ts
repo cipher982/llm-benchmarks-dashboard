@@ -83,6 +83,8 @@ async function handler(
           output_tokens: doc.output_tokens || 0,
           generate_time: doc.generate_time || 0,
           tokens_per_second: doc.tokens_per_second || 0,
+          generated_tokens_per_second: doc.generated_tokens_per_second ?? null,
+          visible_tokens_per_second: doc.visible_tokens_per_second ?? null,
           provider: doc.provider || "",
           streaming: doc.streaming || false,
           time_to_first_token: doc.time_to_first_token ?? null

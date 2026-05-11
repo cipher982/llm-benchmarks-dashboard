@@ -101,7 +101,6 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         const generatedTps = typeof benchmark.generated_tokens_per_second === 'number' && benchmark.generated_tokens_per_second > 0
             ? benchmark.generated_tokens_per_second
             : benchmark.tokens_per_second;
-        const leaderboardTps = visibleTps ?? benchmark.tokens_per_second;
         const hasVisibleThroughput = visibleTps !== null;
         
         const key = `${benchmark.model_name}-${benchmark.provider}`;
@@ -127,7 +126,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         }
 
         const entry = benchmarkMap.get(key)!;
-        entry.tokens_per_second.push(leaderboardTps);
+        entry.tokens_per_second.push(benchmark.tokens_per_second);
         entry.generated_tokens_per_second.push(generatedTps);
         if (hasVisibleThroughput) {
             entry.visible_tokens_per_second.push(visibleTps);

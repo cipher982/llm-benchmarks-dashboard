@@ -110,7 +110,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       expect(result[0].time_to_first_token_mean).toBe(0);
     });
 
-    test('uses visible-token throughput for leaderboard metrics when available', () => {
+    test('preserves generated throughput while tracking visible-token throughput separately', () => {
       const rawData = [
         createRawBenchmark({
           provider: 'deepinfra',
@@ -123,10 +123,10 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
 
       const result = cleanTransformCloud(rawData);
 
-      expect(result[0].tokens_per_second).toEqual([25]);
+      expect(result[0].tokens_per_second).toEqual([100]);
       expect(result[0].visible_tokens_per_second).toEqual([25]);
       expect(result[0].visible_tokens_per_second_timestamps).toEqual([new Date('2025-01-15T12:00:00Z')]);
-      expect(result[0].tokens_per_second_mean).toBe(25);
+      expect(result[0].tokens_per_second_mean).toBe(100);
       expect(result[0].generated_tokens_per_second).toEqual([100]);
       expect(result[0].generated_tokens_per_second_mean).toBe(100);
       expect(result[0].throughput_basis).toBe('visible');
@@ -574,6 +574,36 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       expect(result[0].lifecycle_status).toBe('stale');
       expect(result[0].lifecycle_recommended_actions).toContain('investigate_provider_catalog');
       expect(result[0].lifecycle_computed_at).toBe('2025-11-10T12:00:00Z');
+    });
+
+    test('uses visible-token throughput for table speed stats when available', async () => {
+      const cloudBenchmarks = [{
+        _id: 'test-visible',
+        provider: 'google',
+        providerCanonical: 'vertex',
+        providerSlug: 'vertex',
+        model_name: 'gemini-2.5-flash',
+        modelCanonical: 'gemini-2.5-flash',
+        modelSlug: 'gemini-25-flash',
+        tokens_per_second: [60, 50],
+        generated_tokens_per_second: [60, 50],
+        visible_tokens_per_second: [3, 2],
+        time_to_first_token: [0.2],
+        tokens_per_second_mean: 55,
+        tokens_per_second_min: 50,
+        tokens_per_second_max: 60,
+        generated_tokens_per_second_mean: 55,
+        throughput_basis: 'visible',
+        time_to_first_token_mean: 0.2
+      }];
+
+      const result = await processRawTableData(cloudBenchmarks);
+
+      expect(result[0].tokens_per_second_mean).toBe(2.5);
+      expect(result[0].tokens_per_second_min).toBe(2);
+      expect(result[0].tokens_per_second_max).toBe(3);
+      expect(result[0].generated_tokens_per_second_mean).toBe(55);
+      expect(result[0].throughput_basis).toBe('visible');
     });
 
     test('filters flagged lifecycle statuses when hideFlagged is true', async () => {

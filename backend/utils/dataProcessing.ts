@@ -443,6 +443,10 @@ export const processRawTableData = async (data: CloudBenchmark[], filters?: Tabl
         if (!benchmark.providerSlug || !benchmark.modelSlug) {
             throw new Error(`Missing slugs for ${benchmark.provider}/${benchmark.modelCanonical}`);
         }
+        const tableThroughputValues = benchmark.visible_tokens_per_second?.length
+            ? benchmark.visible_tokens_per_second
+            : benchmark.tokens_per_second;
+
         return {
             provider: benchmark.provider,
             providerCanonical: benchmark.providerCanonical,
@@ -450,9 +454,9 @@ export const processRawTableData = async (data: CloudBenchmark[], filters?: Tabl
             model_name: benchmark.model_name,
             modelCanonical: benchmark.modelCanonical,
             modelSlug: benchmark.modelSlug,
-            tokens_per_second_mean: Number(calculateMean(benchmark.tokens_per_second).toFixed(PRECISION)),
-            tokens_per_second_min: Number(Math.min(...benchmark.tokens_per_second).toFixed(PRECISION)),
-            tokens_per_second_max: Number(Math.max(...benchmark.tokens_per_second).toFixed(PRECISION)),
+            tokens_per_second_mean: Number(calculateMean(tableThroughputValues).toFixed(PRECISION)),
+            tokens_per_second_min: Number(Math.min(...tableThroughputValues).toFixed(PRECISION)),
+            tokens_per_second_max: Number(Math.max(...tableThroughputValues).toFixed(PRECISION)),
             generated_tokens_per_second_mean: benchmark.generated_tokens_per_second_mean !== undefined
                 ? Number(benchmark.generated_tokens_per_second_mean.toFixed(PRECISION))
                 : undefined,
