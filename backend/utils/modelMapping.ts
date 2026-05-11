@@ -185,6 +185,15 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
         "us.anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet",
         "claude-3-5-sonnet@20240620": "claude-3-5-sonnet",
 
+        // claude-4.x
+        "us.anthropic.claude-opus-4-1-20250805-v1:0": "claude-opus-4.1",
+        "us.anthropic.claude-opus-4-5-20251101-v1:0": "claude-opus-4.5",
+        "us.anthropic.claude-opus-4-6-v1": "claude-opus-4.6",
+        "us.anthropic.claude-opus-4-7": "claude-opus-4.7",
+        "us.anthropic.claude-sonnet-4-5-20250929-v1:0": "claude-sonnet-4.5",
+        "us.anthropic.claude-sonnet-4-6": "claude-sonnet-4.6",
+        "us.anthropic.claude-haiku-4-5-20251001-v1:0": "claude-haiku-4.5",
+
         // gpt-3.5
         "gpt-3.5-turbo-0613": "gpt-3.5-turbo",
         "gpt-3.5-turbo-16k-0613": "gpt-3.5-turbo",
