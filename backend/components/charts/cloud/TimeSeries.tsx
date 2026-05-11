@@ -78,14 +78,30 @@ const getProviderCoverage = (provider: TimeSeriesProvider): number => {
 const getVisibleProviders = (model: TimeSeriesModel): TimeSeriesProvider[] =>
     model.providers.filter((provider) => getProviderCoverage(provider) >= COVERAGE_THRESHOLD);
 
-const getFreshnessLineStyle = (provider: TimeSeriesProvider) => {
+const getFreshnessLineStyle = (provider: TimeSeriesProvider, isOnlyVisibleProvider: boolean) => {
     if (provider.freshness_status === 'critical') {
-        return { dash: '2 4', opacity: 0.45, width: 2.5 };
+        return { dash: '4 3', opacity: 0.9, width: isOnlyVisibleProvider ? 3 : 2.75 };
     }
     if (provider.freshness_status === 'stale') {
-        return { dash: '6 4', opacity: 0.65, width: 2.25 };
+        return { dash: '7 4', opacity: 0.95, width: isOnlyVisibleProvider ? 2.75 : 2.5 };
     }
     return { dash: undefined, opacity: 1, width: 2 };
+};
+
+const getProviderFreshnessRank = (provider: TimeSeriesProvider): number => {
+    if (provider.freshness_status === 'critical') return 0;
+    if (provider.freshness_status === 'stale') return 1;
+    return 2;
+};
+
+const getProviderLastValueIndex = (provider: TimeSeriesProvider): number => {
+    const values = provider.values || [];
+    for (let i = values.length - 1; i >= 0; i--) {
+        if (values[i] !== null && values[i] !== undefined) {
+            return i;
+        }
+    }
+    return -1;
 };
 
 // Memoized individual chart component
@@ -200,7 +216,13 @@ const ModelChart = memo(({
                                 // For split lines, the legend name is just the provider (without segment suffix)
                                 const provider = visibleProviders.find(p => p.provider === value);
                                 if (provider?.deprecated) {
-                                    return `${value} ⚠`;
+                                    return `${value} (deprecated)`;
+                                }
+                                if (provider?.freshness_status === 'critical') {
+                                    return `${value} (stopped)`;
+                                }
+                                if (provider?.freshness_status === 'stale') {
+                                    return `${value} (stale)`;
                                 }
                                 return value;
                             }}
@@ -208,7 +230,7 @@ const ModelChart = memo(({
                         {!isLoading && visibleProviders.map((provider, providerIndex) => {
                             const isSnapshot = provider.segment === 'snapshot';
                             const baseColor = getProviderColor(theme, provider.provider as Provider);
-                            const freshnessStyle = getFreshnessLineStyle(provider);
+                            const freshnessStyle = getFreshnessLineStyle(provider, visibleProviders.length === 1);
 
                             // Style snapshots as grey dashed lines, real data uses provider color
                             const strokeColor = isSnapshot ? '#999999' : baseColor;
@@ -240,6 +262,8 @@ const ModelChart = memo(({
                                     strokeWidth={strokeWidth}
                                     dot={false}
                                     connectNulls={shouldConnectNulls}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
                                 />
                             );
                         })}
@@ -310,12 +334,22 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         return data.models.map((model) => {
             const visibleProviders = getVisibleProviders(model);
             const totalProvidersWithValues = model.providers.filter(p => p.values && p.values.length > 0).length;
+            const freshnessRank = visibleProviders.length
+                ? Math.max(...visibleProviders.map(getProviderFreshnessRank))
+                : 0;
+            const latestValueIndex = visibleProviders.length
+                ? Math.max(...visibleProviders.map(getProviderLastValueIndex))
+                : -1;
+            const coverage = visibleProviders.reduce((sum, provider) => sum + getProviderCoverage(provider), 0);
 
             return {
                 model,
                 visibleProviders,
                 visibleCount: visibleProviders.length,
                 totalProvidersWithValues,
+                freshnessRank,
+                latestValueIndex,
+                coverage,
             };
         });
     }, [data.models]);
@@ -329,6 +363,18 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
 
             if (b.totalProvidersWithValues !== a.totalProvidersWithValues) {
                 return b.totalProvidersWithValues - a.totalProvidersWithValues;
+            }
+
+            if (b.freshnessRank !== a.freshnessRank) {
+                return b.freshnessRank - a.freshnessRank;
+            }
+
+            if (b.latestValueIndex !== a.latestValueIndex) {
+                return b.latestValueIndex - a.latestValueIndex;
+            }
+
+            if (b.coverage !== a.coverage) {
+                return b.coverage - a.coverage;
             }
 
             const aLabel = a.model.display_name || a.model.model_name;
