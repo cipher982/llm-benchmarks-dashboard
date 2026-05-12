@@ -8,6 +8,29 @@ const meanOrZero = (values: number[]): number => {
     return values.reduce((sum, value) => sum + value, 0) / values.length;
 };
 
+export const normalizeBedrockClaudeDisplayName = (modelName: string): string | undefined => {
+    if (!modelName.startsWith('us.anthropic.') && !modelName.startsWith('anthropic.')) {
+        return undefined;
+    }
+
+    let normalized = modelName
+        .replace(/^us\.anthropic\./, '')
+        .replace(/^anthropic\./, '')
+        .replace(/-v\d+(?::\d+)?$/i, '')
+        .replace(/-\d{8}$/i, '');
+
+    normalized = normalized
+        .replace('claude-opus-4-1', 'claude-opus-4.1')
+        .replace('claude-opus-4-5', 'claude-opus-4.5')
+        .replace('claude-opus-4-6', 'claude-opus-4.6')
+        .replace('claude-opus-4-7', 'claude-opus-4.7')
+        .replace('claude-sonnet-4-5', 'claude-sonnet-4.5')
+        .replace('claude-sonnet-4-6', 'claude-sonnet-4.6')
+        .replace('claude-haiku-4-5', 'claude-haiku-4.5');
+
+    return normalized;
+};
+
 export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] => {
     const modelNameMapping: { [key: string]: string } = {
         // llama 2 7b
@@ -185,15 +208,6 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
         "us.anthropic.claude-3-5-sonnet-20240620-v1:0": "claude-3-5-sonnet",
         "claude-3-5-sonnet@20240620": "claude-3-5-sonnet",
 
-        // claude-4.x
-        "us.anthropic.claude-opus-4-1-20250805-v1:0": "claude-opus-4.1",
-        "us.anthropic.claude-opus-4-5-20251101-v1:0": "claude-opus-4.5",
-        "us.anthropic.claude-opus-4-6-v1": "claude-opus-4.6",
-        "us.anthropic.claude-opus-4-7": "claude-opus-4.7",
-        "us.anthropic.claude-sonnet-4-5-20250929-v1:0": "claude-sonnet-4.5",
-        "us.anthropic.claude-sonnet-4-6": "claude-sonnet-4.6",
-        "us.anthropic.claude-haiku-4-5-20251001-v1:0": "claude-haiku-4.5",
-
         // gpt-3.5
         "gpt-3.5-turbo-0613": "gpt-3.5-turbo",
         "gpt-3.5-turbo-16k-0613": "gpt-3.5-turbo",
@@ -351,7 +365,11 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
     sanitizedData.forEach((item: ProcessedData) => {
         const providerCanonical = item.providerCanonical ?? item.provider;
         const modelCanonical = item.modelCanonical ?? item.model_name;
-        const mappedName = modelNameMapping[modelCanonical] || modelNameMapping[item.model_name] || item.model_name;
+        const mappedName = modelNameMapping[modelCanonical]
+            || modelNameMapping[item.model_name]
+            || normalizeBedrockClaudeDisplayName(modelCanonical)
+            || normalizeBedrockClaudeDisplayName(item.model_name)
+            || item.model_name;
 
         const key = JSON.stringify({
             providerCanonical,
