@@ -11,7 +11,6 @@
 
 const { cleanTransformCloud } = require('../utils/processCloud');
 const { mapModelNamesHardcoded } = require('../utils/modelMapping');
-const { mapModelNamesDB } = require('../utils/modelMappingDB');
 const { processRawTableData, processSpeedDistData, processTimeSeriesData } = require('../utils/dataProcessing');
 const { createSlug } = require('../utils/seoUtils');
 const { getProviderDisplayName } = require('../utils/providerMetadata');

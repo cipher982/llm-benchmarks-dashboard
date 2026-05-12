@@ -29,6 +29,10 @@ describe('Bedrock model display normalization', () => {
       .toBe('claude-opus-4.5');
     expect(normalizeBedrockClaudeDisplayName('us.anthropic.claude-opus-4-7'))
       .toBe('claude-opus-4.7');
+    expect(normalizeBedrockClaudeDisplayName('us.anthropic.claude-sonnet-4-8-20260601-v1:0'))
+      .toBe('claude-sonnet-4.8');
+    expect(normalizeBedrockClaudeDisplayName('anthropic.claude-haiku-4-10-20260715-v1:0'))
+      .toBe('claude-haiku-4.10');
   });
 
   test('hardcoded fallback maps new Bedrock Claude IDs without one-off entries', () => {

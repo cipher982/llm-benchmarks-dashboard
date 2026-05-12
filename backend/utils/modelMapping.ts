@@ -2,33 +2,13 @@ import { CloudBenchmark } from '../types/CloudData';
 import type { ProcessedData } from './processCloud';
 import { createSlug } from './seoUtils';
 import { getProviderDisplayName } from './providerMetadata';
+import { resolveDisplayFromHardcoded } from './naming';
+
+export { normalizeBedrockClaudeDisplayName } from './naming';
 
 const meanOrZero = (values: number[]): number => {
     if (values.length === 0) return 0;
     return values.reduce((sum, value) => sum + value, 0) / values.length;
-};
-
-export const normalizeBedrockClaudeDisplayName = (modelName: string): string | undefined => {
-    if (!modelName.startsWith('us.anthropic.') && !modelName.startsWith('anthropic.')) {
-        return undefined;
-    }
-
-    let normalized = modelName
-        .replace(/^us\.anthropic\./, '')
-        .replace(/^anthropic\./, '')
-        .replace(/-v\d+(?::\d+)?$/i, '')
-        .replace(/-\d{8}$/i, '');
-
-    normalized = normalized
-        .replace('claude-opus-4-1', 'claude-opus-4.1')
-        .replace('claude-opus-4-5', 'claude-opus-4.5')
-        .replace('claude-opus-4-6', 'claude-opus-4.6')
-        .replace('claude-opus-4-7', 'claude-opus-4.7')
-        .replace('claude-sonnet-4-5', 'claude-sonnet-4.5')
-        .replace('claude-sonnet-4-6', 'claude-sonnet-4.6')
-        .replace('claude-haiku-4-5', 'claude-haiku-4.5');
-
-    return normalized;
 };
 
 export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] => {
@@ -363,13 +343,13 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
     const groupedData = new Map<string, ProcessedData[]>();
 
     sanitizedData.forEach((item: ProcessedData) => {
-        const providerCanonical = item.providerCanonical ?? item.provider;
-        const modelCanonical = item.modelCanonical ?? item.model_name;
-        const mappedName = modelNameMapping[modelCanonical]
-            || modelNameMapping[item.model_name]
-            || normalizeBedrockClaudeDisplayName(modelCanonical)
-            || normalizeBedrockClaudeDisplayName(item.model_name)
-            || item.model_name;
+        const providerCanonical = item.providerCanonical;
+        const modelCanonical = item.modelCanonical;
+        const mappedName = resolveDisplayFromHardcoded({
+            modelCanonical,
+            rawModelName: item.model_name,
+            modelNameMapping,
+        });
 
         const key = JSON.stringify({
             providerCanonical,
@@ -390,7 +370,7 @@ export const mapModelNamesHardcoded = (data: ProcessedData[]): CloudBenchmark[] 
     groupedData.forEach((items, key) => {
         const { providerCanonical, modelDisplay } = JSON.parse(key) as { providerCanonical: string; modelDisplay: string };
         const providerDisplay = getProviderDisplayName(providerCanonical);
-        const canonicalModel = items[0].modelCanonical ?? items[0].model_name;
+        const canonicalModel = items[0].modelCanonical;
 
         const mergedItem: CloudBenchmark = {
             _id: items[0]._id,
