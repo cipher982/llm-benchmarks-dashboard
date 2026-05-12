@@ -2,9 +2,8 @@ import { CloudBenchmark } from '../types/CloudData';
 import type { ProcessedData } from './processCloud';
 import connectToMongoDB from './connectToMongoDB';
 import mongoose from 'mongoose';
-import { createSlug } from './seoUtils';
-import { getProviderDisplayName } from './providerMetadata';
 import { cached, clearCache } from './cache';
+import { latestBenchmarkDate, mergeProcessedModelGroup } from './modelMappingMerge';
 
 // Model schema for the models collection
 const ModelSchema = new mongoose.Schema({
@@ -71,11 +70,6 @@ interface ModelMetadata {
 }
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-const meanOrZero = (values: number[]): number => {
-  if (values.length === 0) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-};
 
 const toIsoString = (value: unknown): string | undefined => {
   if (!value) {
@@ -230,113 +224,31 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
     // Merge groups into aggregated results (same logic as original mapModelNames)
     const mergedData: CloudBenchmark[] = await Promise.all(
       Array.from(modelGroups.entries()).map(async ([groupKey, items]) => {
-      const { providerCanonical, modelDisplay } = JSON.parse(groupKey) as { providerCanonical: string; modelDisplay: string };
-      const originalProviderCanonical = providerCanonical;
-      const originalModelCanonical = items[0].modelCanonical; // The canonical model_id from MongoDB
-      const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
+        const { providerCanonical, modelDisplay } = JSON.parse(groupKey) as { providerCanonical: string; modelDisplay: string };
+        const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
 
-      // Compute last benchmark date from all items in group (not just first!)
-      // Only compute if we have actual timestamps - don't fabricate dates
-      const allTimestamps = items
-        .map(item => item.last_run_ts)
-        .filter((ts): ts is Date => ts != null);
-      const lastBenchmarkDate = allTimestamps.length > 0
-        ? new Date(Math.max(...allTimestamps.map(ts => ts.getTime()))).toISOString()
-        : undefined;
-
-      const mergedItem: CloudBenchmark = {
-        _id: items[0]._id,
-        provider: getProviderDisplayName(providerCanonical),
-        providerCanonical: originalProviderCanonical,
-        providerSlug: createSlug(originalProviderCanonical),
-        model_name: modelDisplay, // This is now the display name
-        modelCanonical: originalModelCanonical,
-        modelSlug: createSlug(originalModelCanonical), // Use the original model_id for the slug
-        tokens_per_second: [],
-        tokens_per_second_timestamps: [],  // Initialize timestamp array
-        generated_tokens_per_second: [],
-        generated_tokens_per_second_mean: 0,
-        visible_tokens_per_second: [],
-        visible_tokens_per_second_timestamps: [],
-        throughput_basis: items.some(item => item.throughput_basis === 'mixed')
-          || (items.some(item => item.throughput_basis === 'visible') && items.some(item => item.throughput_basis === 'legacy'))
-            ? 'mixed'
-            : items.some(item => item.throughput_basis === 'visible') ? 'visible' : 'legacy',
-        time_to_first_token: [],
-        time_to_first_token_timestamps: [],  // Initialize timestamp array
-        tokens_per_second_mean: 0,
-        tokens_per_second_min: Infinity,
-        tokens_per_second_max: -Infinity,
-        tokens_per_second_quartiles: [0, 0, 0],
-        time_to_first_token_mean: 0,
-        time_to_first_token_min: Infinity,
-        time_to_first_token_max: -Infinity,
-        time_to_first_token_quartiles: [0, 0, 0],
-        display_name: modelDisplay,
-        enabled: metadata.enabled,
-        deprecated: metadata.deprecated,
-        deprecation_date: metadata.deprecation_date,
-        successor_model: metadata.successor_model,
-        last_benchmark_date: lastBenchmarkDate,
-        lifecycle_status: metadata.enabled === false ? 'disabled' : metadata.lifecycle?.status,
-        lifecycle_confidence: metadata.lifecycle?.confidence,
-        lifecycle_reasons: metadata.lifecycle?.reasons,
-        lifecycle_recommended_actions: metadata.lifecycle?.recommended_actions,
-        lifecycle_catalog_state: metadata.lifecycle?.catalog_state,
-        lifecycle_computed_at: metadata.lifecycle?.computed_at,
-        lifecycle_metrics: metadata.lifecycle?.metrics,
-      };
-
-      // Aggregate data from all items in the group
-      items.forEach(item => {
-        mergedItem.tokens_per_second.push(...item.tokens_per_second);
-        mergedItem.tokens_per_second_timestamps.push(...item.tokens_per_second_timestamps);  // Preserve timestamps
-        if (item.generated_tokens_per_second) {
-          mergedItem.generated_tokens_per_second!.push(...item.generated_tokens_per_second);
-        } else {
-          mergedItem.generated_tokens_per_second!.push(...item.tokens_per_second);
-        }
-        if (item.visible_tokens_per_second) {
-          mergedItem.visible_tokens_per_second!.push(...item.visible_tokens_per_second);
-        }
-        if (item.visible_tokens_per_second_timestamps) {
-          mergedItem.visible_tokens_per_second_timestamps!.push(...item.visible_tokens_per_second_timestamps);
-        }
-        if (item.time_to_first_token) {
-          mergedItem.time_to_first_token!.push(...item.time_to_first_token);
-        }
-        if (item.time_to_first_token_timestamps) {
-          mergedItem.time_to_first_token_timestamps!.push(...item.time_to_first_token_timestamps);  // Preserve timestamps
-        }
-        // Handle optional time_to_first_token values
-        if (item.time_to_first_token_min !== undefined) {
-          mergedItem.time_to_first_token_min = Math.min(
-            mergedItem.time_to_first_token_min ?? Infinity,
-            item.time_to_first_token_min
-          );
-        }
-        if (item.time_to_first_token_max !== undefined) {
-          mergedItem.time_to_first_token_max = Math.max(
-            mergedItem.time_to_first_token_max ?? -Infinity,
-            item.time_to_first_token_max
-          );
-        }
-      });
-
-      // Calculate averages from merged samples, not from per-canonical means.
-      mergedItem.tokens_per_second_mean = meanOrZero(mergedItem.tokens_per_second);
-      mergedItem.tokens_per_second_min = mergedItem.tokens_per_second.length
-        ? Math.min(...mergedItem.tokens_per_second)
-        : 0;
-      mergedItem.tokens_per_second_max = mergedItem.tokens_per_second.length
-        ? Math.max(...mergedItem.tokens_per_second)
-        : 0;
-      mergedItem.generated_tokens_per_second_mean = meanOrZero(mergedItem.generated_tokens_per_second ?? []);
-      mergedItem.time_to_first_token_mean = meanOrZero(mergedItem.time_to_first_token ?? []);
-
-      return mergedItem;
-    })
-  );
+        return mergeProcessedModelGroup({
+          items,
+          providerCanonical,
+          modelDisplay,
+          modelCanonical: items[0].modelCanonical,
+          metadata: {
+            enabled: metadata.enabled,
+            deprecated: metadata.deprecated,
+            deprecation_date: metadata.deprecation_date,
+            successor_model: metadata.successor_model,
+            last_benchmark_date: latestBenchmarkDate(items),
+            lifecycle_status: metadata.enabled === false ? 'disabled' : metadata.lifecycle?.status,
+            lifecycle_confidence: metadata.lifecycle?.confidence,
+            lifecycle_reasons: metadata.lifecycle?.reasons,
+            lifecycle_recommended_actions: metadata.lifecycle?.recommended_actions,
+            lifecycle_catalog_state: metadata.lifecycle?.catalog_state,
+            lifecycle_computed_at: metadata.lifecycle?.computed_at,
+            lifecycle_metrics: metadata.lifecycle?.metrics,
+          },
+        });
+      })
+    );
 
     return mergedData;
 
