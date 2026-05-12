@@ -100,12 +100,12 @@ export const DesktopShell = styled('div')(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',
   boxSizing: 'border-box',
-  padding: theme.spacing(6, 2, 8),
+  padding: theme.spacing(12, 2, 8),
   [theme.breakpoints.down('md')]: {
-    padding: theme.spacing(4, 1, 6),
+    padding: theme.spacing(16, 1, 6),
   },
   [theme.breakpoints.down('sm')]: {
-    padding: theme.spacing(3, 1, 5),
+    padding: theme.spacing(17, 1, 5),
   },
 }));
 
