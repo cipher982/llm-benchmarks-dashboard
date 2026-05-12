@@ -25,11 +25,16 @@ const DEFAULT_MODEL_DAYS = 30;
 const DEFAULT_PROVIDER_DAYS = 30;
 const MAX_STATIC_PATHS = 20;
 
-let inventoryCache: ProviderModelEntry[] | null = null;
+let inventoryCache: { aliases: ProviderModelEntry[]; representatives: ProviderModelEntry[] } | null = null;
 let inventoryCacheFetchedAt = 0;
 
 function isInventoryCacheStale(): boolean {
     return !inventoryCache || Date.now() - inventoryCacheFetchedAt > INVENTORY_TTL_MS;
+}
+
+export function clearModelServiceCache(): void {
+    inventoryCache = null;
+    inventoryCacheFetchedAt = 0;
 }
 
 function toIsoDate(value?: Date | string | null): string | undefined {
@@ -56,6 +61,109 @@ function computeMax(values: Array<number | null | undefined>): number | null {
     const filtered = values.filter((value): value is number => value !== null && value !== undefined && !Number.isNaN(value));
     if (!filtered.length) return null;
     return Math.max(...filtered);
+}
+
+function toDateMs(value?: string): number | undefined {
+    if (!value) return undefined;
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function latestIsoDate(values: Array<string | undefined>): string | undefined {
+    const timestamps = values
+        .map(toDateMs)
+        .filter((value): value is number => value !== undefined);
+    return timestamps.length ? new Date(Math.max(...timestamps)).toISOString() : undefined;
+}
+
+function earliestIsoDate(values: Array<string | undefined>): string | undefined {
+    const timestamps = values
+        .map(toDateMs)
+        .filter((value): value is number => value !== undefined);
+    return timestamps.length ? new Date(Math.min(...timestamps)).toISOString() : undefined;
+}
+
+function dataSpanDays(firstRunAt?: string, latestRunAt?: string): number | undefined {
+    const first = toDateMs(firstRunAt);
+    const latest = toDateMs(latestRunAt);
+    if (first === undefined || latest === undefined) return undefined;
+    const span = Math.floor((latest - first) / (1000 * 60 * 60 * 24));
+    return Number.isFinite(span) && span >= 0 ? span : undefined;
+}
+
+function displayGroupKey(providerCanonical: string, displayName: string): string {
+    return JSON.stringify({ providerCanonical, displayName });
+}
+
+function compareRepresentative(a: ProviderModelEntry, b: ProviderModelEntry): number {
+    const aFirst = toDateMs(a.firstRunAt);
+    const bFirst = toDateMs(b.firstRunAt);
+    if (aFirst !== undefined && bFirst !== undefined && aFirst !== bFirst) {
+        return aFirst - bFirst;
+    }
+    if (aFirst !== undefined && bFirst === undefined) return -1;
+    if (aFirst === undefined && bFirst !== undefined) return 1;
+    return a.modelCanonical.localeCompare(b.modelCanonical);
+}
+
+function groupLifecycleStatus(entries: ProviderModelEntry[]): string | undefined {
+    const latestEntry = [...entries].sort((a, b) => {
+        const aTime = toDateMs(a.latestRunAt) ?? 0;
+        const bTime = toDateMs(b.latestRunAt) ?? 0;
+        if (aTime !== bTime) return bTime - aTime;
+        return a.modelCanonical.localeCompare(b.modelCanonical);
+    })[0];
+    return latestEntry?.lifecycleStatus;
+}
+
+function buildInventoryGroups(entries: ProviderModelEntry[]): { aliases: ProviderModelEntry[]; representatives: ProviderModelEntry[] } {
+    const groups = new Map<string, ProviderModelEntry[]>();
+    entries.forEach((entry) => {
+        const key = entry.displayGroupKey ?? displayGroupKey(entry.providerCanonical, entry.displayName);
+        const group = groups.get(key) ?? [];
+        group.push(entry);
+        groups.set(key, group);
+    });
+
+    const aliases: ProviderModelEntry[] = [];
+    const representatives: ProviderModelEntry[] = [];
+
+    Array.from(groups.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .forEach(([key, group]) => {
+            const sortedGroup = [...group].sort(compareRepresentative);
+            const representative = sortedGroup[0];
+            const canonicalGroup = [...new Set(sortedGroup.map((entry) => entry.modelCanonical))].sort();
+            const latestRunAt = latestIsoDate(sortedGroup.map((entry) => entry.latestRunAt));
+            const firstRunAt = earliestIsoDate(sortedGroup.map((entry) => entry.firstRunAt));
+            const common = {
+                displayGroupKey: key,
+                canonicalGroup,
+                representativeModelCanonical: representative.modelCanonical,
+                representativeModelSlug: representative.modelSlug,
+                latestRunAt,
+                firstRunAt,
+                dataSpanDays: dataSpanDays(firstRunAt, latestRunAt),
+                lifecycleStatus: groupLifecycleStatus(sortedGroup),
+            };
+
+            const representativeEntry: ProviderModelEntry = {
+                ...representative,
+                ...common,
+            };
+            representatives.push(representativeEntry);
+
+            sortedGroup.forEach((entry) => {
+                aliases.push({
+                    ...representativeEntry,
+                    model: entry.model,
+                    modelCanonical: entry.modelCanonical,
+                    modelSlug: entry.modelSlug,
+                });
+            });
+        });
+
+    return { aliases, representatives };
 }
 
 function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, runCount: number, latestRunAt?: string): SummaryMetrics {
@@ -120,9 +228,9 @@ function extractModelTimeSeries(data: ProcessedDataBundle["timeSeries"], model: 
     };
 }
 
-async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[]> {
+async function fetchInventory(forceRefresh = false): Promise<{ aliases: ProviderModelEntry[]; representatives: ProviderModelEntry[] }> {
     if (!forceRefresh && !isInventoryCacheStale()) {
-        return inventoryCache as ProviderModelEntry[];
+        return inventoryCache as { aliases: ProviderModelEntry[]; representatives: ProviderModelEntry[] };
     }
 
     await connectToMongoDB();
@@ -134,6 +242,27 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
                 firstRunAt: { $min: "$run_ts" },
                 displayName: { $last: "$display_name" },
             },
+        },
+        {
+            $lookup: {
+                from: "models",
+                let: { p: "$_id.provider", m: "$_id.model_name" },
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ["$provider", "$$p"] },
+                                    { $eq: ["$model_id", "$$m"] }
+                                ]
+                            }
+                        }
+                    },
+                    { $limit: 1 },
+                    { $project: { display_name: 1, _id: 0 } }
+                ],
+                as: "catalog"
+            }
         },
         {
             // Lookup lifecycle status from model_status collection
@@ -165,6 +294,7 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
                 provider: "$_id.provider",
                 model: "$_id.model_name",
                 displayName: "$displayName",
+                catalogDisplayName: { $arrayElemAt: ["$catalog.display_name", 0] },
                 latestRunAt: "$latestRunAt",
                 firstRunAt: "$firstRunAt",
                 lifecycleStatus: { $arrayElemAt: ["$lifecycle.status", 0] },
@@ -175,22 +305,15 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
         },
     ]);
 
-    inventoryCache = results.map((entry: any) => {
+    const entries = results.map((entry: any) => {
         const providerCanonical = entry.provider;
         const providerDisplay = getProviderDisplayName(providerCanonical);
         const providerSlug = createSlug(providerCanonical);
         const modelCanonical = entry.model;
         const modelSlug = createSlug(modelCanonical);
-
-        // Calculate data span in days with NaN protection
-        let dataSpanDays: number | undefined;
-        if (entry.firstRunAt && entry.latestRunAt) {
-            const first = entry.firstRunAt instanceof Date ? entry.firstRunAt : new Date(entry.firstRunAt);
-            const latest = entry.latestRunAt instanceof Date ? entry.latestRunAt : new Date(entry.latestRunAt);
-            const span = Math.floor((latest.getTime() - first.getTime()) / (1000 * 60 * 60 * 24));
-            // Guard against NaN or negative values from invalid dates
-            dataSpanDays = Number.isFinite(span) && span >= 0 ? span : undefined;
-        }
+        const displayName = entry.catalogDisplayName || modelCanonical;
+        const latestRunAt = toIsoDate(entry.latestRunAt);
+        const firstRunAt = toIsoDate(entry.firstRunAt);
 
         return {
             provider: providerDisplay,
@@ -199,23 +322,30 @@ async function fetchInventory(forceRefresh = false): Promise<ProviderModelEntry[
             model: modelCanonical,
             modelCanonical,
             modelSlug,
-            displayName: entry.displayName || modelCanonical,
-            latestRunAt: toIsoDate(entry.latestRunAt),
-            firstRunAt: toIsoDate(entry.firstRunAt),
-            dataSpanDays,
+            displayName,
+            displayGroupKey: displayGroupKey(providerCanonical, displayName),
+            canonicalGroup: [modelCanonical],
+            representativeModelCanonical: modelCanonical,
+            representativeModelSlug: modelSlug,
+            latestRunAt,
+            firstRunAt,
+            dataSpanDays: dataSpanDays(firstRunAt, latestRunAt),
             lifecycleStatus: entry.lifecycleStatus || undefined,
         };
     });
+
+    inventoryCache = buildInventoryGroups(entries);
     inventoryCacheFetchedAt = Date.now();
-    return inventoryCache as ProviderModelEntry[];
+    return inventoryCache;
 }
 
 export async function getProviderModelInventory(): Promise<ProviderModelEntry[]> {
-    return fetchInventory(false);
+    const inventory = await fetchInventory(false);
+    return inventory.representatives;
 }
 
 export async function getFeaturedStaticPaths(limit = MAX_STATIC_PATHS): Promise<Array<{ params: { provider: string; model: string } }>> {
-    const inventory = await fetchInventory(false);
+    const { representatives: inventory } = await fetchInventory(false);
     const sorted = [...inventory].sort((a, b) => {
         const aTime = a.latestRunAt ? Date.parse(a.latestRunAt) : 0;
         const bTime = b.latestRunAt ? Date.parse(b.latestRunAt) : 0;
@@ -228,12 +358,12 @@ export async function getFeaturedStaticPaths(limit = MAX_STATIC_PATHS): Promise<
 }
 
 async function resolveBySlug(providerSlug: string, modelSlug: string): Promise<ProviderModelEntry | undefined> {
-    const inventory = await fetchInventory(false);
+    const { aliases: inventory } = await fetchInventory(false);
     return inventory.find((entry) => entry.providerSlug === providerSlug && entry.modelSlug === modelSlug);
 }
 
 async function resolveProviderBySlug(providerSlug: string): Promise<{ provider: string; providerCanonical: string; providerSlug: string; latestRunAt?: string; displayName: string } | undefined> {
-    const inventory = await fetchInventory(false);
+    const { representatives: inventory } = await fetchInventory(false);
     const matches = inventory.filter((entry) => entry.providerSlug === providerSlug);
     if (!matches.length) return undefined;
 
@@ -252,7 +382,7 @@ async function resolveProviderBySlug(providerSlug: string): Promise<{ provider: 
     };
 }
 
-async function fetchProcessedBundle(provider: string, model: string | null, days: number): Promise<ProcessedModelBundle | null> {
+async function fetchProcessedBundle(provider: string, model: string | string[] | null, days: number): Promise<ProcessedModelBundle | null> {
     await connectToMongoDB();
     const since = new Date();
     since.setDate(since.getDate() - days);
@@ -262,7 +392,7 @@ async function fetchProcessedBundle(provider: string, model: string | null, days
         run_ts: { $gte: since },
     };
     if (model) {
-        query.model_name = model;
+        query.model_name = Array.isArray(model) ? { $in: model } : model;
     }
 
     const rawMetrics = await CloudMetrics.find(query)
@@ -301,19 +431,26 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         return null;
     }
 
-    const processedBundle = await fetchProcessedBundle(resolved.providerCanonical, resolved.modelCanonical, days);
+    const canonicalGroup = resolved.canonicalGroup?.length ? resolved.canonicalGroup : [resolved.modelCanonical];
+    const canonicalGroupSet = new Set(canonicalGroup);
+    const processedBundle = await fetchProcessedBundle(resolved.providerCanonical, canonicalGroup, days);
     if (!processedBundle) {
         return null;
     }
 
     const { filtered, rawSampleCount, runCount, latestRunAt } = processedBundle;
     const tableData = (filtered.table ?? []) as TableRow[];
+    const resolvedDisplayName = resolved.displayName;
     const matchingTableRows = tableData.filter(
-        (row) => row.providerCanonical === resolved.providerCanonical && row.modelCanonical === resolved.modelCanonical
+        (row) =>
+            row.providerCanonical === resolved.providerCanonical
+            && (row.model_name === resolvedDisplayName || canonicalGroupSet.has(row.modelCanonical))
     );
 
     const providerDisplay = matchingTableRows[0]?.provider ?? resolved.provider;
     const modelDisplay = matchingTableRows[0]?.model_name ?? resolved.displayName;
+    const representativeModelCanonical = resolved.representativeModelCanonical ?? resolved.modelCanonical;
+    const representativeModelSlug = resolved.representativeModelSlug ?? modelSlug;
 
     const tableRows = matchingTableRows.map((row) => ({
         provider: row.provider,
@@ -328,9 +465,9 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
     const speedDistribution = extractModelSpeedDistribution(filtered.speedDistribution ?? [], resolved.provider, modelDisplay);
     const timeSeries = extractModelTimeSeries(filtered.timeSeries, modelDisplay, resolved.displayName);
 
-    const inventory = await fetchInventory(false);
+    const { representatives: inventory } = await fetchInventory(false);
     const relatedModels = inventory
-        .filter((entry) => entry.providerCanonical === resolved.providerCanonical && entry.modelSlug !== resolved.modelSlug)
+        .filter((entry) => entry.providerCanonical === resolved.providerCanonical && entry.displayGroupKey !== resolved.displayGroupKey)
         .slice(0, 6);
 
     const alternatives = inventory
@@ -357,8 +494,8 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         providerCanonical: resolved.providerCanonical,
         providerSlug,
         model: modelDisplay,
-        modelCanonical: resolved.modelCanonical,
-        modelSlug,
+        modelCanonical: representativeModelCanonical,
+        modelSlug: representativeModelSlug,
         displayName: modelDisplay,
         summary,
         speedDistribution,

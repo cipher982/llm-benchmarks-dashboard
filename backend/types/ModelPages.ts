@@ -6,6 +6,10 @@ export interface ProviderModelEntry {
     modelCanonical: string;
     modelSlug: string;
     displayName: string;
+    displayGroupKey?: string;
+    canonicalGroup?: string[];
+    representativeModelCanonical?: string;
+    representativeModelSlug?: string;
     latestRunAt?: string;
     firstRunAt?: string;
     dataSpanDays?: number;
