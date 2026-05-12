@@ -71,15 +71,28 @@ export const StyledCircularProgress = styled(CircularProgress)({
 // LAYOUT COMPONENTS
 // =============================================================================
 
+const fixedNavOffset = {
+  desktop: '50px',
+  stacked: '128px',
+} as const;
+
+const desktopShellOffset = {
+  desktop: '68px',
+  stacked: '144px',
+} as const;
+
 /**
  * Main application container with responsive behavior
  */
 export const MainContainer = styled('main')<ResponsiveProps>(({ isMobile }) => ({
-  paddingTop: isMobile ? '70px' : '50px',
+  paddingTop: isMobile ? fixedNavOffset.stacked : fixedNavOffset.desktop,
   margin: 0,
   backgroundColor: colors.background,
   fontFamily: typography.fontFamily,
   minHeight: '100vh',
+  [`@media (max-width: ${breakpoints.md}px)`]: {
+    paddingTop: fixedNavOffset.stacked,
+  },
 }));
 
 /**
@@ -100,12 +113,12 @@ export const DesktopShell = styled('div')(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',
   boxSizing: 'border-box',
-  padding: theme.spacing(12, 2, 8),
+  padding: `${desktopShellOffset.desktop} ${theme.spacing(2)} ${theme.spacing(8)}`,
   [theme.breakpoints.down('md')]: {
-    padding: theme.spacing(16, 1, 6),
+    padding: `${desktopShellOffset.stacked} ${theme.spacing(1)} ${theme.spacing(6)}`,
   },
   [theme.breakpoints.down('sm')]: {
-    padding: theme.spacing(17, 1, 5),
+    padding: `${desktopShellOffset.stacked} ${theme.spacing(1)} ${theme.spacing(5)}`,
   },
 }));
 
