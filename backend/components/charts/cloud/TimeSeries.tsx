@@ -68,22 +68,30 @@ const fillSmallGaps = (values: (number | null)[]): (number | null)[] => {
     return result;
 };
 
-const getProviderCoverage = (provider: TimeSeriesProvider): number => {
+export const getProviderCoverage = (provider: TimeSeriesProvider): number => {
     const values = provider.values || [];
     const nonNullCount = values.filter((value) => value !== null && value !== undefined).length;
     const totalCount = values.length;
     return totalCount > 0 ? (nonNullCount / totalCount) * 100 : 0;
 };
 
-const getVisibleProviders = (model: TimeSeriesModel): TimeSeriesProvider[] =>
+export const getVisibleProviders = (model: TimeSeriesModel): TimeSeriesProvider[] =>
     model.providers.filter((provider) => getProviderCoverage(provider) >= COVERAGE_THRESHOLD);
 
-const getFreshnessLineStyle = (provider: TimeSeriesProvider, isOnlyVisibleProvider: boolean) => {
+export const getFreshnessLineStyle = (provider: TimeSeriesProvider, isOnlyVisibleProvider: boolean) => {
     if (provider.freshness_status === 'critical') {
-        return { dash: '4 3', opacity: 0.9, width: isOnlyVisibleProvider ? 3 : 2.75 };
+        return {
+            dash: isOnlyVisibleProvider ? undefined : '4 3',
+            opacity: isOnlyVisibleProvider ? 1 : 0.9,
+            width: isOnlyVisibleProvider ? 3.25 : 2.75
+        };
     }
     if (provider.freshness_status === 'stale') {
-        return { dash: '7 4', opacity: 0.95, width: isOnlyVisibleProvider ? 2.75 : 2.5 };
+        return {
+            dash: isOnlyVisibleProvider ? undefined : '7 4',
+            opacity: isOnlyVisibleProvider ? 1 : 0.95,
+            width: isOnlyVisibleProvider ? 3 : 2.5
+        };
     }
     return { dash: undefined, opacity: 1, width: 2 };
 };
@@ -102,6 +110,66 @@ const getProviderLastValueIndex = (provider: TimeSeriesProvider): number => {
         }
     }
     return -1;
+};
+
+export interface ModelVisibility {
+    model: TimeSeriesModel;
+    visibleProviders: TimeSeriesProvider[];
+    visibleCount: number;
+    totalProvidersWithValues: number;
+    freshnessRank: number;
+    latestValueIndex: number;
+    coverage: number;
+}
+
+export const buildModelVisibility = (model: TimeSeriesModel): ModelVisibility => {
+    const visibleProviders = getVisibleProviders(model);
+    const totalProvidersWithValues = model.providers.filter(p => p.values && p.values.length > 0).length;
+    const freshnessRank = visibleProviders.length
+        ? Math.max(...visibleProviders.map(getProviderFreshnessRank))
+        : 0;
+    const latestValueIndex = visibleProviders.length
+        ? Math.max(...visibleProviders.map(getProviderLastValueIndex))
+        : -1;
+    const coverage = visibleProviders.reduce((sum, provider) => sum + getProviderCoverage(provider), 0);
+
+    return {
+        model,
+        visibleProviders,
+        visibleCount: visibleProviders.length,
+        totalProvidersWithValues,
+        freshnessRank,
+        latestValueIndex,
+        coverage,
+    };
+};
+
+export const sortModelVisibilityRows = (rows: ModelVisibility[]): ModelVisibility[] => {
+    return [...rows].sort((a, b) => {
+        if (b.visibleCount !== a.visibleCount) {
+            return b.visibleCount - a.visibleCount;
+        }
+
+        if (b.totalProvidersWithValues !== a.totalProvidersWithValues) {
+            return b.totalProvidersWithValues - a.totalProvidersWithValues;
+        }
+
+        if (b.freshnessRank !== a.freshnessRank) {
+            return b.freshnessRank - a.freshnessRank;
+        }
+
+        if (b.latestValueIndex !== a.latestValueIndex) {
+            return b.latestValueIndex - a.latestValueIndex;
+        }
+
+        if (b.coverage !== a.coverage) {
+            return b.coverage - a.coverage;
+        }
+
+        const aLabel = a.model.display_name || a.model.model_name;
+        const bLabel = b.model.display_name || b.model.model_name;
+        return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+    });
 };
 
 // Memoized individual chart component
@@ -331,56 +399,12 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     // Precompute visible providers for each model (applies the same coverage rule used during rendering)
     // Show ALL providers (active and deprecated) that meet coverage threshold
     const modelsWithVisibility = useMemo(() => {
-        return data.models.map((model) => {
-            const visibleProviders = getVisibleProviders(model);
-            const totalProvidersWithValues = model.providers.filter(p => p.values && p.values.length > 0).length;
-            const freshnessRank = visibleProviders.length
-                ? Math.max(...visibleProviders.map(getProviderFreshnessRank))
-                : 0;
-            const latestValueIndex = visibleProviders.length
-                ? Math.max(...visibleProviders.map(getProviderLastValueIndex))
-                : -1;
-            const coverage = visibleProviders.reduce((sum, provider) => sum + getProviderCoverage(provider), 0);
-
-            return {
-                model,
-                visibleProviders,
-                visibleCount: visibleProviders.length,
-                totalProvidersWithValues,
-                freshnessRank,
-                latestValueIndex,
-                coverage,
-            };
-        });
+        return data.models.map(buildModelVisibility);
     }, [data.models]);
 
     // Sort models by number of visible providers (lines), then fall back to total providers and name
     const sortedModelsWithVisibility = useMemo(() => {
-        return [...modelsWithVisibility].sort((a, b) => {
-            if (b.visibleCount !== a.visibleCount) {
-                return b.visibleCount - a.visibleCount;
-            }
-
-            if (b.totalProvidersWithValues !== a.totalProvidersWithValues) {
-                return b.totalProvidersWithValues - a.totalProvidersWithValues;
-            }
-
-            if (b.freshnessRank !== a.freshnessRank) {
-                return b.freshnessRank - a.freshnessRank;
-            }
-
-            if (b.latestValueIndex !== a.latestValueIndex) {
-                return b.latestValueIndex - a.latestValueIndex;
-            }
-
-            if (b.coverage !== a.coverage) {
-                return b.coverage - a.coverage;
-            }
-
-            const aLabel = a.model.display_name || a.model.model_name;
-            const bLabel = b.model.display_name || b.model.model_name;
-            return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
-        });
+        return sortModelVisibilityRows(modelsWithVisibility);
     }, [modelsWithVisibility]);
 
     if (!data.timestamps.length || !sortedModelsWithVisibility.length) {
