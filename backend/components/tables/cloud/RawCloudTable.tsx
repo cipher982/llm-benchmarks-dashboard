@@ -269,7 +269,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
         {
             accessorKey: 'tokens_per_second_mean',
             header: () => (
-                <Tooltip title="Visible output tokens per second when available; legacy generated throughput otherwise." arrow>
+                <Tooltip title="Table throughput uses visible output tokens per second when available; legacy rows fall back to generated throughput." arrow>
                     <span>Visible Toks/Sec</span>
                 </Tooltip>
             ),
@@ -283,7 +283,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
         {
             accessorKey: 'generated_tokens_per_second_mean',
             header: () => (
-                <Tooltip title="Provider-reported generated throughput, including reasoning tokens when providers report them." arrow>
+                <Tooltip title="Generated output throughput, including hidden reasoning or thinking tokens when providers report them." arrow>
                     <span>Generated Avg</span>
                 </Tooltip>
             ),
@@ -304,8 +304,8 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
                 const title = value === 'visible'
                     ? 'All recent samples have visible-token throughput.'
                     : value === 'mixed'
-                        ? 'Recent samples mix visible-token throughput and legacy throughput.'
-                        : 'Recent samples use legacy throughput because visible-token throughput is unavailable.';
+                        ? 'Recent samples mix visible-token throughput with legacy generated throughput.'
+                        : 'Visible-token throughput is unavailable, so table throughput uses generated throughput.';
                 return (
                     <Tooltip title={title} arrow>
                         <span style={{ cursor: 'help' }}>{label}</span>
@@ -335,7 +335,11 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data }) => {
         },
         {
             accessorKey: 'time_to_first_token_mean',
-            header: 'First Token (ms)',
+            header: () => (
+                <Tooltip title="Milliseconds until the first visible text token. Thinking-only runs with no visible token are omitted from this average." arrow>
+                    <span>First Token (ms)</span>
+                </Tooltip>
+            ),
             size: 120,
             cell: ({ getValue }) => {
                 const value = getValue() as number;

@@ -627,7 +627,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                                     Flagged statuses: {flaggedStatuses.join(', ')}
                                 </span>
                                 <span>
-                                    Throughput ranks visible output tokens when available; generated throughput remains shown for reasoning-heavy models.
+                                    Table throughput uses visible output tokens when available; generated average and charts show total generated work, including reasoning tokens.
                                 </span>
                             </div>
                         );
