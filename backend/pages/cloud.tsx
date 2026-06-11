@@ -435,6 +435,11 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
             source: 'table_time_selector',
             selectedDays: days,
         });
+        trackUmamiEvent('search_or_filter_used', {
+            source: 'table_time_selector',
+            filterType: 'time_range',
+            value: days,
+        });
         await fetchTableData(days, tableStatusFilter);
     }, [fetchTableData, tableStatusFilter]);
 
@@ -585,6 +590,11 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                                 trackUmamiEvent('table_status_filter_change', {
                                     source: 'lifecycle_selector',
                                     filter: value,
+                                });
+                                trackUmamiEvent('search_or_filter_used', {
+                                    source: 'lifecycle_selector',
+                                    filterType: 'lifecycle_status',
+                                    value,
                                 });
                                 fetchTableData(tableDays, value);
                             }}

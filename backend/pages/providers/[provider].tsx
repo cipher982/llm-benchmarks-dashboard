@@ -14,6 +14,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { getProviderModelInventory, getProviderPageData } from "../../utils/modelService";
 import { buildProviderSeoMetadata } from "../../utils/seoUtils";
 import { getProviderWebsite } from "../../utils/providerMetadata";
+import { trackUmamiEvent } from "../../utils/analytics";
 import type { ProviderPageData } from "../../types/ModelPages";
 import type { SeoMetadata } from "../../utils/seoUtils";
 
@@ -179,6 +180,11 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
                                     rel="noopener noreferrer"
                                     endIcon={<OpenInNewIcon />}
                                     sx={{ textTransform: "none" }}
+                                    onClick={() => trackUmamiEvent('outbound_provider_click', {
+                                        provider: data.provider,
+                                        destination: providerWebsite,
+                                        source: 'provider_page',
+                                    })}
                                 >
                                     Visit {data.provider} Official Website
                                 </Button>

@@ -18,6 +18,7 @@ import TimeSeriesChart from "../../../components/charts/cloud/TimeSeries";
 import { buildModelSeoMetadata } from "../../../utils/seoUtils";
 import { getFeaturedStaticPaths, getModelPageData } from "../../../utils/modelService";
 import { getProviderWebsite } from "../../../utils/providerMetadata";
+import { trackUmamiEvent } from "../../../utils/analytics";
 import type { ModelPageData, ProviderModelEntry } from "../../../types/ModelPages";
 import type { SeoMetadata } from "../../../utils/seoUtils";
 import type { SpeedDistributionPoint, TimeSeriesData } from "../../../types/ProcessedData";
@@ -238,6 +239,12 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                                     rel="noopener noreferrer"
                                     endIcon={<OpenInNewIcon />}
                                     sx={{ textTransform: "none" }}
+                                    onClick={() => trackUmamiEvent('outbound_provider_click', {
+                                        provider: data.provider,
+                                        model: data.model,
+                                        destination: providerWebsite,
+                                        source: 'model_page',
+                                    })}
                                 >
                                     Visit {data.provider} Official Website
                                 </Button>

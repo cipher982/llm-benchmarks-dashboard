@@ -209,6 +209,12 @@ export const CloudDecisionHero: React.FC<CloudDecisionHeroProps> = ({
                                         provider: option.providerSlug,
                                         model: option.modelSlug,
                                     });
+                                    trackUmamiEvent('comparison_started', {
+                                        source: 'quick_path',
+                                        pathId: option.id,
+                                        provider: option.providerSlug,
+                                        model: option.modelSlug,
+                                    });
                                     onApplyQuickPath(option.id);
                                 }}
                             >
