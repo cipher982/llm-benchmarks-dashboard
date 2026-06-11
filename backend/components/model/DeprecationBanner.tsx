@@ -1,11 +1,16 @@
 import React from "react";
+import Link from "next/link";
 import { Alert, AlertTitle, Box, Typography } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import { createSlug } from "../../utils/seoUtils";
 
 interface DeprecationBannerProps {
     modelName: string;
     status: string;
     lastUpdated?: string;
+    successorModel?: string;
+    providerSlug?: string;
 }
 
 const statusMessages: Record<string, { title: string; description: string }> = {
@@ -35,11 +40,16 @@ const statusMessages: Record<string, { title: string; description: string }> = {
     },
 };
 
-const DeprecationBanner: React.FC<DeprecationBannerProps> = ({ modelName, status, lastUpdated }) => {
+const DeprecationBanner: React.FC<DeprecationBannerProps> = ({ modelName, status, lastUpdated, successorModel, providerSlug }) => {
     const message = statusMessages[status] || {
         title: "Limited Data",
         description: "This model has limited benchmark data available.",
     };
+
+    const successorSlug = successorModel ? createSlug(successorModel) : null;
+    const successorHref = successorSlug && providerSlug
+        ? `/models/${providerSlug}/${successorSlug}`
+        : null;
 
     return (
         <Alert
@@ -55,6 +65,18 @@ const DeprecationBanner: React.FC<DeprecationBannerProps> = ({ modelName, status
                 <Typography variant="body2" sx={{ mb: 1 }}>
                     {message.description}
                 </Typography>
+                {successorModel && successorHref && (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1, mb: 1 }}>
+                        <ArrowForwardIcon fontSize="small" color="warning" />
+                        <Typography variant="body2">
+                            <strong>Recommended replacement:</strong>{" "}
+                            <Link href={successorHref} style={{ color: "inherit", fontWeight: 600 }}>
+                                {successorModel}
+                            </Link>
+                            {" "}— see current benchmark data
+                        </Typography>
+                    </Box>
+                )}
                 {lastUpdated && (
                     <Typography variant="caption" color="text.secondary">
                         Last benchmark: {new Date(lastUpdated).toLocaleDateString(undefined, {

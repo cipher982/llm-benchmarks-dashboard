@@ -287,4 +287,14 @@ export const clearModelMappingCache = (): void => {
   clearCache('model-mapping-cache');
 };
 
+/**
+ * Get the successor model for a given provider+model canonical pair, if any.
+ * Returns undefined if the model has no known successor.
+ */
+export const getSuccessorModel = async (providerCanonical: string, modelCanonical: string): Promise<string | undefined> => {
+  const cache = await getModelMappingCache();
+  const entry = cache[`${providerCanonical}:${modelCanonical}`];
+  return entry?.successor_model || undefined;
+};
+
 export default mapModelNamesDB;

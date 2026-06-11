@@ -37,6 +37,9 @@ export async function generateSitemap(): Promise<string> {
     { loc: `${hostname}/cloud`, changefreq: "daily", priority: "1.0" },
     { loc: `${hostname}/local`, changefreq: "weekly", priority: "0.6" },
     { loc: `${hostname}/status`, changefreq: "weekly", priority: "0.4" },
+    { loc: `${hostname}/guides/fastest-llm-api`, changefreq: "weekly", priority: "0.8", lastmod: "2026-06-11" },
+    { loc: `${hostname}/guides/llm-provider-comparison`, changefreq: "weekly", priority: "0.8", lastmod: "2026-06-11" },
+    { loc: `${hostname}/guides/deprecated-model-replacements`, changefreq: "weekly", priority: "0.7", lastmod: "2026-06-11" },
   ];
 
   const inventory = await getProviderModelInventory();

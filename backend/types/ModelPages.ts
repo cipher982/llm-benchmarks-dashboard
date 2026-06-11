@@ -88,6 +88,7 @@ export interface ModelPageData {
     dataSpanDays?: number;
     isDeprecated?: boolean;
     shouldNoIndex?: boolean;
+    successorModel?: string;
 }
 
 export interface ProviderPageData {

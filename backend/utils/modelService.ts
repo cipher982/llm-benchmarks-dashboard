@@ -5,6 +5,7 @@ import type { ModelPageData, ProviderModelEntry, ProviderPageData, SummaryMetric
 import type { ProcessedData as ProcessedDataBundle, TableRow } from "../types/ProcessedData";
 import { getProviderDisplayName } from "./providerMetadata";
 import { FLAGGED_STATUSES } from "./lifecycleSummary";
+import { getSuccessorModel } from "./modelMappingDB";
 
 // Shared threshold for SEO - pages with less data span get noindex
 export const SEO_MIN_DATA_SPAN_DAYS = 30;
@@ -488,6 +489,7 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         ? FLAGGED_STATUSES.has(lifecycleStatus) && lifecycleStatus !== 'deprecated'
         : false;
     const shouldNoIndex = dataSpanDays < SEO_MIN_DATA_SPAN_DAYS || isFlaggedNotDeprecated;
+    const successorModel = await getSuccessorModel(resolved.providerCanonical, representativeModelCanonical);
 
     return {
         provider: providerDisplay,
@@ -508,6 +510,7 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
         dataSpanDays,
         isDeprecated,
         shouldNoIndex,
+        successorModel,
     };
 }
 

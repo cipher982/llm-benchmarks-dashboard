@@ -259,6 +259,8 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                         modelName={data.displayName}
                         status={data.lifecycleStatus!}
                         lastUpdated={data.summary.latestRunAt}
+                        successorModel={data.successorModel}
+                        providerSlug={data.providerSlug}
                     />
                 )}
                 <Section title="Benchmark Overview">
