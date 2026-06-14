@@ -21,7 +21,6 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { styled } from '@mui/system';
 
 type ReviewModel = {
@@ -57,26 +56,6 @@ type ReviewResponse = {
   pending: ReviewModel[];
   approved_recent: ReviewModel[];
   rejected_recent: ReviewModel[];
-};
-
-type DecisionItem = {
-  provider?: string;
-  model_id?: string;
-  openrouter_id?: string;
-  reason?: string;
-  review_flags?: string[];
-  source?: string;
-  decision?: string;
-  confidence?: number;
-  first_seen_at?: string;
-  next_review_at?: string;
-  seen_count?: number;
-  raw_item?: any;
-};
-
-type DecisionsResponse = {
-  items: DecisionItem[];
-  count: number;
 };
 
 const Page = styled(Box)(({ theme }) => ({
@@ -142,7 +121,6 @@ const ModelReviewPage: React.FC = () => {
   const searchParams = useSearchParams();
   const adminKey = searchParams ? searchParams.get('key') : null;
   const [data, setData] = useState<ReviewResponse | null>(null);
-  const [decisionsData, setDecisionsData] = useState<DecisionsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [actingKey, setActingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -170,57 +148,6 @@ const ModelReviewPage: React.FC = () => {
       setLoading(false);
     }
   }, [adminKey]);
-
-  const fetchDecisions = useCallback(async () => {
-    if (!adminKey) return;
-
-    try {
-      const response = await fetch('/api/admin/decisions-review', {
-        headers: { 'x-admin-key': adminKey },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      setDecisionsData(await response.json());
-    } catch (err: any) {
-      // Decisions fetch is best-effort; don't disturb the main page for failures
-      console.error('Failed to load decisions:', err.message);
-    }
-  }, [adminKey]);
-
-  const promoteDecision = async (item: DecisionItem) => {
-    if (!adminKey) return;
-
-    const label = item.provider && item.model_id
-      ? `${item.provider}:${item.model_id}`
-      : item.openrouter_id || 'unknown';
-    setActingKey(`promote:${label}`);
-    try {
-      const body: any = {};
-      if (item.provider && item.model_id) {
-        body.provider = item.provider;
-        body.model_id = item.model_id;
-      } else if (item.openrouter_id) {
-        body.openrouter_id = item.openrouter_id;
-      }
-      const response = await fetch('/api/admin/decisions-review', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-key': adminKey,
-        },
-        body: JSON.stringify(body),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
-
-      setSuccess(`${label} promoted to candidate`);
-      await fetchQueue();
-      await fetchDecisions();
-    } catch (err: any) {
-      setError(`Failed to promote ${label}: ${err.message}`);
-    } finally {
-      setActingKey(null);
-    }
-  };
 
   const reviewModel = async (model: ReviewModel, action: 'approve' | 'reject') => {
     if (!adminKey) return;
@@ -260,14 +187,8 @@ const ModelReviewPage: React.FC = () => {
   useEffect(() => {
     if (adminKey) {
       fetchQueue();
-      fetchDecisions();
     }
-  }, [adminKey, fetchQueue, fetchDecisions]);
-
-  const refreshAll = () => {
-    fetchQueue();
-    fetchDecisions();
-  };
+  }, [adminKey, fetchQueue]);
 
   const pending = uniquePending(data);
 
@@ -296,7 +217,7 @@ const ModelReviewPage: React.FC = () => {
         <Button
           variant="outlined"
           startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
-          onClick={refreshAll}
+          onClick={fetchQueue}
           disabled={loading}
         >
           Refresh
@@ -401,81 +322,6 @@ const ModelReviewPage: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
-      <Box mt={3}>
-        <Typography variant="h6" component="h2" gutterBottom>
-          Review Items (Snoozed)
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Agent-flagged items that need human judgment before staging.
-        </Typography>
-        <TableContainer component={Paper}>
-          <Table size="small" aria-label="review items table">
-            <TableHead>
-              <TableRow>
-                <TableCell>Actions</TableCell>
-                <TableCell>Identifier</TableCell>
-                <TableCell>Source</TableCell>
-                <TableCell>Reason</TableCell>
-                <TableCell>Flags</TableCell>
-                <TableCell>Seen</TableCell>
-                <TableCell>Next Review</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(!decisionsData || decisionsData.items.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <Typography color="text.secondary">No snoozed items awaiting review.</Typography>
-                  </TableCell>
-                </TableRow>
-              )}
-              {(decisionsData?.items || []).map((item) => {
-                const label = item.provider && item.model_id
-                  ? `${item.provider}:${item.model_id}`
-                  : item.openrouter_id || item.raw_item?.openrouter_id || 'unknown';
-                return (
-                  <TableRow key={label} hover>
-                    <TableCell>
-                      <Tooltip title="Promote to candidate for review">
-                        <span>
-                          <ActionButton
-                            aria-label={`Promote ${label}`}
-                            color="primary"
-                            variant="contained"
-                            onClick={() => promoteDecision(item)}
-                            disabled={actingKey !== null}
-                          >
-                            <UnfoldMoreIcon fontSize="small" />
-                          </ActionButton>
-                        </span>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={600} fontSize="13px" fontFamily="monospace">
-                        {label}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip size="small" label={item.source || 'unknown'} />
-                    </TableCell>
-                    <TableCell>{item.reason || 'None'}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                        {(item.review_flags || []).map((flag) => (
-                          <Chip key={flag} size="small" variant="outlined" label={flag} />
-                        ))}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{item.seen_count ?? 0}</TableCell>
-                    <TableCell>{displayDate(item.next_review_at)}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
 
       <Box mt={3}>
         <Typography variant="h6" component="h2" gutterBottom>

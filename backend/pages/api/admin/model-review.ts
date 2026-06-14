@@ -73,7 +73,7 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
         { projection },
       )
       .sort({ promotion_detected_at: -1, created_at: -1 })
-      .limit(200)
+      .limit(5000)
       .toArray(),
     models
       .find(
