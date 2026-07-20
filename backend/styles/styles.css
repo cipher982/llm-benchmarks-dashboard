@@ -15,7 +15,9 @@
     max-width: 1200px;
     margin: 24px auto 0;
     padding: 12px 16px 20px;
-    color: #505050;
+    color: #3f3f3f;
+    background: #ffffff;
+    border-top: 1px solid #d8d8d8;
     font-family: Tahoma, sans-serif;
     font-size: 12px;
     text-align: center;
