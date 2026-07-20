@@ -73,6 +73,23 @@ const visitorContextScript = `
 })();
 `;
 
+const siteIdentity = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': 'https://llm-benchmarks.com/#website',
+  name: 'LLM Benchmarks',
+  url: 'https://llm-benchmarks.com',
+  description: 'Independent, continuously updated measurements of LLM API throughput, latency, and reliability.',
+  creator: {
+    '@type': 'Person',
+    '@id': 'https://drose.io/#person',
+    name: 'David Rose',
+    url: 'https://drose.io',
+    sameAs: ['https://github.com/cipher982', 'https://www.linkedin.com/in/david-w-rose/'],
+    jobTitle: 'AI Engineer',
+  },
+};
+
 export default function Document() {
   const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
   const umamiScriptSrc = process.env.NEXT_PUBLIC_UMAMI_SCRIPT_SRC || 'https://analytics.drose.io/script.js';
@@ -83,6 +100,7 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteIdentity) }} />
         {/* Visitor context helper — must run before tracker loads */}
         <script dangerouslySetInnerHTML={{ __html: visitorContextScript }} />
         {umamiWebsiteId && (

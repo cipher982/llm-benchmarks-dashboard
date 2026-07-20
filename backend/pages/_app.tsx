@@ -6,6 +6,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import theme from '../components/theme/theme';
 import Navbar from '../components/NavBar';
+import SiteFooter from '../components/SiteFooter';
 import '../styles/styles.css';
 
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ const MyApp: FC<AppProps> = ({ Component, pageProps }) => {
         <div className="MainContainer">
           <Component {...pageProps} />
         </div>
+        <SiteFooter />
       </ThemeProvider>
     </QueryClientProvider>
   );

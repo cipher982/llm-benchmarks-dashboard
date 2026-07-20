@@ -11,6 +11,21 @@
     border: 0;
 }
 
+.SiteFooter {
+    max-width: 1200px;
+    margin: 24px auto 0;
+    padding: 12px 16px 20px;
+    color: #505050;
+    font-family: Tahoma, sans-serif;
+    font-size: 12px;
+    text-align: center;
+}
+
+.SiteFooter a {
+    color: inherit;
+    font-weight: 700;
+}
+
 /* Legacy alias for backwards compatibility */
 .no-visual {
     position: absolute;

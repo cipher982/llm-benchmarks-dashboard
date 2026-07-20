@@ -75,7 +75,7 @@ const LlmProviderComparisonPage: NextPage<Props> = ({ providers, lastUpdated }) 
         "description": "Side-by-side comparison of LLM API providers in 2026: OpenAI, Anthropic, Google, AWS Bedrock, Groq, DeepInfra, Fireworks, Together AI, and more.",
         "dateModified": lastUpdated,
         "datePublished": "2026-06-11",
-        "author": { "@type": "Organization", "name": "LLM Benchmarks" },
+        "author": { "@type": "Person", "name": "David Rose", "url": "https://drose.io", "sameAs": "https://github.com/cipher982" },
         "publisher": { "@type": "Organization", "name": "LLM Benchmarks", "url": "https://llm-benchmarks.com" },
     };
 

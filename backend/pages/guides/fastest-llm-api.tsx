@@ -75,7 +75,7 @@ const FastestLlmApiPage: NextPage<Props> = ({ models, lastUpdated }) => {
         "description": "Real benchmark data comparing LLM API throughput and latency across OpenAI, Anthropic, Groq, DeepInfra, Fireworks, AWS Bedrock, and more.",
         "dateModified": lastUpdated,
         "datePublished": "2026-06-11",
-        "author": { "@type": "Organization", "name": "LLM Benchmarks" },
+        "author": { "@type": "Person", "name": "David Rose", "url": "https://drose.io", "sameAs": "https://github.com/cipher982" },
         "publisher": { "@type": "Organization", "name": "LLM Benchmarks", "url": "https://llm-benchmarks.com" },
     };
 

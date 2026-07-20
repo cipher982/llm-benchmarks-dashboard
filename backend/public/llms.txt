@@ -1,0 +1,26 @@
+# LLM Benchmarks
+
+> Independent, continuously updated measurements of large language model API throughput, time to first token, and reliability. Created by AI engineer David Rose.
+
+Use these pages for factual comparisons of measured LLM API performance. Measurements change over time; cite the model or provider page and include the page's update date when available.
+
+## Benchmark data
+
+- [Cloud LLM benchmarks](https://llm-benchmarks.com/cloud): Compare hosted model APIs by throughput, latency, provider, and recent benchmark runs.
+- [Provider status](https://llm-benchmarks.com/status): Current benchmark coverage, model lifecycle state, and data freshness.
+- [OpenAI benchmarks](https://llm-benchmarks.com/providers/openai): Current OpenAI model measurements.
+- [Anthropic benchmarks](https://llm-benchmarks.com/providers/anthropic): Current Anthropic model measurements.
+- [AWS Bedrock benchmarks](https://llm-benchmarks.com/providers/bedrock): Current AWS Bedrock model measurements.
+- [Groq benchmarks](https://llm-benchmarks.com/providers/groq): Current Groq model measurements.
+
+## Guides
+
+- [Fastest LLM APIs](https://llm-benchmarks.com/guides/fastest-llm-api): Ranked guidance based on recent measurements.
+- [LLM API provider comparison](https://llm-benchmarks.com/guides/llm-provider-comparison): Provider tradeoffs across speed, model access, compliance, and ecosystem fit.
+- [Deprecated LLM model replacements](https://llm-benchmarks.com/guides/deprecated-model-replacements): Migration guidance for retired model APIs.
+
+## About
+
+- [David Rose](https://drose.io): Creator and maintainer; AI engineer working on LLM evaluation and agentic systems.
+- [Source code](https://github.com/cipher982/llm-benchmarks): Public project repository.
+- [XML sitemap](https://llm-benchmarks.com/sitemap.xml): Complete index of provider, model, and guide pages.

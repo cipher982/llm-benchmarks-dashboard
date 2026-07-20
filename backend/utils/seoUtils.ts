@@ -140,8 +140,10 @@ export const generateStructuredData = (
     },
     "dateModified": new Date().toISOString(),
     "author": {
-      "@type": "Organization",
-      "name": "LLM Benchmarks"
+      "@type": "Person",
+      "name": "David Rose",
+      "url": "https://drose.io",
+      "sameAs": "https://github.com/cipher982"
     },
     "publisher": {
       "@type": "Organization",
@@ -311,8 +313,10 @@ export function buildModelSeoMetadata({
       "@id": canonical,
     },
     author: {
-      "@type": "Organization",
-      name: "LLM Benchmarks",
+      "@type": "Person",
+      name: "David Rose",
+      url: "https://drose.io",
+      sameAs: "https://github.com/cipher982",
     },
     publisher: {
       "@type": "Organization",

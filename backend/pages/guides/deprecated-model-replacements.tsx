@@ -140,7 +140,7 @@ const DeprecatedModelReplacementsPage: NextPage<Props> = ({ entries, lastUpdated
         "description": "Complete guide to deprecated LLM API models and their recommended replacements. Covers OpenAI GPT-4 Turbo, GPT-3.5, Anthropic Claude 2, Llama 3, and more.",
         "dateModified": lastUpdated,
         "datePublished": "2026-06-11",
-        "author": { "@type": "Organization", "name": "LLM Benchmarks" },
+        "author": { "@type": "Person", "name": "David Rose", "url": "https://drose.io", "sameAs": "https://github.com/cipher982" },
         "publisher": { "@type": "Organization", "name": "LLM Benchmarks", "url": "https://llm-benchmarks.com" },
     };
 
