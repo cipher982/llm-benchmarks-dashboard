@@ -1,6 +1,6 @@
 # LLM Benchmarks
 
-> Independent, continuously updated measurements of large language model API throughput, time to first token, and reliability. Created by AI engineer David Rose.
+> Independent, continuously updated measurements of large language model API throughput, time to first token, and reliability. Built and maintained by David W. Rose (cipher982).
 
 Use these pages for factual comparisons of measured LLM API performance. Measurements change over time; cite the model or provider page and include the page's update date when available.
 
@@ -21,6 +21,7 @@ Use these pages for factual comparisons of measured LLM API performance. Measure
 
 ## About
 
-- [David Rose](https://drose.io): Creator and maintainer; AI engineer working on LLM evaluation and agentic systems.
-- [Source code](https://github.com/cipher982/llm-benchmarks): Public project repository.
+- [David W. Rose](https://drose.io): Creator and maintainer; a tinkerer and builder working across software and physical machines.
+- [cipher982 on GitHub](https://github.com/cipher982): Public identity and related projects.
+- [Source code](https://github.com/cipher982/llm-benchmarks-dashboard): Public dashboard repository.
 - [XML sitemap](https://llm-benchmarks.com/sitemap.xml): Complete index of provider, model, and guide pages.

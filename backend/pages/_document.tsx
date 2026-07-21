@@ -83,10 +83,10 @@ const siteIdentity = {
   creator: {
     '@type': 'Person',
     '@id': 'https://drose.io/#person',
-    name: 'David Rose',
+    name: 'David W. Rose',
+    alternateName: ['David Rose', 'cipher982'],
     url: 'https://drose.io',
     sameAs: ['https://github.com/cipher982', 'https://www.linkedin.com/in/david-w-rose/'],
-    jobTitle: 'AI Engineer',
   },
 };
 

@@ -141,7 +141,9 @@ export const generateStructuredData = (
     "dateModified": new Date().toISOString(),
     "author": {
       "@type": "Person",
-      "name": "David Rose",
+      "@id": "https://drose.io/#person",
+      "name": "David W. Rose",
+      "alternateName": ["David Rose", "cipher982"],
       "url": "https://drose.io",
       "sameAs": "https://github.com/cipher982"
     },
@@ -314,7 +316,9 @@ export function buildModelSeoMetadata({
     },
     author: {
       "@type": "Person",
-      name: "David Rose",
+      "@id": "https://drose.io/#person",
+      name: "David W. Rose",
+      alternateName: ["David Rose", "cipher982"],
       url: "https://drose.io",
       sameAs: "https://github.com/cipher982",
     },
