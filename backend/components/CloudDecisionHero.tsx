@@ -86,7 +86,7 @@ const CardTitle = styled('h3')(({ theme }) => ({
 
 const CardMeta = styled('p')({
     margin: 0,
-    color: colors.textSecondary,
+    color: colors.textPrimary,
     fontSize: '0.82rem',
 });
 
