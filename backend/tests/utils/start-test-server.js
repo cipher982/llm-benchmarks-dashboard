@@ -31,9 +31,8 @@ async function startTestServer() {
     const env = {
       ...process.env,
       PORT: port.toString(),
-      // Use test MongoDB or fast-timeout connection
-      MONGODB_URI: process.env.MONGODB_URI ||
-        'mongodb://localhost:27017/test-db?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000',
+      // Route fixtures make accessibility tests database-free.
+      MONGODB_URI: process.env.MONGODB_URI ?? '',
     };
 
     const server = spawn('npm', ['run', 'dev'], {

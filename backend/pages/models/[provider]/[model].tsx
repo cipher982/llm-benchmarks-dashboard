@@ -19,6 +19,7 @@ import { buildModelSeoMetadata } from "../../../utils/seoUtils";
 import { getFeaturedStaticPaths, getModelPageData } from "../../../utils/modelService";
 import { getProviderWebsite } from "../../../utils/providerMetadata";
 import { trackUmamiEvent } from "../../../utils/analytics";
+import { hasConfiguredMongoUri } from "../../../utils/buildMode";
 import type { ModelPageData, ProviderModelEntry } from "../../../types/ModelPages";
 import type { SeoMetadata } from "../../../utils/seoUtils";
 import type { SpeedDistributionPoint, TimeSeriesData } from "../../../types/ProcessedData";
@@ -306,6 +307,9 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
 };
 
 export const getStaticPaths: GetStaticPaths = async () => {
+    if (!hasConfiguredMongoUri()) {
+        return { paths: [], fallback: "blocking" };
+    }
     try {
         const paths = await getFeaturedStaticPaths();
         return { paths, fallback: "blocking" };

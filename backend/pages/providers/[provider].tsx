@@ -15,6 +15,7 @@ import { getProviderModelInventory, getProviderPageData } from "../../utils/mode
 import { buildProviderSeoMetadata } from "../../utils/seoUtils";
 import { getProviderWebsite } from "../../utils/providerMetadata";
 import { trackUmamiEvent } from "../../utils/analytics";
+import { hasConfiguredMongoUri } from "../../utils/buildMode";
 import type { ProviderPageData } from "../../types/ModelPages";
 import type { SeoMetadata } from "../../utils/seoUtils";
 
@@ -230,6 +231,9 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
 };
 
 export const getStaticPaths: GetStaticPaths = async () => {
+    if (!hasConfiguredMongoUri()) {
+        return { paths: [], fallback: "blocking" };
+    }
     try {
         const inventory = await getProviderModelInventory();
         const uniqueProviders = Array.from(new Map(inventory.map((entry) => [entry.providerSlug, entry])).values());

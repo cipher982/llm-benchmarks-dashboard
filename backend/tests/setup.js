@@ -16,3 +16,8 @@ global.console = {
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
+
+// Unit-style tests must fail immediately if an unmocked model reaches Mongo.
+// Database integration suites opt into their own connection explicitly.
+require('mongoose').set('bufferCommands', false);
+require('mongoose').set('bufferTimeoutMS', 0);

@@ -188,16 +188,20 @@ const Navbar: React.FC = () => {
     const pathname = usePathname();
 
     const handleGitHubClick = () => {
-        trackUmamiEvent('github_click', {
-            source: 'navbar',
+        trackUmamiEvent('identity_link_click', {
+            source: 'llm_benchmarks',
+            placement: 'navbar',
+            destination: 'github_source',
             path: pathname || '/unknown',
         });
-        window.open("https://github.com/cipher982/llm-benchmarks", "_blank");
+        window.open("https://github.com/cipher982/llm-benchmarks-dashboard", "_blank");
     };
 
     const handleDroseClick = () => {
-        trackUmamiEvent('drose_click', {
-            source: 'navbar',
+        trackUmamiEvent('identity_link_click', {
+            source: 'llm_benchmarks',
+            placement: 'navbar',
+            destination: 'drose_home',
             path: pathname || '/unknown',
         });
         window.open("https://drose.io", "_blank");

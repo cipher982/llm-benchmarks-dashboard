@@ -39,10 +39,6 @@ export default defineConfig({
     // Don't specify a URL - our fixtures will read the dynamic port
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
-    env: {
-      // Provide MongoDB URI for dev server (use existing or mock with fast timeouts)
-      MONGODB_URI: process.env.MONGODB_URI ||
-        'mongodb://localhost:27017/test-db?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000',
-    },
+    env: { MONGODB_URI: '' },
   },
 });

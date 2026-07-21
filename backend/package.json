@@ -20,8 +20,11 @@
     "test:contract": "jest tests/api.canonical-contract.test.js --testTimeout=30000",
     "test:canonical": "jest tests/pipeline.canonical.test.js tests/api.canonical-contract.test.js --testTimeout=30000",
     "test:timeseries": "jest tests/timeseries.test.js --testTimeout=30000",
+    "test:pure": "jest tests/buildMode.test.js tests/mongoose-buffering.test.js tests/pipeline.canonical.test.js tests/timeseries.test.js tests/naming.test.js tests/lifecycle-summary.test.js tests/timeSeriesChart.test.js tests/modelMappingBedrock.test.js tests/modelReviewJobs.test.js tests/modelService.naming.test.js --testTimeout=30000",
+    "test:integration": "jest tests/api.baseline.test.js tests/api.canonical-contract.test.js tests/data.snapshot.test.js tests/performance.test.js --testTimeout=30000",
     "test:a11y": "playwright test tests/accessibility.test.ts",
-    "test:a11y:ui": "playwright test tests/accessibility.test.ts --ui"
+    "test:a11y:ui": "playwright test tests/accessibility.test.ts --ui",
+    "predeploy:manual-app": "zsh scripts/pre-deploy.zsh"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

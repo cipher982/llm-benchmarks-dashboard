@@ -34,7 +34,7 @@ const apiFixtures = JSON.parse(fs.readFileSync(fixturesPath, 'utf8'));
  */
 async function mockApiRoutes(page: Page) {
   // Only mock our API endpoints, not Next.js internal requests
-  await page.route(/^.*\/api\/(processed|status|model|local)(\?.*)?$/, async (route) => {
+  await page.route(/^.*\/api\/(processed|status|model|local|lifecycle-summary)(\?.*)?$/, async (route) => {
     const url = route.request().url();
 
     if (url.includes('/api/processed')) {
@@ -64,6 +64,12 @@ async function mockApiRoutes(page: Page) {
         contentType: 'application/json',
         body: JSON.stringify(apiFixtures.local),
       });
+    } else if (url.includes('/api/lifecycle-summary')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ rows: [], flaggedStatuses: [] }),
+      });
     } else {
       // Let other requests pass through
       await route.continue();
@@ -79,11 +85,9 @@ export const test = base.extend({
     await use(url);
   },
 
-  // Enable API mocking in CI (no real database), use real API locally
+  // Accessibility tests are deterministic and never require a database.
   page: async ({ page }, use) => {
-    if (process.env.CI) {
-      await mockApiRoutes(page);
-    }
+    await mockApiRoutes(page);
     await use(page);
   },
 });

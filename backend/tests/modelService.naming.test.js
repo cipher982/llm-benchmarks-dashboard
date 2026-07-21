@@ -1,4 +1,7 @@
 jest.mock('../utils/connectToMongoDB', () => jest.fn().mockResolvedValue(true));
+jest.mock('../utils/modelMappingDB', () => ({
+  getSuccessorModel: jest.fn().mockResolvedValue(null),
+}));
 
 const aggregateMock = jest.fn();
 const execMock = jest.fn();
