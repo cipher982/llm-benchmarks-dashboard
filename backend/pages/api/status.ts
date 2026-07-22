@@ -8,6 +8,10 @@ import path from 'path';
 
 // Constants
 const MAX_RUNS = 10;  // Match the Python code's default
+const STATUS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+let cachedStatus: { data: StatusResponse; expiresAt: number } | null = null;
+let statusGeneration: Promise<StatusResponse> | null = null;
 
 // Helper: Convert timestamp to human-readable relative time
 function getRelativeTime(timestamp: Date): string {
@@ -66,7 +70,8 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     // Step 1: Get last MAX_RUNS metrics per model using aggregation
     // Use $topN to bound accumulation at MongoDB level (prevents memory overflow as data scales)
     const metricsPipeline = [
-        { $sort: { run_ts: -1 as const } },
+        // Matches the compound index so MongoDB can stream each model's newest runs.
+        { $sort: { provider: 1 as const, model_name: 1 as const, run_ts: -1 as const } },
         {
             $group: {
                 _id: {
@@ -100,7 +105,7 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     // Use $topN to bound accumulation at MongoDB level (prevents memory overflow as data scales)
     // Note: errors_cloud.ts is already a Date object (no conversion needed)
     const errorsPipeline = [
-        { $sort: { ts: -1 as const } },
+        { $sort: { provider: 1 as const, model_name: 1 as const, ts: -1 as const } },
         {
             $group: {
                 _id: {
@@ -277,6 +282,25 @@ async function generateStatusFromMongoDB(): Promise<StatusResponse> {
     };
 }
 
+async function getCachedStatus(): Promise<StatusResponse> {
+    if (cachedStatus && cachedStatus.expiresAt > Date.now()) {
+        return cachedStatus.data;
+    }
+
+    if (!statusGeneration) {
+        statusGeneration = generateStatusFromMongoDB()
+            .then((data) => {
+                cachedStatus = { data, expiresAt: Date.now() + STATUS_CACHE_TTL_MS };
+                return data;
+            })
+            .finally(() => {
+                statusGeneration = null;
+            });
+    }
+
+    return statusGeneration;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     corsMiddleware(req, res);
     if (req.method === 'OPTIONS') return;
@@ -306,7 +330,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
             
             // Generate status from MongoDB
-            const statusData = await generateStatusFromMongoDB();
+            const statusData = await getCachedStatus();
             
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Cache-Control', 'public, s-maxage=60'); // 1 minute cache for dynamic
