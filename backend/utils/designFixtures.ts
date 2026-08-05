@@ -348,7 +348,7 @@ export async function getFixtureProcessed(): Promise<Record<string, unknown> | n
         tokens_per_second_mean: row.mean,
         tokens_per_second_min: row.min,
         tokens_per_second_max: row.max,
-        samples: row.n ?? null,
+        samples: row.n ?? undefined,
         generated_tokens_per_second_mean: Number((row.mean * 1.08).toFixed(2)),
         throughput_basis: 'visible',
         time_to_first_token_mean: row.ttft ?? 0,

@@ -12,6 +12,24 @@ if (!NODE_ENV || !['production', 'development'].includes(NODE_ENV)) {
   process.exit(1);
 }
 
+// The design fixtures serve synthesised benchmark numbers so `/status`,
+// `/providers/*` and `/models/*` can be reviewed without a database. If they
+// were ever reachable here the site would publish invented measurements as
+// though they were real, which is the worst failure this project has.
+//
+// The fixtures are already gated in code on DESIGN_FIXTURES=1 plus
+// NODE_ENV !== 'production'. This makes it fail closed: the long-running
+// server refuses to exist in a process where the flag is set at all, so the
+// gate cannot be reduced to a single variable by someone setting NODE_ENV to
+// chase a bug.
+if (process.env.DESIGN_FIXTURES) {
+  console.error(
+    'DESIGN_FIXTURES is set. It serves synthesised benchmark data and must never ' +
+    'be present on a served instance — use `npm run design:dev`. Refusing to start.'
+  );
+  process.exit(1);
+}
+
 // In production, require ADMIN_API_KEY to be set
 if (NODE_ENV === 'production' && !process.env.ADMIN_API_KEY) {
   console.error('ADMIN_API_KEY must be set in production. Refusing to start.');
