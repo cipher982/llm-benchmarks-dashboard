@@ -1,11 +1,17 @@
 import { calculateMean, calculateMin, calculateMax, calculateQuartiles, bytesToGB, shuffleArray } from './dataUtils';
 import logger from './logger'; // Assuming logger is imported from a separate file
 
+// The benchmark profile whose rows are published. Runner-side counterpart is
+// `DEFAULT_PROFILE_ID` in scheduler/runner.py; a row measured under any other
+// profile is a different experiment and must not share an axis with these.
+export const PUBLISHED_PROFILE_ID = 'cloud-default-v1';
+
 /**
  * Raw data from the cloud benchmarks
  */
 export interface RawData {
     _id: string;
+    benchmark_profile_id?: string;
     run_ts: string;
     model_name: string;
     display_name?: string;
@@ -94,6 +100,20 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             continue;
         }
         if (benchmark.tokens_per_second < 1) continue;
+        // Only the published profile reaches the chart.
+        //
+        // Every row carries `benchmark_profile_id`, but grouping is by
+        // (providerCanonical, display_name) and ignores it — so a row measured
+        // under a different profile would be averaged into the same line as the
+        // published one. `cloud-reasoning-v1` asks for 2048 tokens instead of
+        // 64, and throughput divides tokens by total generation time, so the
+        // longer run amortizes time-to-first-token far more heavily. Mixing the
+        // two does not make a noisier average; it makes a number that means
+        // nothing, and it can reverse which provider looks faster.
+        //
+        // Rows written before this field existed have no profile id and are
+        // published, which is correct: they are the default profile.
+        if (benchmark.benchmark_profile_id && benchmark.benchmark_profile_id !== PUBLISHED_PROFILE_ID) continue;
 
         const visibleTps = typeof benchmark.visible_tokens_per_second === 'number' && benchmark.visible_tokens_per_second > 0
             ? benchmark.visible_tokens_per_second

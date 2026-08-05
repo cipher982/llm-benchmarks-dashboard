@@ -786,3 +786,43 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
     });
   });
 });
+
+describe('Benchmark profile isolation', () => {
+  const sample = (overrides = {}) => ({
+    _id: 'p-1',
+    run_ts: '2025-01-15T12:00:00Z',
+    model_name: 'reasoning-model',
+    provider: 'deepinfra',
+    temperature: 0.1,
+    gen_ts: '2025-01-15T12:00:00Z',
+    requested_tokens: 64,
+    output_tokens: 64,
+    generate_time: 1.0,
+    tokens_per_second: 50,
+    streaming: true,
+    time_to_first_token: 0.1,
+    ...overrides
+  });
+
+  test('a row from another profile never reaches the chart', () => {
+    // Throughput divides tokens by total generation time, so a 2048-token run
+    // amortizes time-to-first-token far more heavily than a 64-token one.
+    // Averaging the two produces a number that means nothing and can reverse
+    // which provider looks faster.
+    const result = cleanTransformCloud([
+      sample({ _id: 'published', benchmark_profile_id: 'cloud-default-v1', tokens_per_second: 50 }),
+      sample({ _id: 'shadow', benchmark_profile_id: 'cloud-reasoning-v1', tokens_per_second: 500 })
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].tokens_per_second).toEqual([50]);
+  });
+
+  test('rows written before the field existed are still published', () => {
+    // They are the default profile; dropping them would erase the history.
+    const result = cleanTransformCloud([sample({ _id: 'legacy' })]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].tokens_per_second).toEqual([50]);
+  });
+});
