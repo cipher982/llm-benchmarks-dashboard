@@ -213,6 +213,16 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
     // Process each model group
     const processedModels = Object.entries(modelGroups).map(([model_name, benchmarks]) => {
         const providers = benchmarks.map(benchmark => {
+            // Deliberately generated throughput, not visible — pinned by
+            // "plots generated throughput for visible-capable reasoning models"
+            // in tests/timeseries.test.js. A reasoning model's visible
+            // throughput is ~2 tok/s against ~55 generated, and a line tracking
+            // one provider's serving performance over time is better served by
+            // the number that does not collapse whenever the model thinks.
+            //
+            // The distribution chart makes the opposite choice for the opposite
+            // reason: it ranks models against each other, so it has to use the
+            // same basis as the table beneath it. Both are labelled.
             const values = benchmark.tokens_per_second;
             const timestamps = benchmark.tokens_per_second_timestamps;
             let processedValues: (number | null)[] = Array(nRuns).fill(null);
@@ -382,8 +392,26 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             ...d,
             model_name: `${d.provider}-${d.model_name}`,
             display_name: d.model_name,
-            // No filter - split-axis chart handles all data
-            tokens_per_second: d.tokens_per_second
+            // Visible-token throughput where the provider reports it, exactly
+            // as `processRawTableData` picks it. This used to be generated
+            // throughput unconditionally, which put two different quantities on
+            // one axis: 122 of 244 models emit essentially only visible tokens,
+            // while 57 hide between 30% and 85% of what they generate and 5
+            // hide almost all of it. Ranking those together ranks a thinking
+            // model by tokens the reader never sees.
+            //
+            // It showed up as a single model sitting at 638 tok/s with the next
+            // at 225 — GPT-oss-safeguard-20b, whose generated throughput is
+            // 2.2x its visible throughput. It was not fast in the way the axis
+            // claimed, and it set the scale for everything else.
+            //
+            // Same argument as the benchmark-profile filter in
+            // `cleanTransformCloud`: mixing two definitions of throughput does
+            // not produce a noisier ranking, it produces one that means
+            // nothing. The chart and the table now rank on the same number.
+            tokens_per_second: d.visible_tokens_per_second?.length
+                ? d.visible_tokens_per_second
+                : d.tokens_per_second
         }))
         .filter(d => d.tokens_per_second.length > 0);
     

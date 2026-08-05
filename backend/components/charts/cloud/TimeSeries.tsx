@@ -542,8 +542,10 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 ))}
             </Grid>
             <Note>
-                One cell per model, showing its best-covered provider · shared vertical scale, 0 to{' '}
-                {Math.round(yMax)} tok/s (99th percentile) · dashed rule is the model&apos;s own mean
+                Generated throughput, including reasoning tokens — so a thinking model&apos;s line does
+                not collapse; the table ranks on visible tokens · one cell per model, showing its
+                best-covered provider · shared vertical scale, 0 to {Math.round(yMax)} tok/s
+                (99th percentile) · dashed rule is the model&apos;s own mean
                 {droppedProviders > 0 ? ` · ${droppedProviders} further provider${droppedProviders === 1 ? '' : 's'} not drawn` : ''}
                 {clipped > 0 ? ` · ${clipped} samples above the ceiling drawn at it` : ''}
                 {hidden > 0 ? ` · ${hidden} slower models not drawn` : ''}

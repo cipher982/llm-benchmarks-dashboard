@@ -318,7 +318,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
                     })}
                 </MobileRows>
                 <Note>
-                    Generated throughput · 0–{xMax} tok/s across every row
+                    Visible-token throughput · 0–{xMax} tok/s across every row
                     {notDrawn > 0 && ` · ${notDrawn} slower models in the table below`}
                 </Note>
             </>
@@ -410,13 +410,8 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
                     </svg>
                 </Plot>
             </Frame>
-            {/* The distribution is computed over generated throughput, while
-                the table's Mean column prefers visible-token throughput where a
-                provider reports it. The two therefore rank models differently,
-                and saying so is cheaper than the reader finding out by noticing
-                the top row here is not the top row down there. */}
             <Note>
-                Generated throughput · curves normalised per model
+                Visible-token throughput, same basis as the table · curves normalised per model
                 {hidden > 0 && ` · ${hidden} slower models not drawn, all ${rows.length + hidden} are in the table below`}
             </Note>
         </>
