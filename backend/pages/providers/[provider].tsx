@@ -5,11 +5,9 @@ import ModelPageLayout from "../../components/model/ModelPageLayout";
 import Section from "../../components/model/Section";
 import MetricSummaryGrid from "../../components/model/MetricSummaryGrid";
 import PageBreadcrumbs from "../../components/model/PageBreadcrumbs";
-import RelatedLinks from "../../components/model/RelatedLinks";
 import FAQAccordion from "../../components/model/FAQAccordion";
 import ModelMetricTableWithLinks from "../../components/model/ModelMetricTableWithLinks";
-import InsightList from "../../components/model/InsightList";
-import { Typography, Button, Box } from "@mui/material";
+import { Button } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { getProviderModelInventory, getProviderPageData } from "../../utils/modelService";
 import { buildProviderSeoMetadata } from "../../utils/seoUtils";
@@ -61,60 +59,25 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
         { label: data.provider },
     ];
 
-    const modelLinks = data.models.slice(0, 12).map((model) => ({
-        title: model.displayName,
-        description: "View dedicated benchmark details",
-        href: `/models/${model.providerSlug}/${model.modelSlug}`,
-    }));
-
-    const insights = useMemo(() => {
-        const items: string[] = [];
-        items.push(`${data.models.length} ${data.provider} models are actively benchmarked with ${data.summary.sampleCount} total measurements across ${data.summary.runCount} benchmark runs.`);
-
-        if (data.fastestModels.length > 0 && data.fastestModels[0]?.tokensPerSecondMean) {
-            const fastest = data.fastestModels[0];
-            const slowest = data.fastestModels[data.fastestModels.length - 1];
-            items.push(
-                `${fastest.displayName} leads the fleet with ${formatNumber(fastest.tokensPerSecondMean)} tokens/second, while ${slowest?.displayName || 'the slowest model'} delivers ${formatNumber(slowest?.tokensPerSecondMean)} tok/s.`
-            );
-
-            if (slowest?.tokensPerSecondMean && fastest.tokensPerSecondMean) {
-                const performanceRange = ((fastest.tokensPerSecondMean - slowest.tokensPerSecondMean) / slowest.tokensPerSecondMean * 100).toFixed(1);
-                items.push(`Performance varies by ${performanceRange}% across the ${data.provider} model lineup, indicating diverse optimization strategies for different use cases.`);
-            }
-        }
-
-        if (data.summary.timeToFirstTokenMean) {
-            const ttft = data.summary.timeToFirstTokenMean * 1000; // Convert to ms
-            const latencyRating = ttft < 500 ? "excellent" : ttft < 1000 ? "good" : ttft < 2000 ? "moderate" : "high";
-            items.push(`Avg time to first token across the fleet is ${formatNumber(ttft)} ms, showing ${latencyRating} responsiveness for interactive applications.`);
-        }
-
-        // Calculate consistency across models
-        if (data.models.length > 2) {
-            const speeds = data.models
-                .filter(m => m.tokensPerSecondMean)
-                .map(m => m.tokensPerSecondMean!);
-            if (speeds.length > 2) {
-                const stdDev = Math.sqrt(speeds.reduce((sq, n) => sq + Math.pow(n - (data.summary.tokensPerSecondMean || 0), 2), 0) / speeds.length);
-                const cv = ((stdDev / (data.summary.tokensPerSecondMean || 1)) * 100).toFixed(1);
-                items.push(`The ${data.provider} model fleet shows ${parseFloat(cv) < 30 ? 'consistent' : 'varied'} performance characteristics (${cv}% variation coefficient), ${parseFloat(cv) < 30 ? 'indicating standardized infrastructure' : 'reflecting diverse model architectures'}.`);
-            }
-        }
-
-        return items;
-    }, [data]);
-
-    const fastestTableRows = data.fastestModels.map((model) => ({
-        provider: model.provider,
-        modelName: model.displayName,
-        providerSlug: model.providerSlug,
-        modelSlug: model.modelSlug,
-        tokensPerSecondMean: model.tokensPerSecondMean ?? 0,
-        tokensPerSecondMin: model.tokensPerSecondMin ?? model.tokensPerSecondMean ?? 0,
-        tokensPerSecondMax: model.tokensPerSecondMax ?? model.tokensPerSecondMean ?? 0,
-        timeToFirstTokenMean: (model.timeToFirstTokenMean ?? 0) * 1000, // Convert to ms
-    }));
+    // Every model once, fastest first. This replaced three overlapping
+    // listings — a top-five table, a full table, and a grid of cards linking to
+    // twelve of the same models.
+    const allModelRows = useMemo(
+        () =>
+            [...data.models]
+                .sort((a, b) => (b.tokensPerSecondMean ?? 0) - (a.tokensPerSecondMean ?? 0))
+                .map((model) => ({
+                    provider: model.provider,
+                    modelName: model.displayName,
+                    providerSlug: model.providerSlug,
+                    modelSlug: model.modelSlug,
+                    tokensPerSecondMean: model.tokensPerSecondMean ?? 0,
+                    tokensPerSecondMin: model.tokensPerSecondMin ?? model.tokensPerSecondMean ?? 0,
+                    tokensPerSecondMax: model.tokensPerSecondMax ?? model.tokensPerSecondMean ?? 0,
+                    timeToFirstTokenMean: (model.timeToFirstTokenMean ?? 0) * 1000, // Convert to ms
+                })),
+        [data.models],
+    );
 
     const faqItems = [
         {
@@ -161,66 +124,46 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
                     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(seo.jsonLd) }} />
                 )}
             </Head>
+            {/* The page opened with a title, a deck, a paragraph of hub copy and
+                an outbound button — roughly a viewport before the first number.
+                Then it listed the same inventory three times: "Fastest Models"
+                (top five), "All Models" (everything), and "Featured Models"
+                (cards linking to eight of them). "Key Takeaways" restated the
+                snapshot and the table in sentences.
+
+                Now: the measurements, then every model once, sorted fastest
+                first, then the questions. The official-site link survives as a
+                rail action because it is the one thing here the benchmark data
+                cannot provide. */}
             <ModelPageLayout
                 title={`${data.provider} Provider Benchmarks`}
-                subtitle={`Comprehensive performance summary covering ${data.models.length} models.`}
-                intro={
-                    <>
-                        <Typography variant="body1" paragraph>
-                            This provider hub highlights throughput and latency trends across every {data.provider} model monitored by
-                            LLM Benchmarks. Use it to compare hosting tiers, track regressions, and discover the fastest variants in the
-                            catalogue.
-                        </Typography>
-                        {providerWebsite && (
-                            <Box sx={{ mt: 2 }}>
-                                <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    href={providerWebsite}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    endIcon={<OpenInNewIcon />}
-                                    sx={{ textTransform: "none" }}
-                                    onClick={() => trackUmamiEvent('outbound_provider_click', {
-                                        provider: data.provider,
-                                        destination: providerWebsite,
-                                        source: 'provider_page',
-                                    })}
-                                >
-                                    Visit {data.provider} Official Website
-                                </Button>
-                            </Box>
-                        )}
-                    </>
-                }
                 breadcrumbs={<PageBreadcrumbs items={breadcrumbs} />}
             >
-                <Section title="Provider Snapshot">
+                <Section title="Measured over the last 30 days">
                     <MetricSummaryGrid items={metrics} />
                 </Section>
-                <Section title="Key Takeaways">
-                    <InsightList items={insights} />
-                </Section>
-                <Section title="Fastest Models">
-                    <ModelMetricTableWithLinks rows={fastestTableRows} />
-                </Section>
-                <Section title="All Models">
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                        Complete list of all {data.provider} models tracked in the benchmark system. Click any model name to view detailed performance data.
-                    </Typography>
-                    <ModelMetricTableWithLinks rows={data.models.map((model) => ({
-                        provider: model.provider,
-                        modelName: model.displayName,
-                        providerSlug: model.providerSlug,
-                        modelSlug: model.modelSlug,
-                        tokensPerSecondMean: model.tokensPerSecondMean ?? 0,
-                        tokensPerSecondMin: model.tokensPerSecondMin ?? 0,
-                        tokensPerSecondMax: model.tokensPerSecondMax ?? 0,
-                        timeToFirstTokenMean: (model.timeToFirstTokenMean ?? 0) * 1000, // Convert to ms
-                    }))} />
-                </Section>
-                <Section title="Featured Models">
-                    <RelatedLinks items={modelLinks} />
+                <Section
+                    title={`All ${data.provider} models`}
+                    eyebrow={`${data.models.length} tracked · fastest first`}
+                    actions={providerWebsite && (
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            href={providerWebsite}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            endIcon={<OpenInNewIcon />}
+                            onClick={() => trackUmamiEvent('outbound_provider_click', {
+                                provider: data.provider,
+                                destination: providerWebsite,
+                                source: 'provider_page',
+                            })}
+                        >
+                            {data.provider} site
+                        </Button>
+                    )}
+                >
+                    <ModelMetricTableWithLinks rows={allModelRows} hideProvider />
                 </Section>
                 <Section title="Frequently Asked Questions">
                     <FAQAccordion items={faqItems} />

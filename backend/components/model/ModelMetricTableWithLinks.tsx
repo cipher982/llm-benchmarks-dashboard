@@ -11,7 +11,12 @@ import {
     Typography,
 } from "@mui/material";
 
+/**
+ * `hideProvider` for the provider page, where every row is that provider and
+ * the column repeats the same word down the whole table.
+ */
 interface ModelMetricTableWithLinksProps {
+    hideProvider?: boolean;
     rows: Array<{
         provider: string;
         modelName: string;
@@ -31,7 +36,7 @@ const formatNumber = (value: number | null | undefined, digits = 2) => {
     return Number(value).toFixed(digits);
 };
 
-const ModelMetricTableWithLinks: React.FC<ModelMetricTableWithLinksProps> = ({ rows }) => {
+const ModelMetricTableWithLinks: React.FC<ModelMetricTableWithLinksProps> = ({ rows, hideProvider = false }) => {
     if (!rows.length) {
         return <Typography variant="body2">No recent benchmark samples were recorded for this timeframe.</Typography>;
     }
@@ -41,7 +46,7 @@ const ModelMetricTableWithLinks: React.FC<ModelMetricTableWithLinksProps> = ({ r
             <Table size="small" aria-label="model metrics table">
                 <TableHead>
                     <TableRow>
-                        <TableCell>Provider</TableCell>
+                        {!hideProvider && <TableCell>Provider</TableCell>}
                         <TableCell>Model</TableCell>
                         <TableCell align="right">Avg Toks/Sec</TableCell>
                         <TableCell align="right">Min</TableCell>
@@ -60,7 +65,7 @@ const ModelMetricTableWithLinks: React.FC<ModelMetricTableWithLinksProps> = ({ r
                                 hover={!!hasLink}
                                 sx={hasLink ? { cursor: "pointer" } : {}}
                             >
-                                <TableCell>{row.provider}</TableCell>
+                                {!hideProvider && <TableCell>{row.provider}</TableCell>}
                                 <TableCell>
                                     {modelLink ? (
                                         <Link

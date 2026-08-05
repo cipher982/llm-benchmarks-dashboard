@@ -2,7 +2,7 @@ import React, { useMemo, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import type { GetStaticPaths, GetStaticProps, NextPage } from "next";
-import { Typography, Box, Button } from "@mui/material";
+import { Button } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ModelPageLayout from "../../../components/model/ModelPageLayout";
 import Section from "../../../components/model/Section";
@@ -11,7 +11,6 @@ import PageBreadcrumbs from "../../../components/model/PageBreadcrumbs";
 import FAQAccordion from "../../../components/model/FAQAccordion";
 import RelatedLinks from "../../../components/model/RelatedLinks";
 import ModelMetricTable from "../../../components/model/ModelMetricTable";
-import InsightList from "../../../components/model/InsightList";
 import DeprecationBanner from "../../../components/model/DeprecationBanner";
 import SpeedDistChart from "../../../components/charts/cloud/SpeedDistChart";
 import TimeSeriesChart from "../../../components/charts/cloud/TimeSeries";
@@ -142,43 +141,6 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
         [data.providerSlug, data.relatedModels, data.alternatives]
     );
 
-    const insights = useMemo(() => {
-        const items: string[] = [];
-        if (data.summary.tokensPerSecondMean) {
-            items.push(
-                `${data.displayName} streams at ${formatNumber(data.summary.tokensPerSecondMean)} tokens/second on average across the last ${data.summary.runCount} benchmark runs.`
-            );
-        }
-        if (data.summary.tokensPerSecondMax && data.summary.tokensPerSecondMin) {
-            const spread = data.summary.tokensPerSecondMax - data.summary.tokensPerSecondMin;
-            const mean = data.summary.tokensPerSecondMean || 0;
-            if (!Number.isNaN(spread) && mean > 0) {
-                const variability = ((spread / mean) * 100).toFixed(1);
-                items.push(`Performance fluctuated by ${formatNumber(spread)} tokens/second (${variability}% coefficient of variation), indicating ${parseFloat(variability) < 20 ? 'consistent' : 'variable'} behavior across benchmark runs.`);
-            }
-        }
-        if (data.summary.timeToFirstTokenMean) {
-            const ttft = data.summary.timeToFirstTokenMean * 1000; // Convert to ms
-            const latencyRating = ttft < 500 ? "excellent" : ttft < 1000 ? "good" : ttft < 2000 ? "moderate" : "high";
-            items.push(`Average time to first token is ${formatNumber(ttft)} ms (${latencyRating} latency), ${latencyRating === "excellent" || latencyRating === "good" ? "suitable" : "consider alternatives"} for latency-sensitive workloads.`);
-        }
-
-        // Add comparison with related models
-        if (data.relatedModels.length > 0 && data.summary.tokensPerSecondMean) {
-            const relatedSpeeds = data.relatedModels
-                .filter(m => m.tokensPerSecondMean)
-                .map(m => m.tokensPerSecondMean!);
-            if (relatedSpeeds.length > 0) {
-                const avgRelated = relatedSpeeds.reduce((a, b) => a + b, 0) / relatedSpeeds.length;
-                const comparison = data.summary.tokensPerSecondMean > avgRelated ? "faster" : "slower";
-                const diff = Math.abs(((data.summary.tokensPerSecondMean - avgRelated) / avgRelated) * 100).toFixed(1);
-                items.push(`This model performs ${diff}% ${comparison} than the average of other ${data.provider} models (${formatNumber(avgRelated)} tok/s).`);
-            }
-        }
-
-        items.push(`Latest measurements completed on ${formatTimestamp(data.summary.latestRunAt)} based on ${data.summary.sampleCount} total samples.`);
-        return items;
-    }, [data]);
 
     const providerHubHref = `/providers/${data.providerSlug}`;
 
@@ -213,46 +175,13 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(seo.jsonLd) }} />
                 )}
             </Head>
+            {/* The intro explained that the measurements come from benchmark
+                runs, on a page whose only content is benchmark runs, and then
+                pointed at the provider hub the breadcrumb already links to.
+                Both links survive as rail actions on the sections where they
+                are useful. */}
             <ModelPageLayout
                 title={`${data.displayName} Benchmarks`}
-                subtitle={`Provider: ${data.provider}`}
-                intro={
-                    <>
-                        <Typography variant="body1" paragraph>
-                            Explore real-world latency and throughput results for {data.displayName}. These measurements come from
-                            automated benchmarking runs against the provider APIs using the same harness that powers the public
-                            cloud dashboard.
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary" paragraph>
-                            Want a broader view of this vendor? Visit the {" "}
-                            <Link href={providerHubHref} style={{ color: "inherit", textDecoration: "underline" }}>
-                                {data.provider} provider hub
-                            </Link>{" "}
-                            to compare every tracked model side-by-side.
-                        </Typography>
-                        {providerWebsite && (
-                            <Box sx={{ mt: 2 }}>
-                                <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    href={providerWebsite}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    endIcon={<OpenInNewIcon />}
-                                    sx={{ textTransform: "none" }}
-                                    onClick={() => trackUmamiEvent('outbound_provider_click', {
-                                        provider: data.provider,
-                                        model: data.model,
-                                        destination: providerWebsite,
-                                        source: 'model_page',
-                                    })}
-                                >
-                                    Visit {data.provider} Official Website
-                                </Button>
-                            </Box>
-                        )}
-                    </>
-                }
                 breadcrumbs={<PageBreadcrumbs items={breadcrumbs} />}
             >
                 {showBanner && (
@@ -264,27 +193,41 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                         providerSlug={data.providerSlug}
                     />
                 )}
-                <Section title="Benchmark Overview">
+                <Section
+                    title={`Measured on ${data.provider}`}
+                    eyebrow={data.summary.runCount ? `${data.summary.runCount} runs` : undefined}
+                    actions={providerWebsite && (
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            href={providerWebsite}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            endIcon={<OpenInNewIcon />}
+                            onClick={() => trackUmamiEvent('outbound_provider_click', {
+                                provider: data.provider,
+                                model: data.model,
+                                destination: providerWebsite,
+                                source: 'model_page',
+                            })}
+                        >
+                            {data.provider} site
+                        </Button>
+                    )}
+                >
                     <MetricSummaryGrid items={metrics} />
                 </Section>
-                <Section title="Key Insights">
-                    <InsightList items={insights} />
-                </Section>
+                {/* The section descriptions here paraphrased their own headings
+                    — "Distribution of throughput measurements" under
+                    "Performance Distribution". The charts carry their own
+                    captions saying what the numbers mean. */}
                 {data.speedDistribution && (
-                    <Section title="Performance Distribution">
-                        <Typography variant="body2" color="text.secondary" paragraph>
-                            Distribution of throughput measurements showing performance consistency across benchmark runs.
-                        </Typography>
-                        <Box sx={{ width: "100%", height: 600 }}>
-                            <SpeedDistChart data={transformSpeedDistribution(data)} />
-                        </Box>
+                    <Section title="Throughput distribution">
+                        <SpeedDistChart data={transformSpeedDistribution(data)} />
                     </Section>
                 )}
                 {data.timeSeries && (
-                    <Section title="Performance Over Time">
-                        <Typography variant="body2" color="text.secondary" paragraph>
-                            Historical performance trends showing how throughput has changed over the benchmarking period.
-                        </Typography>
+                    <Section title="Throughput over time">
                         <TimeSeriesChart
                             data={transformTimeSeries(data)!}
                             selectedDays={30}
@@ -292,13 +235,23 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                         />
                     </Section>
                 )}
-                <Section title="Benchmark Samples">
+                <Section
+                    title="Every provider serving this model"
+                    eyebrow={`${data.tableRows.length} measured`}
+                >
                     <ModelMetricTable rows={data.tableRows} />
                 </Section>
                 <Section title="Frequently Asked Questions">
                     <FAQAccordion items={faqItems} />
                 </Section>
-                <Section title="Related Links">
+                <Section
+                    title="Related models"
+                    actions={(
+                        <Link href={providerHubHref} style={{ color: "inherit", fontSize: "11px" }}>
+                            all {data.provider} models →
+                        </Link>
+                    )}
+                >
                     <RelatedLinks items={relatedLinks} />
                 </Section>
             </ModelPageLayout>
