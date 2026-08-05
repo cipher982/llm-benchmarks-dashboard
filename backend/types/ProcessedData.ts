@@ -62,6 +62,9 @@ export interface TableRow {
     tokens_per_second_mean: number;
     tokens_per_second_min: number;
     tokens_per_second_max: number;
+    /** Completed samples behind mean/min/max. Optional: rows generated before
+     *  this field existed do not carry it. */
+    samples?: number;
     generated_tokens_per_second_mean?: number;
     throughput_basis?: 'visible' | 'legacy' | 'mixed';
     time_to_first_token_mean: number;

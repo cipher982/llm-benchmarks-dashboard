@@ -1,7 +1,5 @@
 import React from 'react';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import { colors } from './design-system';
+import { SegmentedControl, SegmentedOption } from './SegmentedControl';
 
 export interface TimeRange {
   days: number;
@@ -13,56 +11,21 @@ interface TimeRangeSelectorProps {
   onChange: (days: number) => void;
 }
 
-const timeRanges: TimeRange[] = [
-  { days: 1, label: '1D' },
-  { days: 3, label: '3D' },
-  { days: 7, label: '7D' },
-  { days: 14, label: '14D' },
-  { days: 30, label: '30D' },
+const timeRanges: Array<SegmentedOption<number>> = [
+  { value: 1, label: '1D', description: '1 day' },
+  { value: 3, label: '3D', description: '3 days' },
+  { value: 7, label: '7D', description: '7 days' },
+  { value: 14, label: '14D', description: '14 days' },
+  { value: 30, label: '30D', description: '30 days' },
 ];
 
 export function TimeRangeSelector({ selectedDays, onChange }: TimeRangeSelectorProps) {
   return (
-    <ToggleButtonGroup
+    <SegmentedControl
+      label="Time range"
+      options={timeRanges}
       value={selectedDays}
-      exclusive
-      onChange={(_, days) => days && onChange(days)}
-      aria-label="time range"
-      size="small"
-      sx={{ 
-        mb: 2,
-        '& .MuiToggleButton-root': {
-          backgroundColor: colors.surfaceElevated,
-          color: colors.textPrimary,
-          border: `2px outset ${colors.surfaceElevated}`,
-          borderRadius: 0,
-          padding: '4px 16px',
-          fontSize: '11px',
-          fontFamily: 'Tahoma, sans-serif',
-          textTransform: 'none',
-          '&:hover': {
-            backgroundColor: colors.hover,
-            border: `2px outset ${colors.surfaceElevated}`,
-          },
-          '&.Mui-selected': {
-            backgroundColor: colors.surface,
-            border: `2px inset ${colors.surfaceElevated}`,
-            '&:hover': {
-              backgroundColor: colors.surface,
-            },
-          },
-        },
-      }}
-    >
-      {timeRanges.map((range) => (
-        <ToggleButton
-          key={range.days}
-          value={range.days}
-          aria-label={`${range.label} time range`}
-        >
-          {range.label}
-        </ToggleButton>
-      ))}
-    </ToggleButtonGroup>
+      onChange={onChange}
+    />
   );
 }

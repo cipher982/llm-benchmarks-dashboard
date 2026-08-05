@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import TanStackTable from '../TanStackTable';
+import { colors, typography } from '../../design-system';
 
 interface ComparisonResult {
     model_name: string;
@@ -26,15 +27,15 @@ const ComparisonCell: React.FC<{ comparison: { [framework: string]: number } }> 
             display: 'flex', 
             flexDirection: 'column', 
             gap: '2px',
-            fontSize: '11px',
-            lineHeight: '1.2'
+            fontSize: typography.sizes.micro,
+            lineHeight: '1.3'
         }}>
             {sortedEntries.map(([framework, tokens], index) => (
                 <div key={framework} style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between',
-                    fontWeight: index === 0 ? 'bold' : 'normal',
-                    color: index === 0 ? '#000080' : 'inherit'
+                    fontWeight: index === 0 ? typography.weights.medium : typography.weights.normal,
+                    color: index === 0 ? colors.accent : colors.textMute
                 }}>
                     <span>{framework}:</span>
                     <span>{tokens.toFixed(0)}</span>
@@ -75,7 +76,7 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ comparisonData }) => 
             header: 'Winner',
             size: 120,
             cell: ({ getValue }) => (
-                <span style={{ fontWeight: 'bold', color: '#000080' }}>
+                <span style={{ fontWeight: typography.weights.medium, color: colors.accent }}>
                     {getValue() as string}
                 </span>
             ),

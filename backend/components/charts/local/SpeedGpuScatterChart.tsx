@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, Label, Legend, ResponsiveContainer, TooltipProps } from 'recharts';
-import { colors } from '../../design-system';
+import { colors, typography, seriesColor } from '../../design-system';
 
 interface DataItem {
     tokens_per_second: number;
@@ -50,15 +50,31 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="custom-tooltip">
-                    <p className="label">{`Framework : ${payload[0].payload.framework}`}</p>
-                    <p className="label">{`Model Name : ${payload[0].payload.model_name}`}</p>
-                    <p className="label">{`GPU Memory Usage : ${payload[0].value}`}</p>
-                    <p className="label">{`Tokens/Second : ${payload[1].value}`}</p>
+                <div
+                    style={{
+                        background: colors.raised,
+                        border: `1px solid ${colors.rule}`,
+                        padding: '8px 10px',
+                        fontFamily: typography.monoFamily,
+                        fontSize: typography.sizes.micro,
+                        color: colors.text,
+                        lineHeight: 1.6,
+                    }}
+                >
+                    <div>{payload[0].payload.model_name}</div>
+                    <div style={{ color: colors.textMute, textTransform: 'uppercase' }}>
+                        {payload[0].payload.framework}
+                    </div>
+                    <div>{payload[0].value} GB · {payload[1].value} tok/s</div>
                 </div>
             );
         }
         return null;
+    };
+
+    const axisStyle = {
+        stroke: colors.rule,
+        tick: { fill: colors.textMute, fontFamily: typography.monoFamily, fontSize: 9 },
     };
 
     return (
@@ -73,11 +89,13 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
                     left: 10,
                 }}
             >
-                {/* Scatter plots for each data type */}
-                <Scatter name="Transformers" data={data_tf_2} fill="#2980b9" />
-                <Scatter name="llama-cpp/GGUF" data={data_gguf_2} fill="#e74c3c" />
-                <Scatter name="HF-TGI" data={data_hftgi_2} fill="#f1c40f" />
-                <Scatter name="vLLM" data={data_vllm_2} fill="#1abc9c" />
+                {/* Series colour comes from the ordered categorical ramp, assigned
+                    per view. The old flat-UI hexes were picked per chart and
+                    matched nothing else on the site. */}
+                <Scatter name="Transformers" data={data_tf_2} fill={seriesColor(0)} />
+                <Scatter name="llama-cpp/GGUF" data={data_gguf_2} fill={seriesColor(1)} />
+                <Scatter name="HF-TGI" data={data_hftgi_2} fill={seriesColor(2)} />
+                <Scatter name="vLLM" data={data_vllm_2} fill={seriesColor(3)} />
                 {/* Axes */}
                 <XAxis
                     dataKey="gpu_mem_usage"
@@ -88,38 +106,43 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
                     dy={10}
                     angle={0}
                     ticks={logTicks}
-                    stroke={colors.textPrimary}
-                    tick={{ fill: colors.textPrimary }}
+                    {...axisStyle}
                 >
                     <Label
-                        value="GPU Memory Usage (GB)"
+                        value="GPU MEMORY (GB)"
                         offset={-20}
                         position="insideBottom"
-                        fill={colors.textPrimary}
+                        fill={colors.textMute}
+                        style={{ fontFamily: typography.monoFamily, fontSize: 9, letterSpacing: '0.08em' }}
                     />
                 </XAxis>
                 <YAxis
                     dataKey="tokens_per_second"
                     type="number"
                     domain={[0, 400]}
-                    stroke={colors.textPrimary}
-                    tick={{ fill: colors.textPrimary }}
+                    {...axisStyle}
                 >
                     <Label
-                        value="Tokens/Second"
+                        value="TOK/S"
                         offset={0}
-                        dy={50}
+                        dy={30}
                         position="insideLeft"
                         angle={-90}
-                        fill={colors.textPrimary}
+                        fill={colors.textMute}
+                        style={{ fontFamily: typography.monoFamily, fontSize: 9, letterSpacing: '0.08em' }}
                     />
                 </YAxis>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: colors.rule }} />
                 <Legend
                     layout={isMobile ? "horizontal" : "vertical"}
                     verticalAlign={isMobile ? "bottom" : "top"}
                     align={isMobile ? "center" : "right"}
-                    wrapperStyle={isMobile ? { bottom: 0 } : { right: 0 }}
+                    wrapperStyle={{
+                        ...(isMobile ? { bottom: 0 } : { right: 0 }),
+                        fontFamily: typography.monoFamily,
+                        fontSize: '10px',
+                        color: colors.textDim,
+                    }}
                 />
             </ScatterChart>
         </ResponsiveContainer>

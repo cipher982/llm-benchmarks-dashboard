@@ -35,9 +35,11 @@ const ModelPageLayout: React.FC<ModelPageLayoutProps> = ({
     breadcrumbs,
     children,
 }) => {
+    // Model and provider pages are documents rather than dashboards, so unlike
+    // the full-bleed Console pages they keep a gutter and a reading measure.
     return (
         <DesktopShell>
-            <DesktopWindow>
+            <DesktopWindow sx={{ px: { xs: 2, md: 4 }, pt: { xs: 3, md: 4 } }}>
                 {breadcrumbs && (
                     <Box sx={{ mb: { xs: 1, md: 2 } }}>
                         {breadcrumbs}

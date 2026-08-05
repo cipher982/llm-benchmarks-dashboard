@@ -188,3 +188,20 @@ export const ChartWrapper = styled('div')<{ isMobile?: boolean }>({
     width: '100%',
     margin: 0,
 });
+
+/**
+ * Empty, missing or failed state for a block.
+ *
+ * One line, not a centred void. A section with nothing in it should cost the
+ * page the height of a sentence — the previous 600px placeholders were a
+ * meaningful share of how a 22,000px page got that tall.
+ */
+export const EmptyState = styled('p')<{ $tone?: 'mute' | 'bad' }>(({ $tone = 'mute' }) => ({
+    margin: 0,
+    padding: `${spacing.scale[3]}px ${spacing.scale[4]}px`,
+    fontFamily: typography.monoFamily,
+    fontSize: typography.sizes.micro,
+    letterSpacing: typography.tracking.tag,
+    textTransform: 'uppercase',
+    color: $tone === 'bad' ? colors.bad : colors.textMute,
+}));

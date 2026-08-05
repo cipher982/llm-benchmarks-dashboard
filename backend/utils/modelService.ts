@@ -6,6 +6,12 @@ import type { ProcessedData as ProcessedDataBundle, TableRow } from "../types/Pr
 import { getProviderDisplayName } from "./providerMetadata";
 import { FLAGGED_STATUSES } from "./lifecycleSummary";
 import { getSuccessorModel } from "./modelMappingDB";
+import {
+    useDesignFixtures,
+    getFixtureModelPageData,
+    getFixtureProviderPageData,
+    getFixturePaths,
+} from "./designFixtures";
 
 // Shared threshold for SEO - pages with less data span get noindex
 export const SEO_MIN_DATA_SPAN_DAYS = 30;
@@ -341,11 +347,20 @@ async function fetchInventory(forceRefresh = false): Promise<{ aliases: Provider
 }
 
 export async function getProviderModelInventory(): Promise<ProviderModelEntry[]> {
+    if (useDesignFixtures()) {
+        const { providers } = await getFixturePaths();
+        const entries = await Promise.all(providers.map((slug) => getFixtureProviderPageData(slug)));
+        return entries.flatMap((entry) => entry?.models ?? []);
+    }
     const inventory = await fetchInventory(false);
     return inventory.representatives;
 }
 
 export async function getFeaturedStaticPaths(limit = MAX_STATIC_PATHS): Promise<Array<{ params: { provider: string; model: string } }>> {
+    if (useDesignFixtures()) {
+        const { models } = await getFixturePaths();
+        return models.slice(0, limit).map(({ provider, model }) => ({ params: { provider, model } }));
+    }
     const { representatives: inventory } = await fetchInventory(false);
     const sorted = [...inventory].sort((a, b) => {
         const aTime = a.latestRunAt ? Date.parse(a.latestRunAt) : 0;
@@ -427,6 +442,11 @@ async function fetchProcessedBundle(provider: string, model: string | string[] |
 }
 
 export async function getModelPageData(providerSlug: string, modelSlug: string, days = DEFAULT_MODEL_DAYS): Promise<ModelPageData | null> {
+    // Design mode (DESIGN_FIXTURES=1): serve the committed extract instead of
+    // failing without a database. See utils/designFixtures.ts.
+    if (useDesignFixtures()) {
+        return getFixtureModelPageData(providerSlug, modelSlug);
+    }
     const resolved = await resolveBySlug(providerSlug, modelSlug);
     if (!resolved) {
         return null;
@@ -515,6 +535,9 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
 }
 
 export async function getProviderPageData(providerSlug: string, days = DEFAULT_PROVIDER_DAYS): Promise<ProviderPageData | null> {
+    if (useDesignFixtures()) {
+        return getFixtureProviderPageData(providerSlug);
+    }
     const resolvedProvider = await resolveProviderBySlug(providerSlug);
     if (!resolvedProvider) {
         return null;

@@ -1,37 +1,54 @@
+/**
+ * Cloud benchmarks.
+ *
+ * Console layout: a meter strip of global aggregates, then the distribution
+ * beside per-provider aggregates and a throughput-against-spread scatter, then
+ * the full results table, then throughput over time as small multiples. Prose
+ * appears once, at the bottom, and only says what the numbers cannot — how
+ * sampling works and what the derived columns mean.
+ *
+ * What used to be above the fold and is now gone: a three-paragraph
+ * introduction, a "Pick A Path In 10 Seconds" module recommending one of three
+ * models with benefit copy, and a "Fastest Models Right Now" panel. All three
+ * spent the first viewport on framing rather than measurement, and the two
+ * panels between them reprinted figures the table already carried.
+ */
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { lazy, Suspense } from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
 import fs from "fs/promises";
 import path from "path";
-import { MainContainer } from "../components/design-system/components";
+import { MainContainer, SplitRow } from "../components/design-system/components";
 import { SpeedDistributionPoint, TimeSeriesData, TableRow } from "../types/ProcessedData";
 import {
     ChartLoadingContainer,
     StyledCircularProgress,
-    CenteredContentContainer,
-    ChartContentContainer,
-    TableContentContainer,
+    SectionHeaderRow,
     SectionHeader,
-    SectionHeaderWithControl,
-    PageTitle,
+    RailControls,
+    RailNote,
     StyledDescriptionSection,
     StyledChartContainer,
     StyledTableContainer,
+    TableContentContainer,
+    EmptyState,
 } from "../components/StyledComponents";
 import { TimeRangeSelector } from "../components/TimeRangeSelector";
 import { LifecycleSelector } from "../components/LifecycleSelector";
-import { QuickAnswerModule } from "../components/QuickAnswerModule";
-import { CloudDecisionHero, QuickPathId, QuickPathOption } from "../components/CloudDecisionHero";
+import GlobalMeters from "../components/cloud/GlobalMeters";
+import ProviderAggregates from "../components/cloud/ProviderAggregates";
 import { buildStaticPageSeoMetadata } from "../utils/seoUtils";
 import { trackUmamiEvent } from "../utils/analytics";
+import { spreadPercent } from "../utils/chartMath";
 
 const TimeSeriesChart = lazy(() => import("../components/charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTable"));
 const SpeedDistChart = lazy(() => import("../components/charts/cloud/SpeedDistChart"));
+const SpreadScatter = lazy(() => import("../components/charts/cloud/SpreadScatter"));
 
 type TableStatusFilter = 'all' | 'hideFlagged' | 'flaggedOnly';
 
@@ -43,120 +60,6 @@ const FLAGGED_STATUSES = [
     'never_succeeded',
     'disabled'
 ];
-
-
-const FLAGGED_STATUS_SET = new Set(FLAGGED_STATUSES);
-
-const formatModelLabel = (row: TableRow): string => {
-    return row.model_name || row.modelCanonical || row.modelSlug || "unknown-model";
-};
-
-const formatProviderLabel = (row: TableRow): string => {
-    return row.provider || row.providerCanonical || row.providerSlug || "unknown-provider";
-};
-
-const isEligibleQuickPathRow = (row: TableRow): boolean => {
-    if (!row.providerSlug || !row.modelSlug) {
-        return false;
-    }
-
-    if (row.deprecated) {
-        return false;
-    }
-
-    const status = row.lifecycle_status || "active";
-    return status === "active";
-};
-
-const buildQuickPathOptions = (rows: TableRow[]): QuickPathOption[] => {
-    const eligibleRows = rows.filter(isEligibleQuickPathRow);
-    if (!eligibleRows.length) {
-        return [];
-    }
-
-    const byLowestLatency = [...eligibleRows]
-        .filter((row) => Number.isFinite(row.time_to_first_token_mean) && row.time_to_first_token_mean > 0)
-        .sort((a, b) => a.time_to_first_token_mean - b.time_to_first_token_mean);
-
-    const byHighestThroughput = [...eligibleRows]
-        .filter((row) => Number.isFinite(row.tokens_per_second_mean) && row.tokens_per_second_mean > 0)
-        .sort((a, b) => b.tokens_per_second_mean - a.tokens_per_second_mean);
-
-    const byStability = [...eligibleRows]
-        .filter((row) => {
-            const mean = row.tokens_per_second_mean;
-            const min = row.tokens_per_second_min;
-            const max = row.tokens_per_second_max;
-            return Number.isFinite(mean) && Number.isFinite(min) && Number.isFinite(max) && mean > 0 && max >= min;
-        })
-        .sort((a, b) => {
-            const aSpread = (a.tokens_per_second_max - a.tokens_per_second_min) / a.tokens_per_second_mean;
-            const bSpread = (b.tokens_per_second_max - b.tokens_per_second_min) / b.tokens_per_second_mean;
-            return aSpread - bSpread;
-        });
-
-    const usedRows = new Set<string>();
-    const pickDistinctRow = (candidates: TableRow[]): TableRow | null => {
-        for (const row of candidates) {
-            const key = `${row.providerSlug}/${row.modelSlug}`;
-            if (!usedRows.has(key)) {
-                usedRows.add(key);
-                return row;
-            }
-        }
-        return candidates[0] ?? null;
-    };
-
-    const quickPaths: QuickPathOption[] = [];
-
-    const latencyRow = pickDistinctRow(byLowestLatency);
-    if (latencyRow) {
-        quickPaths.push({
-            id: "lowest_latency",
-            title: "Lowest First-Token Wait",
-            subtitle: "Best if you care about responsiveness and snappy chat UX.",
-            metricLabel: "Avg TTFT",
-            metricValue: `${latencyRow.time_to_first_token_mean.toFixed(2)}s`,
-            modelName: formatModelLabel(latencyRow),
-            providerName: formatProviderLabel(latencyRow),
-            providerSlug: latencyRow.providerSlug,
-            modelSlug: latencyRow.modelSlug,
-        });
-    }
-
-    const throughputRow = pickDistinctRow(byHighestThroughput);
-    if (throughputRow) {
-        quickPaths.push({
-            id: "highest_throughput",
-            title: "Highest Token Throughput",
-            subtitle: "Best for long generations and bulk completion workloads.",
-            metricLabel: "Avg speed",
-            metricValue: `${Math.round(throughputRow.tokens_per_second_mean)} tok/s`,
-            modelName: formatModelLabel(throughputRow),
-            providerName: formatProviderLabel(throughputRow),
-            providerSlug: throughputRow.providerSlug,
-            modelSlug: throughputRow.modelSlug,
-        });
-    }
-
-    const stableRow = pickDistinctRow(byStability);
-    if (stableRow) {
-        const spreadRatio = (stableRow.tokens_per_second_max - stableRow.tokens_per_second_min) / stableRow.tokens_per_second_mean;
-        quickPaths.push({
-            id: "most_stable_7d",
-            title: "Most Stable Over 7 Days",
-            subtitle: "Best if you want predictable performance with less variance.",
-            metricLabel: "Speed spread",
-            metricValue: `${(spreadRatio * 100).toFixed(1)}%`,
-            modelName: formatModelLabel(stableRow),
-            providerName: formatProviderLabel(stableRow),
-            providerSlug: stableRow.providerSlug,
-            modelSlug: stableRow.modelSlug,
-        });
-    }
-
-    return quickPaths;
-};
 
 const cloudSeo = buildStaticPageSeoMetadata({
     path: "/cloud",
@@ -193,7 +96,6 @@ interface LifecycleSummaryResponse {
     rows: LifecycleSummaryRow[];
 }
 
-// Props from getStaticProps for SSR/ISR
 interface CloudPageProps {
     initialSpeedDistData: SpeedDistributionPoint[];
     initialTableData: TableRow[];
@@ -207,37 +109,29 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
 }) => {
     const theme = useTheme();
 
-    // Initialize state with SSR data (no loading spinner needed for initial render)
     const [speedDistData, setSpeedDistData] = useState<SpeedDistributionPoint[]>(initialSpeedDistData);
     const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData>({ timestamps: [], models: [] });
     const [tableData, setTableData] = useState<TableRow[]>(initialTableData);
     const [tableMeta, setTableMeta] = useState<TableMetaSummary | null>(initialTableMeta);
     const [lifecycleSummary, setLifecycleSummary] = useState<LifecycleSummaryResponse | null>(null);
-    const [quickPathOptions, setQuickPathOptions] = useState<QuickPathOption[]>([]);
 
-    // Separate time ranges for each section
+    // Three independent time selectors. Each section holds its own state and
+    // fetches on its own, which is what stops one change refetching the page.
     const [distDays, setDistDays] = useState<number>(30);
     const [tableDays, setTableDays] = useState<number>(30);
     const [timeSeriesDays, setTimeSeriesDays] = useState<number>(14);
 
     const [tableStatusFilter, setTableStatusFilter] = useState<TableStatusFilter>('all');
 
-    // Loading states only used for client-side refetches (not initial render)
     const [distLoading, setDistLoading] = useState<boolean>(false);
     const [tableLoading, setTableLoading] = useState<boolean>(false);
     const [timeSeriesLoading, setTimeSeriesLoading] = useState<boolean>(true);
-    const [summaryLoading, setSummaryLoading] = useState<boolean>(true); // Only lifecycle needs initial fetch
-    const [quickPathLoading, setQuickPathLoading] = useState<boolean>(true);
 
     const [error, setError] = useState<string | null>(null);
-    const [summaryError, setSummaryError] = useState<string | null>(null);
     const [timeSeriesError, setTimeSeriesError] = useState<string | null>(null);
-    const [quickPathError, setQuickPathError] = useState<string | null>(null);
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const hasTrackedCloudView = useRef(false);
-    const hasTrackedQuickPathsLoaded = useRef(false);
 
-    // Fetch function for Speed Distribution section
     const fetchSpeedDistribution = useCallback(async (days: number) => {
         try {
             setDistLoading(true);
@@ -265,12 +159,11 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         }
     }, []);
 
-    // Fetch function for Table section
     const fetchTableData = useCallback(async (days: number, overrideFilter?: TableStatusFilter) => {
         try {
             setTableLoading(true);
             const filterToUse = overrideFilter ?? tableStatusFilter;
-            const params = new URLSearchParams({ 
+            const params = new URLSearchParams({
                 days: String(days),
                 include: 'table'
             });
@@ -309,52 +202,18 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
 
     const fetchLifecycleSummaryData = useCallback(async () => {
         try {
-            setSummaryLoading(true);
             const res = await fetch('/api/lifecycle-summary');
             if (!res.ok) {
                 throw new Error(`Lifecycle summary HTTP ${res.status}`);
             }
             const data: LifecycleSummaryResponse = await res.json();
             setLifecycleSummary(data);
-            setSummaryError(null);
         } catch (err: any) {
             console.error('Error fetching lifecycle summary:', err);
-            setSummaryError(err.message);
             setLifecycleSummary(null);
-        } finally {
-            setSummaryLoading(false);
         }
     }, []);
 
-    const fetchQuickPathData = useCallback(async () => {
-        try {
-            setQuickPathLoading(true);
-            const res = await fetch('/api/processed?days=7&include=table&hideFlagged=true', {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' }
-            });
-
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-
-            const data = await res.json();
-            if (!data || !Array.isArray(data.table)) {
-                throw new Error('Invalid quick path table data received');
-            }
-
-            setQuickPathOptions(buildQuickPathOptions(data.table));
-            setQuickPathError(null);
-        } catch (err: any) {
-            console.error('Error fetching quick path data:', err);
-            setQuickPathError(err.message);
-            setQuickPathOptions([]);
-        } finally {
-            setQuickPathLoading(false);
-        }
-    }, []);
-
-    // Fetch function for Time Series section
     const fetchTimeSeries = useCallback(async (days: number) => {
         try {
             setTimeSeriesLoading(true);
@@ -383,11 +242,9 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         }
     }, []);
 
-    // Only fetch lifecycle summary on mount (other data comes from SSR)
     useEffect(() => {
         fetchLifecycleSummaryData();
         fetchTimeSeries(timeSeriesDays);
-        fetchQuickPathData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -406,24 +263,6 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         hasTrackedCloudView.current = true;
     }, [initialTableData.length]);
 
-    useEffect(() => {
-        if (hasTrackedQuickPathsLoaded.current) {
-            return;
-        }
-
-        if (quickPathLoading || quickPathError || quickPathOptions.length === 0) {
-            return;
-        }
-
-        trackUmamiEvent('quick_paths_loaded', {
-            source: 'cloud_decision_hero',
-            optionsCount: quickPathOptions.length,
-            optionIds: quickPathOptions.map((option) => option.id).join(','),
-        });
-        hasTrackedQuickPathsLoaded.current = true;
-    }, [quickPathError, quickPathLoading, quickPathOptions]);
-
-    // Time range change handlers for each section
     const handleDistTimeRangeChange = useCallback(async (days: number) => {
         setDistDays(days);
         await fetchSpeedDistribution(days);
@@ -443,287 +282,226 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         await fetchTableData(days, tableStatusFilter);
     }, [fetchTableData, tableStatusFilter]);
 
-    const visibleFlaggedCount = useMemo(() => {
-        return tableData.reduce((count, row) => {
-            const effectiveStatus = row.lifecycle_status || (row.deprecated ? 'deprecated' : 'active');
-            if (FLAGGED_STATUS_SET.has(effectiveStatus)) {
-                return count + 1;
-            }
-            return count;
-        }, 0);
-    }, [tableData]);
-
     const handleTimeSeriesTimeRangeChange = useCallback(async (days: number) => {
         setTimeSeriesDays(days);
         await fetchTimeSeries(days);
     }, [fetchTimeSeries]);
 
-    const handleApplyQuickPath = useCallback(async (id: QuickPathId) => {
-        const hasOption = quickPathOptions.some((option) => option.id === id);
-        if (!hasOption) {
-            return;
-        }
+    /** One point per model for the throughput-against-spread scatter. */
+    const scatterPoints = useMemo(() =>
+        tableData
+            .map((row) => {
+                const spread = spreadPercent(
+                    row.tokens_per_second_min,
+                    row.tokens_per_second_mean,
+                    row.tokens_per_second_max,
+                );
+                if (spread == null) return null;
+                return {
+                    model: row.model_name,
+                    provider: row.provider,
+                    x: row.tokens_per_second_mean,
+                    y: spread,
+                };
+            })
+            .filter((p): p is NonNullable<typeof p> => p != null)
+    , [tableData]);
 
-        setTableStatusFilter('all');
-        setTableDays(7);
-        await fetchTableData(7, 'all');
-
-        if (typeof window !== 'undefined') {
-            document.getElementById('full-results-section')?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-            });
+    /**
+     * Throughput history keyed by `provider/model`, for the table's trend
+     * column. Built here because the page owns the time series and the table
+     * only draws it.
+     */
+    const trends = useMemo(() => {
+        const map = new Map<string, (number | null)[]>();
+        for (const model of timeSeriesData.models) {
+            for (const provider of model.providers) {
+                if (!provider.values?.length) continue;
+                map.set(`${provider.providerCanonical}/${model.model_name}`, provider.values);
+            }
         }
-    }, [fetchTableData, quickPathOptions]);
+        return map;
+    }, [timeSeriesData.models]);
+
+    const flaggedTotal = useMemo(
+        () => lifecycleSummary?.rows.reduce((total, row) => total + row.flaggedTotal, 0) ?? null,
+        [lifecycleSummary],
+    );
+
+    const seoHead = (
+        <Head>
+            <title>{cloudSeo.title}</title>
+            <meta name="description" content={cloudSeo.description} />
+            <meta name="keywords" content={cloudSeo.keywords} />
+            <meta name="robots" content="index,follow" />
+            <link rel="canonical" href={cloudSeo.canonical} />
+            <meta property="og:title" content={cloudSeo.openGraph.title} />
+            <meta property="og:description" content={cloudSeo.openGraph.description} />
+            <meta property="og:type" content={cloudSeo.openGraph.type} />
+            <meta property="og:url" content={cloudSeo.openGraph.url} />
+            <meta name="twitter:card" content={cloudSeo.twitter.card} />
+            <meta name="twitter:title" content={cloudSeo.twitter.title} />
+            <meta name="twitter:description" content={cloudSeo.twitter.description} />
+            {cloudSeo.jsonLd && (
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cloudSeo.jsonLd) }} />
+            )}
+        </Head>
+    );
 
     if (error) {
         return (
             <>
-                <Head>
-                    <title>{cloudSeo.title}</title>
-                    <meta name="description" content={cloudSeo.description} />
-                    <meta name="keywords" content={cloudSeo.keywords} />
-                    <meta name="robots" content="index,follow" />
-                    <link rel="canonical" href={cloudSeo.canonical} />
-                    <meta property="og:title" content={cloudSeo.openGraph.title} />
-                    <meta property="og:description" content={cloudSeo.openGraph.description} />
-                    <meta property="og:type" content={cloudSeo.openGraph.type} />
-                    <meta property="og:url" content={cloudSeo.openGraph.url} />
-                    <meta name="twitter:card" content={cloudSeo.twitter.card} />
-                    <meta name="twitter:title" content={cloudSeo.twitter.title} />
-                    <meta name="twitter:description" content={cloudSeo.twitter.description} />
-                    {cloudSeo.jsonLd && (
-                        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cloudSeo.jsonLd) }} />
-                    )}
-                </Head>
-                <div>Error: {error}</div>
+                {seoHead}
+                <MainContainer isMobile={isMobile}>
+                    <StyledDescriptionSection isMobile={isMobile}>
+                        <p>Error: {error}</p>
+                    </StyledDescriptionSection>
+                </MainContainer>
             </>
         );
     }
 
+    const totalRows = tableMeta?.totalRows ?? tableData.length;
+    const filteredRows = tableMeta?.filteredRows ?? tableData.length;
+
     return (
         <>
-            <Head>
-                <title>{cloudSeo.title}</title>
-                <meta name="description" content={cloudSeo.description} />
-                <meta name="keywords" content={cloudSeo.keywords} />
-                <meta name="robots" content="index,follow" />
-                <link rel="canonical" href={cloudSeo.canonical} />
-                <meta property="og:title" content={cloudSeo.openGraph.title} />
-                <meta property="og:description" content={cloudSeo.openGraph.description} />
-                <meta property="og:type" content={cloudSeo.openGraph.type} />
-                <meta property="og:url" content={cloudSeo.openGraph.url} />
-                <meta name="twitter:card" content={cloudSeo.twitter.card} />
-                <meta name="twitter:title" content={cloudSeo.twitter.title} />
-                <meta name="twitter:description" content={cloudSeo.twitter.description} />
-                {cloudSeo.jsonLd && (
-                    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(cloudSeo.jsonLd) }} />
-                )}
-            </Head>
+            {seoHead}
             <MainContainer isMobile={isMobile}>
-            <StyledDescriptionSection isMobile={isMobile}>
-                <CenteredContentContainer>
-                    <PageTitle>☁️ Cloud Benchmarks ☁️</PageTitle>
-                    <p>
-                        I run cron jobs to periodically test the token generation speed of different cloud LLM providers.
-                        The chart helps visualize the distributions of different speeds, as they can vary somewhat depending on the loads.
-                        For readability not all models are shown, but you can see the full results in the table below.
-                    </p>
-                    <p>
-                        Every provider and model now has a dedicated landing page with narrative insights, SEO-friendly metadata,
-                        and structured data for search engines. Click any provider or model in the table to explore performance in depth.
-                    </p>
-                    <p>
-                        I am working daily to add more providers and models, looking anywhere that
-                        does not require purchasing dedicated endpoints for hosting (why some models may appear
-                        to be missing). If you have any more suggestions let me know on GitHub!! 😊
-                    </p>
-                </CenteredContentContainer>
-            </StyledDescriptionSection>
+                <h1 className="sr-only">Cloud LLM benchmarks</h1>
 
-            <CloudDecisionHero
-                options={quickPathOptions}
-                loading={quickPathLoading}
-                error={quickPathError}
-                onApplyQuickPath={handleApplyQuickPath}
-            />
+                <GlobalMeters rows={tableData} />
 
-            <QuickAnswerModule tableData={tableData} />
-
-            <StyledChartContainer isMobile={isMobile}>
-                <SectionHeaderWithControl>
-                    <SectionHeader>📊 Speed Distribution 📊</SectionHeader>
-                    <TimeRangeSelector
-                        selectedDays={distDays}
-                        onChange={handleDistTimeRangeChange}
-                    />
-                </SectionHeaderWithControl>
-                <ChartContentContainer>
-                    {distLoading ? (
-                        <ChartLoadingContainer>
-                            <StyledCircularProgress size={60} aria-label="Loading speed distribution chart" />
-                        </ChartLoadingContainer>
-                    ) : speedDistData.length > 0 ? (
-                        <Suspense fallback={
+                <SplitRow asideWidth={420}>
+                    <section>
+                        <SectionHeaderRow>
+                            <SectionHeader>Throughput distribution · tok/s</SectionHeader>
+                            <RailControls>
+                                <TimeRangeSelector selectedDays={distDays} onChange={handleDistTimeRangeChange} />
+                            </RailControls>
+                        </SectionHeaderRow>
+                        {distLoading ? (
                             <ChartLoadingContainer>
-                                <StyledCircularProgress size={60} aria-label="Loading speed distribution chart" />
+                                <StyledCircularProgress size={28} aria-label="Loading speed distribution chart" />
                             </ChartLoadingContainer>
-                        }>
-                            <SpeedDistChart data={speedDistData} />
-                        </Suspense>
-                    ) : null}
-                </ChartContentContainer>
-            </StyledChartContainer>
-
-            <StyledTableContainer id="full-results-section" isMobile={isMobile}>
-                <SectionHeaderWithControl>
-                    <SectionHeader>📚 Full Results 📚</SectionHeader>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <TimeRangeSelector
-                            selectedDays={tableDays}
-                            onChange={handleTableTimeRangeChange}
-                        />
-                        <LifecycleSelector
-                            value={tableStatusFilter}
-                            onChange={(value) => {
-                                setTableStatusFilter(value);
-                                trackUmamiEvent('table_status_filter_change', {
-                                    source: 'lifecycle_selector',
-                                    filter: value,
-                                });
-                                trackUmamiEvent('search_or_filter_used', {
-                                    source: 'lifecycle_selector',
-                                    filterType: 'lifecycle_status',
-                                    value,
-                                });
-                                fetchTableData(tableDays, value);
-                            }}
-                        />
-                    </div>
-                </SectionHeaderWithControl>
-                <TableContentContainer isMobile={isMobile}>
-                    {(() => {
-                        const totalRows = tableMeta?.totalRows ?? tableData.length;
-                        const filteredRows = tableMeta?.filteredRows ?? tableData.length;
-                        const flaggedHiddenCount = tableMeta?.appliedFilters?.hideFlagged ? Math.max(totalRows - filteredRows, 0) : 0;
-                        const flaggedStatuses = tableMeta?.flaggedStatuses ?? FLAGGED_STATUSES;
-
-                        const contextParts: string[] = [];
-                        if (flaggedHiddenCount > 0) {
-                            contextParts.push(`${flaggedHiddenCount} flagged hidden`);
-                        }
-                        if (tableStatusFilter === 'flaggedOnly') {
-                            contextParts.push(`${visibleFlaggedCount} flagged`);
-                        }
-
-                        const contextSuffix = contextParts.length ? ` (${contextParts.join(' · ')})` : '';
-
-                        return (
-                            <div
-                                style={{
-                                    marginBottom: '0.75rem',
-                                    fontSize: '0.85rem',
-                                    color: '#4a4a4a',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.3rem'
-                                }}
-                            >
-                                <span>
-                                    <strong>{`Showing ${filteredRows} of ${totalRows} models`}</strong>
-                                    {contextSuffix}
-                                </span>
-                                <span>
-                                    Flagged statuses: {flaggedStatuses.join(', ')}
-                                </span>
-                                <span>
-                                    Table throughput uses visible output tokens when available; generated average and charts show total generated work, including reasoning tokens.
-                                </span>
-                            </div>
-                        );
-                    })()}
-                    <Box sx={{ pb: 8 }}>
-                        {tableLoading ? (
-                            <StyledCircularProgress aria-label="Loading benchmark table" />
-                        ) : (
-                            <Suspense fallback={<StyledCircularProgress aria-label="Loading benchmark table" />}>
-                                {tableData && tableData.length > 0 ? (
-                                    <RawCloudTable data={tableData} />
-                                ) : (
-                                    <div>No table data available</div>
-                                )}
+                        ) : speedDistData.length > 0 ? (
+                            <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
+                                <SpeedDistChart data={speedDistData} />
                             </Suspense>
-                        )}
-                    </Box>
-                </TableContentContainer>
-            </StyledTableContainer>
+                        ) : null}
+                    </section>
 
-            <StyledDescriptionSection isMobile={isMobile}>
-                <CenteredContentContainer>
-                    <Box
-                        sx={{
-                            p: 2,
-                            border: '1px solid #d0d0d0',
-                            borderRadius: 1,
-                            backgroundColor: '#fafafa'
-                        }}
-                    >
-                        <strong>
-                            Lifecycle snapshot{lifecycleSummary?.generatedAt ? ` (${new Date(lifecycleSummary.generatedAt).toLocaleString()})` : ''}
-                        </strong>
-                        {summaryLoading ? (
-                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>Loading status summary…</div>
-                        ) : summaryError ? (
-                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem', color: '#d32f2f' }}>
-                                Failed to load lifecycle summary. ({summaryError})
-                            </div>
-                        ) : lifecycleSummary && lifecycleSummary.rows.length ? (
-                            <ul style={{ marginTop: '0.4rem', paddingLeft: '1.2rem', fontSize: '0.85rem' }}>
-                                {lifecycleSummary.rows.map((row) => (
-                                    <li key={row.provider}>
-                                        <strong>{row.provider}</strong>: {row.flaggedTotal} flagged / {row.total} total
-                                        {row.sampleReasons && Object.keys(row.sampleReasons).length > 0 && (
-                                            <span style={{ marginLeft: '0.4rem', color: '#555' }}>
-                                                – {Object.entries(row.sampleReasons)
-                                                    .map(([status, reason]) => `${status}: ${reason}`)
-                                                    .slice(0, 2)
-                                                    .join(' | ')}
-                                            </span>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
+                    <div>
+                        <section>
+                            <SectionHeaderRow>
+                                <SectionHeader>By provider</SectionHeader>
+                                {flaggedTotal != null && (
+                                    <RailControls>
+                                        <RailNote>
+                                            <b>{flaggedTotal}</b> flagged
+                                        </RailNote>
+                                    </RailControls>
+                                )}
+                            </SectionHeaderRow>
+                            <ProviderAggregates rows={tableData} />
+                        </section>
+
+                        <section>
+                            <SectionHeaderRow>
+                                <SectionHeader>
+                                    Throughput × spread · {scatterPoints.length} models
+                                </SectionHeader>
+                            </SectionHeaderRow>
+                            <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
+                                <SpreadScatter points={scatterPoints} />
+                            </Suspense>
+                        </section>
+                    </div>
+                </SplitRow>
+
+                <StyledTableContainer id="full-results-section" isMobile={isMobile}>
+                    <SectionHeaderRow>
+                        <SectionHeader>Full results</SectionHeader>
+                        <RailNote>
+                            <b>{filteredRows}</b> of <b>{totalRows}</b> models
+                        </RailNote>
+                        <RailControls>
+                            <TimeRangeSelector selectedDays={tableDays} onChange={handleTableTimeRangeChange} />
+                            <LifecycleSelector
+                                value={tableStatusFilter}
+                                onChange={(value) => {
+                                    setTableStatusFilter(value);
+                                    trackUmamiEvent('table_status_filter_change', {
+                                        source: 'lifecycle_selector',
+                                        filter: value,
+                                    });
+                                    trackUmamiEvent('search_or_filter_used', {
+                                        source: 'lifecycle_selector',
+                                        filterType: 'lifecycle_status',
+                                        value,
+                                    });
+                                    fetchTableData(tableDays, value);
+                                }}
+                            />
+                        </RailControls>
+                    </SectionHeaderRow>
+                    <TableContentContainer isMobile={isMobile}>
+                        {tableLoading ? (
+                            <ChartLoadingContainer>
+                                <StyledCircularProgress size={28} aria-label="Loading benchmark table" />
+                            </ChartLoadingContainer>
+                        ) : tableData.length > 0 ? (
+                            <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
+                                <RawCloudTable data={tableData} trends={trends} />
+                            </Suspense>
                         ) : (
-                            <div style={{ fontSize: '0.85rem', marginTop: '0.4rem' }}>No lifecycle summary available.</div>
+                            <EmptyState>No table data available</EmptyState>
                         )}
-                    </Box>
-                </CenteredContentContainer>
-            </StyledDescriptionSection>
+                    </TableContentContainer>
+                </StyledTableContainer>
 
-            <StyledChartContainer isMobile={isMobile}>
-                <SectionHeader>📈 Time Series 📈</SectionHeader>
-                <ChartContentContainer>
+                <StyledChartContainer isMobile={isMobile}>
+                    <SectionHeaderRow>
+                        <SectionHeader>Throughput over time · shared scale</SectionHeader>
+                        <RailControls>
+                            <TimeRangeSelector selectedDays={timeSeriesDays} onChange={handleTimeSeriesTimeRangeChange} />
+                        </RailControls>
+                    </SectionHeaderRow>
                     {timeSeriesLoading ? (
                         <ChartLoadingContainer>
-                            <StyledCircularProgress size={60} aria-label="Loading time series chart" />
+                            <StyledCircularProgress size={28} aria-label="Loading time series chart" />
                         </ChartLoadingContainer>
                     ) : timeSeriesError ? (
-                        <div style={{ color: '#d32f2f', textAlign: 'center' }}>
-                            Failed to load time series data. ({timeSeriesError})
-                        </div>
-                    ) : timeSeriesData?.timestamps && timeSeriesData.timestamps.length > 0 ? (
-                        <Suspense fallback={<StyledCircularProgress aria-label="Loading time series chart" />}>
+                        <EmptyState $tone="bad">Time series unavailable · {timeSeriesError}</EmptyState>
+                    ) : (
+                        <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
                             <TimeSeriesChart
                                 data={timeSeriesData}
                                 onTimeRangeChange={handleTimeSeriesTimeRangeChange}
                                 selectedDays={timeSeriesDays}
                             />
                         </Suspense>
-                    ) : (
-                        <div style={{ textAlign: 'center' }}>No time series data available.</div>
                     )}
-                </ChartContentContainer>
-            </StyledChartContainer>
+                </StyledChartContainer>
+
+                {/* The only prose on the page. Numbers cannot state the sampling
+                    method, the collection interval, or what a derived column
+                    means, so those are what it says. */}
+                <StyledDescriptionSection isMobile={isMobile}>
+                    <p>
+                        <b>Method.</b> A cron job calls each model&apos;s live API endpoint on a schedule and records what
+                        came back. Mean, min and max are over completed samples in the selected window, and <b>n</b> is
+                        how many there were. A missing value means the endpoint returned an error or the model was not
+                        yet in the catalogue.
+                    </p>
+                    <p>
+                        <b>Spread</b> is (max − min) ÷ mean, so it measures run-to-run variation rather than absolute
+                        speed. <b>TTFT</b> is seconds to the first visible token; runs that emit only reasoning tokens
+                        are left out of that average. <b>Mean</b> counts visible output tokens where a provider reports
+                        them and falls back to generated throughput where it does not, which is why <b>Gen</b> is higher
+                        for models that think before answering.
+                    </p>
+                </StyledDescriptionSection>
             </MainContainer>
         </>
     );

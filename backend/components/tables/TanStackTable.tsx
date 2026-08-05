@@ -198,6 +198,22 @@ const VirtualCell = styled('div')<{ width: number }>(({ width }) => ({
 // COMPONENT INTERFACES
 // =============================================================================
 
+/**
+ * Per-column presentation. Numeric columns are right-aligned so digits line up
+ * down the column — with tabular figures that is what makes a dense table
+ * scannable, and it is the only reason the alignment is worth threading
+ * through at all.
+ */
+declare module '@tanstack/react-table' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends unknown, TValue> {
+    align?: 'left' | 'right';
+  }
+}
+
+const alignOf = (column: { columnDef: { meta?: { align?: 'left' | 'right' } } }): 'left' | 'right' =>
+  column.columnDef.meta?.align ?? 'left';
+
 export interface TanStackTableProps<T> {
   data: T[];
   columns: ColumnDef<T>[];
@@ -309,6 +325,7 @@ function TanStackTable<T>({
                       width: columnWidths[index],
                       minWidth: columnWidths[index],
                       maxWidth: columnWidths[index],
+                      justifyContent: alignOf(header.column) === 'right' ? 'flex-end' : 'flex-start',
                     }}
                   >
                     {header.isPlaceholder ? null : (
@@ -353,7 +370,10 @@ function TanStackTable<T>({
                       key={cell.id}
                       role="cell"
                       width={columnWidths[cellIndex]}
-                      style={cellIndex === 0 && borderLeft ? { borderLeft } : undefined}
+                      style={{
+                        justifyContent: alignOf(cell.column) === 'right' ? 'flex-end' : 'flex-start',
+                        ...(cellIndex === 0 && borderLeft ? { borderLeft } : {}),
+                      }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </VirtualCell>
@@ -391,10 +411,20 @@ function TanStackTable<T>({
                         header.column.getToggleSortingHandler()?.(e as any);
                       }
                     }}
+                    style={{
+                      width: header.column.columnDef.size,
+                      textAlign: alignOf(header.column),
+                    }}
                   >
                     {header.isPlaceholder ? null : (
                       sortable && header.column.getCanSort() ? (
-                        <SortableHeaderButton>
+                        <SortableHeaderButton
+                          style={{
+                            flexDirection: alignOf(header.column) === 'right' ? 'row-reverse' : 'row',
+                            justifyContent: 'flex-start',
+                            gap: '4px',
+                          }}
+                        >
                           <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
                           <SortIndicator direction={header.column.getIsSorted() || undefined} />
                         </SortableHeaderButton>
@@ -420,7 +450,10 @@ function TanStackTable<T>({
                   {row.getVisibleCells().map((cell, cellIndex) => (
                     <DataCell
                       key={cell.id}
-                      style={cellIndex === 0 && borderLeft ? { borderLeft } : undefined}
+                      style={{
+                        textAlign: alignOf(cell.column),
+                        ...(cellIndex === 0 && borderLeft ? { borderLeft } : {}),
+                      }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </DataCell>

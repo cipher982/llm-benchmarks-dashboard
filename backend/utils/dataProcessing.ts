@@ -457,6 +457,11 @@ export const processRawTableData = async (data: CloudBenchmark[], filters?: Tabl
             tokens_per_second_mean: Number(calculateMean(tableThroughputValues).toFixed(PRECISION)),
             tokens_per_second_min: Number(Math.min(...tableThroughputValues).toFixed(PRECISION)),
             tokens_per_second_max: Number(Math.max(...tableThroughputValues).toFixed(PRECISION)),
+            // Completed samples behind the three figures above. Without it a
+            // reader cannot tell a mean over 200 runs from a mean over two, and
+            // the page has no honest way to state how much measurement it is
+            // reporting.
+            samples: tableThroughputValues.length,
             generated_tokens_per_second_mean: benchmark.generated_tokens_per_second_mean !== undefined
                 ? Number(benchmark.generated_tokens_per_second_mean.toFixed(PRECISION))
                 : undefined,

@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { corsMiddleware } from '../../utils/apiMiddleware';
 import { CloudMetrics } from '../../models/BenchmarkMetrics';
 import connectToMongoDB from '../../utils/connectToMongoDB';
+import { useDesignFixtures, getFixtureStatus } from '../../utils/designFixtures';
 import mongoose from 'mongoose';
 import fs from 'fs/promises';
 import path from 'path';
@@ -307,6 +308,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'GET') {
         try {
+            // Design mode (DESIGN_FIXTURES=1): serve the committed extract
+            // rather than 500 without a database. This route is what made
+            // `/status` unreviewable offline. See utils/designFixtures.ts.
+            if (useDesignFixtures()) {
+                const fixture = await getFixtureStatus();
+                if (fixture) {
+                    res.setHeader('Content-Type', 'application/json');
+                    res.setHeader('X-Cache-Status', 'DESIGN-FIXTURE');
+                    res.status(200).json(fixture);
+                    return;
+                }
+            }
+
             // Try to serve from static file first
             const statusFilePath = path.join(process.cwd(), 'public', 'api', 'status.json');
             

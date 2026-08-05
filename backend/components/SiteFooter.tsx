@@ -2,6 +2,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { trackUmamiEvent } from '../utils/analytics';
 
+/**
+ * Site attribution and off-site links.
+ *
+ * Deliberately thin. What a column means and how sampling works is page
+ * content and lives on the page that defines those columns — a global footer
+ * cannot say it without saying it on pages where it is not true.
+ */
 const SiteFooter = () => {
   const pathname = usePathname();
   const trackIdentity = (destination: string) => () => {
@@ -24,14 +31,16 @@ const SiteFooter = () => {
         <a href="https://github.com/cipher982" rel="me" onClick={trackIdentity('github_profile')}>
           cipher982
         </a>
-        ).
+        )
       </span>
       <span aria-hidden="true"> · </span>
       <a href="https://github.com/cipher982/llm-benchmarks-dashboard" onClick={trackIdentity('github_source')}>
-        Source on GitHub
+        source
       </a>
       <span aria-hidden="true"> · </span>
-      <Link href="/status">Benchmark status</Link>
+      <Link href="/status">collector status</Link>
+      <span aria-hidden="true"> · </span>
+      <a href="/api/processed?days=14">raw api</a>
     </footer>
   );
 };

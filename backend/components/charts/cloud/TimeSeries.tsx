@@ -1,30 +1,37 @@
+/**
+ * Throughput over time, as small multiples.
+ *
+ * Replaces 22 stacked full-width Recharts line charts — the single biggest
+ * contributor to a 22,000px page — with a grid of one cell per model on a
+ * shared y-scale. A shared scale is the point: 22 charts each autoscaled to
+ * their own range look identical to each other and support no comparison at
+ * all, which is what the old layout produced.
+ *
+ * Cells are drawn as plain SVG rather than through a chart library. At 190×46
+ * there is no axis, no legend and no tooltip layer to render, and Recharts'
+ * ResponsiveContainer costs a layout pass per cell.
+ *
+ * The provider-visibility helpers below are unchanged and still exported —
+ * `tests/timeSeriesChart.test.js` guards them, and `MIN_POINTS_TO_DRAW` is the
+ * absolute count that replaced a coverage ratio which silently hid providers
+ * that had only recently started being measured.
+ */
+
 import React, { useCallback, memo, useMemo, useState } from 'react';
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer
-} from 'recharts';
-import { useTheme } from '@mui/material/styles';
-import CircularProgress from '@mui/material/CircularProgress';
-import Box from '@mui/material/Box';
-import { Provider, getProviderColor } from '../../theme/theme';
+import { styled } from '@mui/material/styles';
+import { colors, typography, spacing, breakpoints } from '../../design-system';
 import { TimeSeriesData, TimeSeriesModel, TimeSeriesProvider } from '../../../types/ProcessedData';
 import { TimeRangeSelector } from '../../TimeRangeSelector';
+import { toPath, mean as meanOf } from '../../../utils/chartMath';
 
 interface TimeSeriesChartProps {
     onTimeRangeChange?: (days: number) => Promise<void>;
     data: TimeSeriesData;
     selectedDays: number;
-}
-
-interface ChartDataPoint {
-    timestamp: string;
-    [key: string]: string | number | null;
+    /** Cells drawn. The remainder is reported rather than silently dropped. */
+    maxCells?: number;
+    /** Rendered above the grid when the page owns its own rail control. */
+    showTimeRangeSelector?: boolean;
 }
 
 // Two points is a line segment; one is a dot. Deliberately an absolute count,
@@ -46,6 +53,9 @@ interface ChartDataPoint {
 // looks like.
 const MIN_POINTS_TO_DRAW = 2;
 const MAX_FILL_GAP = 2; // Fill gaps of 1-2 nulls, keep gaps of 3+ as breaks (real outages)
+
+const CELL_WIDTH = 190;
+const CELL_HEIGHT = 46;
 
 /**
  * Fill small gaps in time series data to avoid splotchy charts from timing misalignment.
@@ -193,184 +203,193 @@ export const sortModelVisibilityRows = (rows: ModelVisibility[]): ModelVisibilit
     });
 };
 
-// Memoized individual chart component
-const ModelChart = memo(({
-    model,
-    chartData,
-    theme,
-    selectedDays,
-    isLoading,
-    visibleProviders,
-}: {
-    model: TimeSeriesModel;
-    chartData: ChartDataPoint[];
-    theme: any;
-    selectedDays: number;
-    isLoading: boolean;
-    visibleProviders: TimeSeriesProvider[];
-}) => {
-    // Calculate tick interval based on selected days
-    const getTickInterval = () => {
-        if (selectedDays === 1) {
-            // For 1 day, show ticks every 4 hours (6 ticks)
-            return Math.floor(chartData.length / 6);
-        }
-        // For other ranges, show one tick per day
-        return Math.floor(chartData.length / selectedDays);
-    };
+// =============================================================================
+// RENDERING
+// =============================================================================
+
+/**
+ * Columns track the number of cells, so a model page rendering one series gets
+ * a full-width chart rather than one sixth of a grid with five empty columns
+ * beside it.
+ */
+const Grid = styled('div')<{ $columns: number }>(({ $columns }) => ({
+    display: 'grid',
+    gridTemplateColumns: `repeat(${$columns}, minmax(0, 1fr))`,
+    gap: '1px',
+    backgroundColor: colors.rule,
+    borderTop: `1px solid ${colors.rule}`,
+
+    [`@media (max-width: ${breakpoints.lg}px)`]: {
+        gridTemplateColumns: `repeat(${Math.min($columns, 3)}, minmax(0, 1fr))`,
+    },
+    [`@media (max-width: ${breakpoints.sm}px)`]: {
+        gridTemplateColumns: `repeat(${Math.min($columns, 2)}, minmax(0, 1fr))`,
+    },
+}));
+
+const Cell = styled('figure')({
+    margin: 0,
+    minWidth: 0,
+    backgroundColor: colors.ground,
+    padding: `9px 12px 7px`,
+
+    '& figcaption': {
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) auto',
+        gap: '0 6px',
+        marginBottom: '6px',
+    },
+});
+
+const CellModel = styled('span')({
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.sm,
+    color: colors.text,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+});
+
+const CellProvider = styled('span')({
+    gridRow: 2,
+    fontFamily: typography.monoFamily,
+    fontSize: typography.sizes.micro,
+    color: colors.textMute,
+    textTransform: 'uppercase',
+    letterSpacing: typography.tracking.tag,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+});
+
+const CellValue = styled('span')({
+    gridRow: '1 / span 2',
+    alignSelf: 'center',
+    fontFamily: typography.monoFamily,
+    fontVariantNumeric: 'tabular-nums',
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    letterSpacing: typography.tracking.figure,
+    color: colors.text,
+
+    '& i': {
+        fontStyle: 'normal',
+        fontSize: typography.sizes.micro,
+        color: colors.textMute,
+        marginLeft: '2px',
+    },
+});
+
+const Spark = styled('svg')({
+    height: `${CELL_HEIGHT}px`,
+    display: 'block',
+
+    '& .sm-area': {
+        fill: colors.accent,
+        fillOpacity: 0.08,
+    },
+    '& .sm-line': {
+        fill: 'none',
+        stroke: colors.accent,
+        strokeWidth: 1,
+        vectorEffect: 'non-scaling-stroke',
+    },
+    '& .sm-mean': {
+        stroke: colors.rule,
+        strokeDasharray: '2 3',
+        vectorEffect: 'non-scaling-stroke',
+    },
+});
+
+const Note = styled('p')({
+    margin: 0,
+    padding: `${spacing.scale[2]}px ${spacing.scale[4]}px ${spacing.scale[3]}px`,
+    fontFamily: typography.monoFamily,
+    fontSize: typography.sizes.micro,
+    letterSpacing: typography.tracking.tag,
+    textTransform: 'uppercase',
+    color: colors.textMute,
+});
+
+interface CellDatum {
+    key: string;
+    model: string;
+    provider: string;
+    values: (number | null)[];
+    mean: number;
+}
+
+/**
+ * One cell. Segments are drawn separately so a gap of three or more missing
+ * samples stays a gap — connecting across it would draw a straight line through
+ * an outage and call it data.
+ */
+const SmallMultiple = memo(({ datum, yMax }: { datum: CellDatum; yMax: number }) => {
+    const { segments, meanY } = useMemo(() => {
+        const pts: Array<Array<[number, number]>> = [];
+        let run: Array<[number, number]> = [];
+
+        datum.values.forEach((v, i) => {
+            if (v == null) {
+                if (run.length) pts.push(run);
+                run = [];
+                return;
+            }
+            const x = (i / Math.max(datum.values.length - 1, 1)) * CELL_WIDTH;
+            const y = CELL_HEIGHT - (v / yMax) * CELL_HEIGHT;
+            run.push([x, y]);
+        });
+        if (run.length) pts.push(run);
+
+        return {
+            segments: pts.filter((s) => s.length > 1),
+            meanY: CELL_HEIGHT - (datum.mean / yMax) * CELL_HEIGHT,
+        };
+    }, [datum, yMax]);
+
+    // The area fill only makes sense under a continuous run; with breaks it
+    // would imply throughput the collector never observed.
+    const areaPath =
+        segments.length === 1
+            ? `${toPath(segments[0])}L${segments[0][segments[0].length - 1][0].toFixed(1)} ${CELL_HEIGHT}L${segments[0][0][0].toFixed(1)} ${CELL_HEIGHT}Z`
+            : null;
 
     return (
-        <div key={model.model_name} style={{ position: 'relative' }}>
-            <h3>{model.display_name || model.model_name}</h3>
-            <Box sx={{ position: 'relative', width: '100%', height: 250 }}>
-                {isLoading && (
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                            zIndex: 1,
-                        }}
-                    >
-                        <CircularProgress sx={{ color: theme.palette.common.white }} />
-                    </Box>
-                )}
-                <ResponsiveContainer width="100%" height={250}>
-                    <LineChart
-                        data={chartData}
-                        margin={{
-                            top: 5,
-                            right: 30,
-                            left: 20,
-                            bottom: 5,
-                        }}
-                    >
-                        <CartesianGrid strokeDasharray="1 1" />
-                        <XAxis
-                            dataKey="timestamp"
-                            tickFormatter={(timestamp: string) => {
-                                const date = new Date(timestamp);
-                                if (selectedDays === 1) {
-                                    // For 1 day view, show HH:MM
-                                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                }
-                                // For longer ranges, show MM/DD
-                                return `${date.getMonth() + 1}/${date.getDate()}`;
-                            }}
-                            tick={{ fontSize: 12, fill: theme.palette.text.primary }}
-                            interval={getTickInterval()}
-                        />
-                        <YAxis 
-                            tickFormatter={(value) => value.toFixed(1)}
-                            domain={['auto', 'auto']}
-                            stroke={theme.palette.text.secondary}
-                            tick={{ fontSize: 12, fill: theme.palette.text.primary }}
-                        />
-                        <Tooltip
-                            labelFormatter={(timestamp: string) => {
-                                const date = new Date(timestamp);
-                                return date.toLocaleString();
-                            }}
-                            formatter={(value: number, name: string, props: any) => {
-                                // For split lines, dataKey includes segment suffix
-                                // Extract provider from dataKey
-                                const dataKey = props.dataKey;
-                                const isSnapshot = dataKey?.includes('-snapshot');
-
-                                // Find provider by checking if dataKey matches
-                                const provider = visibleProviders.find(p => {
-                                    const segmentSuffix = p.segment ? `-${p.segment}` : '';
-                                    const expectedKey = `${model.model_name}-${p.providerCanonical}${segmentSuffix}`;
-                                    return dataKey === expectedKey;
-                                });
-
-                                if (provider?.segment === 'snapshot' && provider.snapshot_metadata) {
-                                    return [
-                                        `${value?.toFixed(2)} tps (snapshot)`,
-                                        `P10-P90: ${provider.snapshot_metadata.p10.toFixed(1)}-${provider.snapshot_metadata.p90.toFixed(1)} | ${provider.snapshot_metadata.sample_size} samples`
-                                    ];
-                                }
-                                return [value?.toFixed(2) || 'N/A', name || ''];
-                            }}
-                        />
-                        <Legend
-                            formatter={(value: string) => {
-                                // Find the provider for this legend entry
-                                // For split lines, the legend name is just the provider (without segment suffix)
-                                const provider = visibleProviders.find(p => p.provider === value);
-                                if (provider?.deprecated) {
-                                    return `${value} (deprecated)`;
-                                }
-                                if (provider?.freshness_status === 'critical') {
-                                    return `${value} (stopped)`;
-                                }
-                                if (provider?.freshness_status === 'stale') {
-                                    return `${value} (stale)`;
-                                }
-                                return value;
-                            }}
-                        />
-                        {!isLoading && visibleProviders.map((provider, providerIndex) => {
-                            const isSnapshot = provider.segment === 'snapshot';
-                            const baseColor = getProviderColor(theme, provider.provider as Provider);
-                            const freshnessStyle = getFreshnessLineStyle(provider, visibleProviders.length === 1);
-
-                            // Style snapshots as grey dashed lines, real data uses provider color
-                            const strokeColor = isSnapshot ? '#999999' : baseColor;
-                            const strokeDasharray = isSnapshot ? '8 4' : freshnessStyle.dash;
-                            const strokeWidth = isSnapshot ? 2.5 : freshnessStyle.width;
-                            const strokeOpacity = isSnapshot ? 0.7 : freshnessStyle.opacity;
-
-                            // Use segment suffix in dataKey to match chartData transformation
-                            const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
-                            const dataKey = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
-
-                            // Both segments show provider name in legend
-                            // Recharts will merge entries with same name automatically
-                            const legendName = provider.provider;
-
-                            // Don't connect across null gaps - shows real data gaps (e.g., outages)
-                            // instead of misleading straight lines
-                            const shouldConnectNulls = false;
-
-                            return (
-                                <Line
-                                    key={`${provider.providerCanonical}-${provider.segment || 'default'}-${providerIndex}`}
-                                    type="monotone"
-                                    dataKey={dataKey}
-                                    name={legendName}
-                                    stroke={strokeColor}
-                                    strokeDasharray={strokeDasharray}
-                                    strokeOpacity={strokeOpacity}
-                                    strokeWidth={strokeWidth}
-                                    dot={false}
-                                    connectNulls={shouldConnectNulls}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                />
-                            );
-                        })}
-                    </LineChart>
-                </ResponsiveContainer>
-            </Box>
-        </div>
+        <Cell>
+            <figcaption>
+                <CellModel title={datum.model}>{datum.model}</CellModel>
+                <CellProvider>{datum.provider}</CellProvider>
+                <CellValue>
+                    {Math.round(datum.mean)}
+                    <i>tok/s</i>
+                </CellValue>
+            </figcaption>
+            <Spark
+                viewBox={`0 0 ${CELL_WIDTH} ${CELL_HEIGHT}`}
+                width="100%"
+                preserveAspectRatio="none"
+                role="img"
+                aria-label={`${datum.model} on ${datum.provider}, mean ${Math.round(datum.mean)} tokens per second over the window`}
+            >
+                <line className="sm-mean" x1={0} y1={meanY.toFixed(1)} x2={CELL_WIDTH} y2={meanY.toFixed(1)} />
+                {areaPath && <path className="sm-area" d={areaPath} />}
+                {segments.map((segment, i) => (
+                    <path className="sm-line" key={i} d={toPath(segment)} />
+                ))}
+            </Spark>
+        </Cell>
     );
 });
 
-ModelChart.displayName = 'ModelChart';
+SmallMultiple.displayName = 'SmallMultiple';
 
 const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     data,
     onTimeRangeChange,
-    selectedDays
+    selectedDays,
+    maxCells = 12,
+    showTimeRangeSelector = false,
 }) => {
-    const theme = useTheme();
     const [isLoading, setIsLoading] = useState(false);
 
     const handleTimeRangeChange = useCallback(async (days: number) => {
@@ -384,71 +403,55 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         }
     }, [onTimeRangeChange]);
 
-    // Transform the data for the chart
-    // For split providers, we need unique keys for real vs snapshot segments
-    // Small gaps (1-2 nulls) are filled to avoid splotchy charts from timing jitter
-    // Large gaps (3+ nulls) are preserved to show real outages
-    const chartData = useMemo(() => {
-        // Pre-process: fill small gaps for each provider's values
-        const filledValuesMap = new Map<string, (number | null)[]>();
-        data.models.forEach(model => {
-            model.providers.forEach(provider => {
-                if (provider.values) {
-                    const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
-                    const key = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
-                    filledValuesMap.set(key, fillSmallGaps(provider.values));
-                }
-            });
-        });
+    // One cell per model, using whichever provider carries the most samples for
+    // it. Drawing every provider of every model is what produced the wall.
+    const { cells, hidden } = useMemo(() => {
+        const ranked = sortModelVisibilityRows(data.models.map(buildModelVisibility))
+            .filter((row) => row.visibleCount > 0);
 
-        return data.timestamps.map((timestamp, index) => {
-            const point: ChartDataPoint = { timestamp };
-            data.models.forEach(model => {
-                model.providers.forEach(provider => {
-                    if (provider.values) {
-                        const segmentSuffix = provider.segment ? `-${provider.segment}` : '';
-                        const key = `${model.model_name}-${provider.providerCanonical}${segmentSuffix}`;
-                        const filledValues = filledValuesMap.get(key);
-                        point[key] = filledValues ? filledValues[index] : null;
-                    }
-                });
-            });
-            return point;
-        });
-    }, [data.timestamps, data.models]);
+        const built: CellDatum[] = ranked.map(({ model, visibleProviders }) => {
+            const best = [...visibleProviders].sort(
+                (a, b) => getProviderPointCount(b) - getProviderPointCount(a),
+            )[0];
+            const values = fillSmallGaps(best.values || []);
+            return {
+                key: `${model.model_name}-${best.providerCanonical}`,
+                model: model.display_name || model.model_name,
+                provider: best.provider,
+                values,
+                mean: meanOf(values),
+            };
+        }).filter((c) => c.mean > 0);
 
-    // Precompute visible providers for each model (applies the same coverage rule used during rendering)
-    // Show ALL providers (active and deprecated) that meet coverage threshold
-    const modelsWithVisibility = useMemo(() => {
-        return data.models.map(buildModelVisibility);
-    }, [data.models]);
+        const sorted = built.sort((a, b) => b.mean - a.mean);
+        return { cells: sorted.slice(0, maxCells), hidden: Math.max(sorted.length - maxCells, 0) };
+    }, [data.models, maxCells]);
 
-    // Sort models by number of visible providers (lines), then fall back to total providers and name
-    const sortedModelsWithVisibility = useMemo(() => {
-        return sortModelVisibilityRows(modelsWithVisibility);
-    }, [modelsWithVisibility]);
+    // A shared ceiling across every cell. This is the whole reason the grid
+    // supports comparison and 22 autoscaled charts did not.
+    const yMax = useMemo(() => {
+        const all = cells.flatMap((c) => c.values).filter((v): v is number => v != null);
+        return all.length ? Math.max(...all) * 1.08 : 1;
+    }, [cells]);
 
-    if (!data.timestamps.length || !sortedModelsWithVisibility.length) {
-        return <div>No data available</div>;
+    if (!data.timestamps.length || !cells.length) {
+        return <Note>No time series data available.</Note>;
     }
 
     return (
-        <div>
-            <TimeRangeSelector
-                selectedDays={selectedDays}
-                onChange={handleTimeRangeChange}
-            />
-            {sortedModelsWithVisibility.map(({ model, visibleProviders }) => (
-                <ModelChart
-                    key={model.model_name}
-                    model={model}
-                    chartData={chartData}
-                    theme={theme}
-                    selectedDays={selectedDays}
-                    isLoading={isLoading}
-                    visibleProviders={visibleProviders}
-                />
-            ))}
+        <div style={{ opacity: isLoading ? 0.5 : 1 }}>
+            {showTimeRangeSelector && (
+                <TimeRangeSelector selectedDays={selectedDays} onChange={handleTimeRangeChange} />
+            )}
+            <Grid $columns={Math.min(cells.length, 6)}>
+                {cells.map((datum) => (
+                    <SmallMultiple key={datum.key} datum={datum} yMax={yMax} />
+                ))}
+            </Grid>
+            <Note>
+                Shared vertical scale, 0 to {Math.round(yMax)} tok/s · dashed rule is the model&apos;s own mean
+                {hidden > 0 ? ` · ${hidden} slower models not drawn` : ''}
+            </Note>
         </div>
     );
 };
