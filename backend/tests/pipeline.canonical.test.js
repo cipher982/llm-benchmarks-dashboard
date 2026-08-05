@@ -10,13 +10,27 @@
  */
 
 const { cleanTransformCloud } = require('../utils/processCloud');
-const { mapModelNamesHardcoded } = require('../utils/modelMapping');
+const { groupAndMerge } = require('../utils/modelMappingDB');
 const { processRawTableData, processSpeedDistData, processTimeSeriesData } = require('../utils/dataProcessing');
 const { createSlug } = require('../utils/seoUtils');
 const { getProviderDisplayName } = require('../utils/providerMetadata');
 
 // Mock MongoDB connection for DB mapper tests
 jest.mock('../utils/connectToMongoDB', () => jest.fn().mockResolvedValue(true));
+
+// What the models collection would return. Which name a model gets is the
+// identity resolver's judgment and is tested there; these tests are about what
+// the pipeline does with a name once it has one — in particular that two
+// canonical IDs sharing a display name merge into one published line.
+const DISPLAY_NAMES = {
+  'openai:gpt-4-0613': 'gpt-4',
+  'openai:gpt-4-0314': 'gpt-4',
+};
+
+const mapModelNames = (data) =>
+  groupAndMerge(data, (provider, modelId) => ({
+    display_name: DISPLAY_NAMES[`${provider}:${modelId}`] || modelId,
+  }));
 
 describe('Pipeline Integration Tests - Canonical Architecture', () => {
 
@@ -173,7 +187,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           time_to_first_token_quartiles: [0.1, 0.1, 0.1]
         }];
 
-        const result = mapModelNamesHardcoded(processedData);
+        const result = mapModelNames(processedData);
 
         expect(result).toHaveLength(1);
         expect(result[0].providerCanonical).toBe('vertex');
@@ -204,7 +218,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
             time_to_first_token_quartiles: [0.1, 0.1, 0.1]
           }];
 
-          const result = mapModelNamesHardcoded(processedData);
+          const result = mapModelNames(processedData);
 
           expect(result[0].providerCanonical).toBe(originalProvider);
         });
@@ -230,7 +244,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           time_to_first_token_quartiles: [0.1, 0.1, 0.1]
         }];
 
-        const result = mapModelNamesHardcoded(processedData);
+        const result = mapModelNames(processedData);
 
         expect(result[0].modelCanonical).toBe('gpt-4-0613');
         expect(result[0].model_name).toBe('gpt-4'); // Mapped display name
@@ -258,7 +272,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           time_to_first_token_quartiles: [0.1, 0.1, 0.1]
         }];
 
-        const result = mapModelNamesHardcoded(processedData);
+        const result = mapModelNames(processedData);
 
         // Slug should be from canonical "vertex", not display "google"
         expect(result[0].providerSlug).toBe(createSlug('vertex'));
@@ -287,7 +301,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           time_to_first_token_quartiles: [0.1, 0.1, 0.1]
         }];
 
-        const result = mapModelNamesHardcoded(processedData);
+        const result = mapModelNames(processedData);
 
         // Slugs should be URL-safe
         expect(result[0].providerSlug).toMatch(/^[a-z0-9-]+$/);
@@ -321,7 +335,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           time_to_first_token_quartiles: [0.1, 0.1, 0.1]
         }];
 
-        const result = mapModelNamesHardcoded(processedData);
+        const result = mapModelNames(processedData);
 
         expect(result[0]).toMatchObject({
           provider: 'openai', // Display
@@ -371,7 +385,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           }
         ];
 
-        const result = mapModelNamesHardcoded(processedData);
+        const result = mapModelNames(processedData);
 
         // Both should map to "gpt-4" display name and be merged
         expect(result).toHaveLength(1);
@@ -442,7 +456,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           }
         ];
 
-        const result = mapModelNamesHardcoded(processedData);
+        const result = mapModelNames(processedData);
 
         expect(result).toHaveLength(1);
         expect(result[0].tokens_per_second).toEqual([10, 30, 50, 70]);
@@ -483,7 +497,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
           time_to_first_token_quartiles: [0.1, 0.1, 0.1]
         }];
 
-        const result = mapModelNamesHardcoded(processedData);
+        const result = mapModelNames(processedData);
 
         // Verify CloudBenchmark shape
         expect(result[0]).toHaveProperty('providerSlug');
@@ -677,7 +691,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       expect(processedData[0].providerCanonical).toBe('vertex');
 
       // Step 3: Map model names
-      const mappedData = mapModelNamesHardcoded(processedData);
+      const mappedData = mapModelNames(processedData);
       expect(mappedData[0]).toMatchObject({
         provider: 'google', // Display
         providerCanonical: 'vertex', // Canonical preserved
@@ -707,7 +721,7 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
       ];
 
       const processedData = cleanTransformCloud(rawData);
-      const mappedData = mapModelNamesHardcoded(processedData);
+      const mappedData = mapModelNames(processedData);
 
       const vertexEntry = mappedData.find(m => m.providerCanonical === 'vertex');
       const openaiEntry = mappedData.find(m => m.providerCanonical === 'openai');

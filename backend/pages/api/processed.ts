@@ -158,14 +158,13 @@ export async function processAllMetrics(
 
     // Apply model mapping to ALL data BEFORE processing (not just timeSeriesData)
     const mappingStartTime = process.hrtime.bigint();
-    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
-    logger.info(`🔧 APPLYING MODEL MAPPING: useDbModels=${useDbModels}, transformedDataLength=${transformedData.length}`);
-    
+    logger.info(`🔧 APPLYING MODEL MAPPING: transformedDataLength=${transformedData.length}`);
+
     const { mapModelNames } = await import('../../utils/modelMappingDB');
     logger.info(`📦 modelMappingDB module imported successfully`);
     let mappedData;
     try {
-        mappedData = await mapModelNames(transformedData, useDbModels);
+        mappedData = await mapModelNames(transformedData);
         const { applyHealthMetadata } = await import('../../utils/modelHealth');
         mappedData = await applyHealthMetadata(mappedData);
         const mappingEndTime = process.hrtime.bigint();

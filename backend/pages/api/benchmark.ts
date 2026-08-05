@@ -95,9 +95,8 @@ async function handler(
     timings.push(transformTiming);
     
     // Step 4: Model mapping to canonical/display contract
-    const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
     const { result: mappedData, timings: mappingTiming } = await timeOperation('Model mapping', () =>
-      mapModelNames(transformedData, useDbModels)
+      mapModelNames(transformedData)
     );
     timings.push(mappingTiming);
     

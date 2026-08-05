@@ -53,11 +53,9 @@ export default async function debugPipeline(req: NextApiRequest, res: NextApiRes
         });
         
         // Step 5: Apply model mapping
-        steps.push("🔄 Step 5: Applying model mapping with USE_DATABASE_MODELS=true...");
-        const useDbModels = process.env.USE_DATABASE_MODELS === 'true';
-        steps.push(`   - USE_DATABASE_MODELS flag: ${useDbModels}`);
-        
-        const mappedData = await mapModelNames(transformedData, useDbModels);
+        steps.push("🔄 Step 5: Applying model mapping from the models collection...");
+
+        const mappedData = await mapModelNames(transformedData);
         steps.push(`✅ Step 5: Model mapping complete, got ${mappedData.length} items`);
         
         // Step 6: Check if ugly models were fixed
@@ -86,8 +84,7 @@ export default async function debugPipeline(req: NextApiRequest, res: NextApiRes
                 totalTransformed: transformedData.length,
                 totalMapped: mappedData.length,
                 uglyModelsRemaining: stillUgly.length,
-                cleanModelsFound: shouldBeClean.length,
-                useDatabaseModels: useDbModels
+                cleanModelsFound: shouldBeClean.length
             }
         });
         

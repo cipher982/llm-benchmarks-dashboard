@@ -182,103 +182,92 @@ function getModelMetadataSync(
 }
 
 /**
- * New database-powered version of mapModelNames
- * Replaces the old hardcoded mapping function
+ * Where a display name comes from. The only thing that ever differed between
+ * the database mapper and the hardcoded table it replaced.
  */
-export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBenchmark[]> => {
-  try {
-    // Ensure cache is loaded
-    const modelMappingCache = await getModelMappingCache();
+export type MetadataLookup = (providerCanonical: string, modelCanonical: string) => ModelMetadata;
 
-    // Group data by provider-model combination for processing
-    const modelGroups = new Map<string, ProcessedData[]>();
-    const metadataMap = new Map<string, ModelMetadata>();
+/**
+ * Group benchmark rows into published lines and merge each group's samples.
+ *
+ * Grouping is by `(providerCanonical, display_name)` — an exact string match,
+ * which is why two spellings of one model publish as two lines. Nothing here
+ * decides what a name should be; that judgment lives in the identity resolver
+ * and reaches this function through the `models` collection.
+ */
+export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): CloudBenchmark[] => {
+  const modelGroups = new Map<string, ProcessedData[]>();
+  const metadataMap = new Map<string, ModelMetadata>();
 
-    for (const item of data) {
-      // Skip invalid data
-      if (!item.provider || !item.model_name) {
-        continue;
-      }
-
-      const providerCanonical = item.providerCanonical;
-      const modelCanonical = item.modelCanonical;
-      const metadata = getModelMetadataSync(providerCanonical, modelCanonical, modelMappingCache);
-
-      const groupKey = JSON.stringify({
-        providerCanonical,
-        modelDisplay: metadata.display_name,
-      });
-
-      // Store metadata separately
-      metadataMap.set(groupKey, metadata);
-
-      const group = modelGroups.get(groupKey) ?? [];
-      group.push({
-        ...item,
-        providerCanonical,
-        modelCanonical,
-      });
-      modelGroups.set(groupKey, group);
+  for (const item of data) {
+    // Skip invalid data
+    if (!item.provider || !item.model_name) {
+      continue;
     }
 
-    // Merge groups into aggregated results (same logic as original mapModelNames)
-    const mergedData: CloudBenchmark[] = await Promise.all(
-      Array.from(modelGroups.entries()).map(async ([groupKey, items]) => {
-        const { providerCanonical, modelDisplay } = JSON.parse(groupKey) as { providerCanonical: string; modelDisplay: string };
-        const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
+    const providerCanonical = item.providerCanonical;
+    const modelCanonical = item.modelCanonical;
+    const metadata = lookup(providerCanonical, modelCanonical);
 
-        return mergeProcessedModelGroup({
-          items,
-          providerCanonical,
-          modelDisplay,
-          modelCanonical: items[0].modelCanonical,
-          metadata: {
-            enabled: metadata.enabled,
-            deprecated: metadata.deprecated,
-            deprecation_date: metadata.deprecation_date,
-            successor_model: metadata.successor_model,
-            last_benchmark_date: latestBenchmarkDate(items),
-            lifecycle_status: metadata.enabled === false ? 'disabled' : metadata.lifecycle?.status,
-            lifecycle_confidence: metadata.lifecycle?.confidence,
-            lifecycle_reasons: metadata.lifecycle?.reasons,
-            lifecycle_recommended_actions: metadata.lifecycle?.recommended_actions,
-            lifecycle_catalog_state: metadata.lifecycle?.catalog_state,
-            lifecycle_computed_at: metadata.lifecycle?.computed_at,
-            lifecycle_metrics: metadata.lifecycle?.metrics,
-          },
-        });
-      })
-    );
+    const groupKey = JSON.stringify({
+      providerCanonical,
+      modelDisplay: metadata.display_name,
+    });
 
-    return mergedData;
+    metadataMap.set(groupKey, metadata);
 
-  } catch (error) {
-    console.error('Error in mapModelNamesDB:', error);
-    throw error;
+    const group = modelGroups.get(groupKey) ?? [];
+    group.push({
+      ...item,
+      providerCanonical,
+      modelCanonical,
+    });
+    modelGroups.set(groupKey, group);
   }
+
+  return Array.from(modelGroups.entries()).map(([groupKey, items]) => {
+    const { providerCanonical, modelDisplay } = JSON.parse(groupKey) as { providerCanonical: string; modelDisplay: string };
+    const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
+
+    return mergeProcessedModelGroup({
+      items,
+      providerCanonical,
+      modelDisplay,
+      modelCanonical: items[0].modelCanonical,
+      metadata: {
+        enabled: metadata.enabled,
+        deprecated: metadata.deprecated,
+        deprecation_date: metadata.deprecation_date,
+        successor_model: metadata.successor_model,
+        last_benchmark_date: latestBenchmarkDate(items),
+        lifecycle_status: metadata.enabled === false ? 'disabled' : metadata.lifecycle?.status,
+        lifecycle_confidence: metadata.lifecycle?.confidence,
+        lifecycle_reasons: metadata.lifecycle?.reasons,
+        lifecycle_recommended_actions: metadata.lifecycle?.recommended_actions,
+        lifecycle_catalog_state: metadata.lifecycle?.catalog_state,
+        lifecycle_computed_at: metadata.lifecycle?.computed_at,
+        lifecycle_metrics: metadata.lifecycle?.metrics,
+      },
+    });
+  });
 };
 
 /**
- * Feature flag function - allows switching between old and new mapping
- * Includes automatic fallback if database system fails
+ * Map raw benchmark rows to published lines using names from the database.
+ *
+ * There is no fallback. This used to drop back to a 377-line hand-maintained
+ * table when the database read failed, which meant a Mongo blip served a
+ * different set of names — including wrong ones, since that table mapped both
+ * `Meta-Llama-3-8B` and `Meta-Llama-3-8B-Instruct` onto `llama-3-8b`. A page
+ * that fails to load is a visible problem; a page that quietly publishes stale
+ * names from a file nobody has edited in a year is not.
  */
-export const mapModelNames = async (data: ProcessedData[], useDatabase: boolean = false): Promise<CloudBenchmark[]> => {
-  if (useDatabase) {
-    try {
-      // Try database-powered mapping first
-      return await mapModelNamesDB(data);
-    } catch (error) {
-      console.error('Database mapping failed, falling back to hardcoded mapping:', error);
-      // Automatic fallback to old system if database fails
-      const { mapModelNamesHardcoded } = await import('./modelMapping');
-      return mapModelNamesHardcoded(data);
-    }
-  } else {
-    // Import and use original mapping function
-    const { mapModelNamesHardcoded } = await import('./modelMapping');
-    return mapModelNamesHardcoded(data);
-  }
+export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBenchmark[]> => {
+  const modelMappingCache = await getModelMappingCache();
+  return groupAndMerge(data, (provider, modelId) => getModelMetadataSync(provider, modelId, modelMappingCache));
 };
+
+export const mapModelNames = mapModelNamesDB;
 
 /**
  * Utility function to clear the cache (useful for testing)
