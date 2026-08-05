@@ -109,7 +109,15 @@ export const DesktopShell = styled('div')(({ theme }) => ({
   justifyContent: 'center',
   boxSizing: 'border-box',
   backgroundColor: colors.ground,
-  padding: `0 0 ${theme.spacing(8)}`,
+  // The nav is fixed, so this has to clear it exactly as `MainContainer` does.
+  // These templates do not go through `MainContainer`, and without the offset
+  // their first heading renders underneath the bar — invisible at 390px, where
+  // the nav wraps to two rows and is twice as tall.
+  paddingTop: fixedNavOffset.desktop,
+  paddingBottom: theme.spacing(8),
+  [theme.breakpoints.down('md')]: {
+    paddingTop: fixedNavOffset.stacked,
+  },
 }));
 
 /**

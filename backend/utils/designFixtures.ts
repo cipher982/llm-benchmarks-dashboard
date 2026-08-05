@@ -285,7 +285,11 @@ export async function getFixtureModelPageData(
             tokensPerSecondMean: r.mean,
             tokensPerSecondMin: r.min,
             tokensPerSecondMax: r.max,
-            timeToFirstTokenMean: r.ttft ?? 0,
+            // Milliseconds, matching `getModelPageData` — the column this feeds
+            // is headed "Avg TTF (ms)". Passing the extract's seconds through
+            // unconverted printed 0.45 under a millisecond label, which is the
+            // one kind of mistake this site cannot afford to make.
+            timeToFirstTokenMean: (r.ttft ?? 0) * 1000,
         })),
         relatedModels: extract.table
             .filter((r) => slugify(r.provider) === providerSlug && r.model !== row.model)
