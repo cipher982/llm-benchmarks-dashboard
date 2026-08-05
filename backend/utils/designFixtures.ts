@@ -371,6 +371,48 @@ export async function getFixtureProcessed(): Promise<Record<string, unknown> | n
     };
 }
 
+// =============================================================================
+// LIFECYCLE SUMMARY
+// =============================================================================
+
+/**
+ * The `/api/lifecycle-summary` payload, feeding the "N flagged" note on the
+ * provider rail.
+ *
+ * The cloud page catches this endpoint failing and renders without the note,
+ * so a 500 here is not a broken page — but it still logs, and Next's dev
+ * overlay puts a full-screen Runtime Error over the design being reviewed.
+ * An endpoint that is allowed to fail quietly still has to be quiet.
+ */
+export async function getFixtureLifecycleSummary(): Promise<Record<string, unknown> | null> {
+    const extract = await loadExtract();
+    if (!extract) return null;
+
+    const byProvider = new Map<string, number>();
+    for (const row of extract.table) {
+        byProvider.set(row.provider, (byProvider.get(row.provider) ?? 0) + 1);
+    }
+
+    return {
+        generatedAt: '2026-01-15T12:00:00.000Z',
+        flaggedStatuses: ['likely_deprecated', 'deprecated', 'failing', 'stale', 'never_succeeded', 'disabled'],
+        includeActive: false,
+        rows: [...byProvider.entries()].map(([provider, total]) => {
+            // Deterministic, and matching the status fixture's rate so the two
+            // pages do not contradict each other about how much is flagged.
+            const flaggedTotal = Math.floor(total / 7);
+            return {
+                provider,
+                total,
+                flaggedTotal,
+                counts: flaggedTotal ? { deprecated: flaggedTotal } : {},
+                sampleReasons: flaggedTotal ? { deprecated: 'provider marked the model end-of-life' } : {},
+                lastComputedAt: '2026-01-15T12:00:00.000Z',
+            };
+        }),
+    };
+}
+
 /** Slugs the fixture can serve, for `getStaticPaths` under design mode. */
 export async function getFixturePaths(): Promise<{
     providers: string[];

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { corsMiddleware } from '../../utils/apiMiddleware';
 import { fetchLifecycleSummary, LifecycleSummaryOptions } from '../../utils/lifecycleSummary';
+import { designFixturesEnabled, getFixtureLifecycleSummary } from '../../utils/designFixtures';
 import logger from '../../utils/logger';
 
 const parseProviders = (param: string | string[] | undefined): string[] | undefined => {
@@ -29,6 +30,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     try {
+        // Design mode (DESIGN_FIXTURES=1): serve the committed extract rather
+        // than 500 without a database. See utils/designFixtures.ts.
+        if (designFixturesEnabled()) {
+            const fixture = await getFixtureLifecycleSummary();
+            if (fixture) {
+                return res.status(200).json(fixture);
+            }
+        }
+
         const providers = parseProviders(req.query.provider || req.query.providers);
         const includeActive = parseBoolParam(req.query.includeActive);
 

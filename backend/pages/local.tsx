@@ -89,7 +89,10 @@ const LocalBenchmarks: FC = () => {
             models: new Set(benchmarks.map((b) => b.model_name)).size,
             frameworks: new Set(benchmarks.map((b) => b.framework)).size,
             fastest: speeds.length ? Math.max(...speeds) : 0,
-            peakMemory: memory.length ? Math.max(...memory) / 1e9 : 0,
+            // `gpu_mem_usage` is already gigabytes — the scatter's x-axis plots
+            // it against a 1–25 GB domain. Converting from bytes here printed
+            // a confident 0.0.
+            peakMemory: memory.length ? Math.max(...memory) : 0,
         };
     }, [benchmarks]);
 

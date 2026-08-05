@@ -6,6 +6,7 @@ import { getComparisonAndFastestFrameworks } from '../../utils/transformations';
 import fs from 'fs/promises';
 import path from 'path';
 import logger from '../../utils/logger';
+import { designFixturesEnabled } from '../../utils/designFixtures';
 
 export const daysAgo = 1000;
 
@@ -26,8 +27,11 @@ async function tryServeStaticFile(res: NextApiResponse): Promise<boolean> {
         res.setHeader('X-Static-File-Found', 'true');
         res.setHeader('X-Static-File-Age-Minutes', Math.floor(ageMinutes).toString());
         
-        // Serve file if it's less than 24 hours old (local data changes less frequently)
-        if (ageMinutes < 1440) {
+        // Serve file if it's less than 24 hours old (local data changes less frequently).
+        // In design mode the age is irrelevant: the point is to render the
+        // layout, and a checkout's static files are however old the last cron
+        // pass left them.
+        if (ageMinutes < 1440 || designFixturesEnabled()) {
             const data = await fs.readFile(filepath, 'utf8');
             const parsedData = JSON.parse(data);
             

@@ -95,8 +95,10 @@ async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<b
         res.setHeader('X-Static-File-Found', 'true');
         res.setHeader('X-Static-File-Age-Minutes', Math.floor(ageMinutes).toString());
         
-        // Serve file if it's less than 2 hours old
-        if (ageMinutes < 120) {
+        // Serve file if it's less than 2 hours old. Design mode ignores the
+        // age for the same reason `/api/local` does — a stale layout is still
+        // the layout, and falling through to MongoDB means a 500.
+        if (ageMinutes < 120 || designFixturesEnabled()) {
             const data = await fs.readFile(filepath, 'utf8');
             const parsedData = JSON.parse(data);
             
