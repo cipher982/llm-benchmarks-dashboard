@@ -16,6 +16,7 @@
 import React, { useMemo } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import Link from 'next/link';
 import { colors, typography, spacing, breakpoints } from '../../design-system';
 import { SpeedDistributionPoint } from '../../../types/ProcessedData';
 import {
@@ -24,12 +25,20 @@ import {
     support,
     axisTicks,
     toPath,
+    slugKey,
+    type SlugLookup,
 } from '../../../utils/chartMath';
 
 interface SpeedDistChartProps {
     data: SpeedDistributionPoint[];
     /** Rows drawn. The remainder is reported rather than silently dropped. */
     maxRows?: number;
+    /**
+     * Slugs from the table, so a model or provider named in this chart is
+     * navigable like the same name in the table. The chart's own payload does
+     * not carry slugs.
+     */
+    slugs?: SlugLookup;
 }
 
 const RIDGE_POINTS = 72;
@@ -75,6 +84,13 @@ const RailModel = styled('span')({
     textOverflow: 'ellipsis',
     color: colors.textDim,
     fontFamily: typography.fontFamily,
+
+    '& a': {
+        color: 'inherit',
+        textDecoration: 'none',
+        borderBottom: `1px solid ${colors.rule}`,
+    },
+    '& a:hover': { color: colors.text, borderBottomColor: colors.accent },
 
     '& i': {
         fontStyle: 'normal',
@@ -156,6 +172,11 @@ const MobileRows = styled('ol')({
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
     },
+    '& a': {
+        color: 'inherit',
+        textDecoration: 'none',
+        borderBottom: `1px solid ${colors.rule}`,
+    },
     '& .m-provider': {
         fontFamily: typography.monoFamily,
         fontSize: typography.sizes.micro,
@@ -209,7 +230,7 @@ interface RidgeRow {
     curve: number[];
 }
 
-const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22 }) => {
+const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slugs }) => {
     const theme = useTheme();
     const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -262,10 +283,19 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22 }) =
                             ? `${toPath(pts)}L${pts[pts.length - 1][0].toFixed(1)} ${height}L${pts[0][0].toFixed(1)} ${height}Z`
                             : '';
 
+                        const link = slugs?.get(slugKey(row.provider, row.model));
+
                         return (
                             <li key={row.key}>
                                 <span className="m-name">
-                                    {row.model} <span className="m-provider">{row.provider}</span>
+                                    {link ? (
+                                        <Link href={`/models/${link.providerSlug}/${link.modelSlug}`}>{row.model}</Link>
+                                    ) : row.model}{' '}
+                                    <span className="m-provider">
+                                        {link ? (
+                                            <Link href={`/providers/${link.providerSlug}`}>{row.provider}</Link>
+                                        ) : row.provider}
+                                    </span>
                                 </span>
                                 <span className="m-mean">
                                     {Math.round(row.mean)}<i>tok/s</i>
@@ -333,17 +363,27 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22 }) =
     return (
         <>
             <Frame>
-                <LabelRail aria-hidden="true">
-                    {rows.map((row, i) => (
-                        <li key={row.key} style={{ top: `${amp + i * ROW_HEIGHT - 7}px` }}>
-                            <RailModel>
-                                {row.model} <i>{row.provider}</i>
-                            </RailModel>
-                            <RailMean>
-                                <b>{Math.round(row.mean)}</b> tok/s
-                            </RailMean>
-                        </li>
-                    ))}
+                <LabelRail>
+                    {rows.map((row, i) => {
+                        const link = slugs?.get(slugKey(row.provider, row.model));
+                        return (
+                            <li key={row.key} style={{ top: `${amp + i * ROW_HEIGHT - 7}px` }}>
+                                <RailModel>
+                                    {link ? (
+                                        <Link href={`/models/${link.providerSlug}/${link.modelSlug}`}>{row.model}</Link>
+                                    ) : row.model}{' '}
+                                    <i>
+                                        {link ? (
+                                            <Link href={`/providers/${link.providerSlug}`}>{row.provider}</Link>
+                                        ) : row.provider}
+                                    </i>
+                                </RailModel>
+                                <RailMean>
+                                    <b>{Math.round(row.mean)}</b> tok/s
+                                </RailMean>
+                            </li>
+                        );
+                    })}
                 </LabelRail>
                 <Plot>
                     <svg

@@ -43,7 +43,8 @@ import GlobalMeters from "../components/cloud/GlobalMeters";
 import ProviderAggregates from "../components/cloud/ProviderAggregates";
 import { buildStaticPageSeoMetadata } from "../utils/seoUtils";
 import { trackUmamiEvent } from "../utils/analytics";
-import { spreadPercent } from "../utils/chartMath";
+import { spreadPercent, slugKey, type SlugLookup } from "../utils/chartMath";
+import { designFixturesEnabled, getFixtureProcessed } from "../utils/designFixtures";
 
 const TimeSeriesChart = lazy(() => import("../components/charts/cloud/TimeSeries"));
 const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTable"));
@@ -308,6 +309,24 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     , [tableData]);
 
     /**
+     * Slugs keyed by `provider/model`, so a model or provider named anywhere on
+     * the page — the ridgeline rail, a small-multiple caption, the table — is
+     * navigable. Only the table payload carries slugs; the chart payloads do
+     * not, so the page builds the lookup once and the charts only read it.
+     */
+    const slugs = useMemo<SlugLookup>(() => {
+        const map: SlugLookup = new Map();
+        for (const row of tableData) {
+            if (!row.providerSlug || !row.modelSlug) continue;
+            map.set(slugKey(row.provider, row.model_name), {
+                providerSlug: row.providerSlug,
+                modelSlug: row.modelSlug,
+            });
+        }
+        return map;
+    }, [tableData]);
+
+    /**
      * Throughput history keyed by `provider/model`, for the table's trend
      * column. Built here because the page owns the time series and the table
      * only draws it.
@@ -386,7 +405,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                             </ChartLoadingContainer>
                         ) : speedDistData.length > 0 ? (
                             <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
-                                <SpeedDistChart data={speedDistData} />
+                                <SpeedDistChart data={speedDistData} slugs={slugs} />
                             </Suspense>
                         ) : null}
                     </section>
@@ -479,6 +498,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                                 data={timeSeriesData}
                                 onTimeRangeChange={handleTimeSeriesTimeRangeChange}
                                 selectedDays={timeSeriesDays}
+                                slugs={slugs}
                             />
                         </Suspense>
                     )}
@@ -513,6 +533,22 @@ export const getServerSideProps: GetServerSideProps<CloudPageProps> = async ({ r
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
 
     try {
+        // Design mode: the fixture ahead of the static file, for the same reason
+        // `/api/processed` does it — an older static file has no slugs, so every
+        // model and provider cell would render unclickable.
+        if (designFixturesEnabled()) {
+            const fixture = await getFixtureProcessed();
+            if (fixture) {
+                return {
+                    props: {
+                        initialSpeedDistData: (fixture.speedDistribution as SpeedDistributionPoint[]) || [],
+                        initialTableData: (fixture.table as TableRow[]) || [],
+                        initialTableMeta: (fixture.meta as any)?.table || null,
+                    },
+                };
+            }
+        }
+
         const apiDir = path.join(process.cwd(), 'public', 'api');
 
         // Read pre-generated static files (fast - they're on disk)

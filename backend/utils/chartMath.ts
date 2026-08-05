@@ -142,3 +142,16 @@ export const fmt = {
     date: (iso: string | number | Date | null | undefined): string =>
         iso == null ? '—' : new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
 };
+
+/**
+ * Slugs for a model, keyed by `provider/model` as those labels appear in the
+ * chart data.
+ *
+ * Only the table rows carry `providerSlug` / `modelSlug` — the distribution and
+ * time-series payloads do not. Rather than have each chart re-derive a slug
+ * (and risk generating URLs that 404), the page builds this from the table it
+ * already has and the charts only look up.
+ */
+export type SlugLookup = Map<string, { providerSlug: string; modelSlug: string }>;
+
+export const slugKey = (provider: string, model: string): string => `${provider}/${model}`;

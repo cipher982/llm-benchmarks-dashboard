@@ -19,10 +19,11 @@
 
 import React, { useCallback, memo, useMemo, useState } from 'react';
 import { styled } from '@mui/material/styles';
+import Link from 'next/link';
 import { colors, typography, spacing, breakpoints } from '../../design-system';
 import { TimeSeriesData, TimeSeriesModel, TimeSeriesProvider } from '../../../types/ProcessedData';
 import { TimeRangeSelector } from '../../TimeRangeSelector';
-import { toPath, mean as meanOf, percentile } from '../../../utils/chartMath';
+import { toPath, mean as meanOf, percentile, slugKey, type SlugLookup } from '../../../utils/chartMath';
 
 interface TimeSeriesChartProps {
     onTimeRangeChange?: (days: number) => Promise<void>;
@@ -32,6 +33,8 @@ interface TimeSeriesChartProps {
     maxCells?: number;
     /** Rendered above the grid when the page owns its own rail control. */
     showTimeRangeSelector?: boolean;
+    /** Slugs from the table, so a cell's model and provider are navigable. */
+    slugs?: SlugLookup;
 }
 
 // Two points is a line segment; one is a dot. Deliberately an absolute count,
@@ -248,6 +251,13 @@ const CellModel = styled('span')({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+
+    '& a': {
+        color: 'inherit',
+        textDecoration: 'none',
+        borderBottom: `1px solid ${colors.rule}`,
+    },
+    '& a:hover': { borderBottomColor: colors.accent },
 });
 
 const CellProvider = styled('span')({
@@ -260,6 +270,13 @@ const CellProvider = styled('span')({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+
+    '& a': {
+        color: 'inherit',
+        textDecoration: 'none',
+        borderBottom: `1px solid ${colors.rule}`,
+    },
+    '& a:hover': { color: colors.textDim },
 });
 
 const CellValue = styled('span')({
@@ -324,7 +341,7 @@ interface CellDatum {
  * samples stays a gap — connecting across it would draw a straight line through
  * an outage and call it data.
  */
-const SmallMultiple = memo(({ datum, yMax }: { datum: CellDatum; yMax: number }) => {
+const SmallMultiple = memo(({ datum, yMax, slugs }: { datum: CellDatum; yMax: number; slugs?: SlugLookup }) => {
     const { segments, meanY } = useMemo(() => {
         const pts: Array<Array<[number, number]>> = [];
         let run: Array<[number, number]> = [];
@@ -349,6 +366,8 @@ const SmallMultiple = memo(({ datum, yMax }: { datum: CellDatum; yMax: number })
         };
     }, [datum, yMax]);
 
+    const link = slugs?.get(slugKey(datum.provider, datum.model));
+
     // The area fill only makes sense under a continuous run; with breaks it
     // would imply throughput the collector never observed.
     const areaPath =
@@ -359,8 +378,16 @@ const SmallMultiple = memo(({ datum, yMax }: { datum: CellDatum; yMax: number })
     return (
         <Cell>
             <figcaption>
-                <CellModel title={datum.model}>{datum.model}</CellModel>
-                <CellProvider>{datum.provider}</CellProvider>
+                <CellModel title={datum.model}>
+                    {link ? (
+                        <Link href={`/models/${link.providerSlug}/${link.modelSlug}`}>{datum.model}</Link>
+                    ) : datum.model}
+                </CellModel>
+                <CellProvider>
+                    {link ? (
+                        <Link href={`/providers/${link.providerSlug}`}>{datum.provider}</Link>
+                    ) : datum.provider}
+                </CellProvider>
                 <CellValue>
                     {Math.round(datum.mean)}
                     <i>tok/s</i>
@@ -391,6 +418,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     selectedDays,
     maxCells = 12,
     showTimeRangeSelector = false,
+    slugs,
 }) => {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -461,7 +489,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             )}
             <Grid $columns={Math.min(cells.length, 6)}>
                 {cells.map((datum) => (
-                    <SmallMultiple key={datum.key} datum={datum} yMax={yMax} />
+                    <SmallMultiple key={datum.key} datum={datum} yMax={yMax} slugs={slugs} />
                 ))}
             </Grid>
             <Note>

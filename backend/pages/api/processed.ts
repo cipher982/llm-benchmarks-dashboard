@@ -343,29 +343,29 @@ async function handler(
         );
         const useStatic = req.query.bypass_static !== "true" && !lifecycleFilters && isFullRequest;
 
-        // First priority: Try to serve static file (unless bypassed)
-        if (useStatic) {
-            const staticServed = await tryServeStaticFile(days, res);
-            if (staticServed) {
-                return; // Response already sent
-            }
-        }
-
-        // Design mode (DESIGN_FIXTURES=1): every partial projection deliberately
-        // bypasses the static file and goes to MongoDB, so `?include=series` —
-        // the cloud page's small multiples — had no offline path even with the
-        // static files present. Serve the static file whatever the projection,
-        // and fall back to the committed extract, which is all a fresh clone
-        // has since those files are gitignored.
+        // Design mode (DESIGN_FIXTURES=1) takes the fixture ahead of the static
+        // file. A checkout's `processed-*.json` is whatever the last cron pass
+        // left, and the older ones predate the naming contract — no
+        // `providerSlug` or `modelSlug`, so every model and provider cell
+        // renders as plain text and the whole site looks unclickable. The
+        // fixture is built from the committed extract and always carries slugs.
         if (designFixturesEnabled()) {
-            if (!useStatic && await tryServeStaticFile(days, res)) {
-                return;
-            }
             const fixture = await getFixtureProcessed();
             if (fixture) {
                 res.setHeader('X-Cache-Status', 'DESIGN-FIXTURE');
                 res.status(200).json(fixture);
                 return;
+            }
+            if (await tryServeStaticFile(days, res)) {
+                return;
+            }
+        }
+
+        // First priority: Try to serve static file (unless bypassed)
+        if (useStatic) {
+            const staticServed = await tryServeStaticFile(days, res);
+            if (staticServed) {
+                return; // Response already sent
             }
         }
 

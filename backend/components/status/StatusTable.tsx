@@ -10,8 +10,10 @@
 
 import React from 'react';
 import { styled } from '@mui/material/styles';
+import Link from 'next/link';
 import { colors, typography, spacing } from '../design-system';
 import { ModelData, formatWarningLabel } from '../../utils/status/statusHelpers';
+import { createSlug } from '../../utils/seoUtils';
 
 interface StatusTableProps {
     models: ModelData[];
@@ -55,6 +57,13 @@ const ProviderTag = styled('td')({
     fontSize: `${typography.sizes.micro} !important`,
     letterSpacing: typography.tracking.tag,
     textTransform: 'uppercase',
+
+    '& a': {
+        color: 'inherit',
+        textDecoration: 'none',
+        borderBottom: `1px solid ${colors.rule}`,
+    },
+    '& a:hover': { color: colors.text, borderBottomColor: colors.accent },
 });
 
 const ModelName = styled('td')({
@@ -127,7 +136,16 @@ const StatusTable: React.FC<StatusTableProps> = ({ models, showDeprecation = fal
                     return (
                         <tr key={`${model.provider}-${model.model}`}>
                             <ModelName>{model.model}</ModelName>
-                            <ProviderTag>{model.provider}</ProviderTag>
+                            {/* Provider only. The status payload carries the raw
+                                model id, not `modelCanonical`, so a model URL
+                                derived from it would 404 for anything the
+                                catalogue renames — a broken link is worse than
+                                no link. The provider field is the canonical
+                                provider, which is exactly what the slug is
+                                built from. */}
+                            <ProviderTag>
+                                <Link href={`/providers/${createSlug(model.provider)}`}>{model.provider}</Link>
+                            </ProviderTag>
                             <Dim>{model.last_run_relative}</Dim>
                             <History>
                                 {model.runs.length ? (
