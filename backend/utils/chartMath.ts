@@ -60,23 +60,49 @@ export function support(curve: number[], eps = 0.025): [number, number] {
     return [Math.max(0, lo - 1), Math.min(curve.length - 1, hi + 1)];
 }
 
+/** Where a single density curve stops carrying meaningful mass. */
+function upperSupport(row: { density_points?: DensityPoint[]; max: number }): number {
+    if (!row.density_points?.length) return row.max;
+    const peak = Math.max(...row.density_points.map((p) => p.y));
+    const tail = row.density_points.filter((p) => p.y > peak * 0.02);
+    return tail.length ? tail[tail.length - 1].x : row.max;
+}
+
 /**
- * Upper bound of the shared x domain: where the data actually stops carrying
- * mass, rounded up to a round number.
+ * Upper bound of the shared x domain.
  *
  * The old chart fixed the axis at 0–140 and crammed everything above it into a
  * squeezed right-hand panel. Deriving the bound instead means one linear axis
- * with no break in it, and no third of the plot left empty.
+ * with no break in it.
+ *
+ * Derived from where most rows stop, not where the widest one does. Taking the
+ * maximum let a single very variable model set the scale for everyone else:
+ * GPT-oss-safeguard-20b's density ran to 642 tok/s while the next widest
+ * stopped at 357, so the axis went to 650 and twenty-one of twenty-two rows
+ * were drawn inside the left half of the frame.
+ *
+ * The floor keeps every row's mean on the axis — a domain that hid the marker
+ * for the fastest model would trade one unreadable chart for another.
  */
-export function densityDomainMax(rows: Array<{ density_points?: DensityPoint[]; max: number }>): number {
-    const bounds = rows.map((row) => {
-        if (!row.density_points?.length) return row.max;
-        const peak = Math.max(...row.density_points.map((p) => p.y));
-        const tail = row.density_points.filter((p) => p.y > peak * 0.02);
-        return tail.length ? tail[tail.length - 1].x : row.max;
-    });
-    const max = Math.max(...bounds, 1);
-    return Math.ceil(max / 10) * 10;
+export function densityDomainMax(
+    rows: Array<{ density_points?: DensityPoint[]; max: number; mean?: number }>,
+): number {
+    if (!rows.length) return 10;
+
+    const bounds = rows.map(upperSupport);
+    const bulk = percentile(bounds, 90);
+    const meanFloor = Math.max(...rows.map((r) => r.mean ?? 0), 0) * 1.2;
+
+    const domain = Math.max(bulk, meanFloor, 1);
+    return Math.ceil(domain / 10) * 10;
+}
+
+/** How many rows carry mass past `domain`, for disclosure under the chart. */
+export function rowsBeyondDomain(
+    rows: Array<{ density_points?: DensityPoint[]; max: number }>,
+    domain: number,
+): number {
+    return rows.filter((row) => upperSupport(row) > domain).length;
 }
 
 /** Nearest-rank percentile. Returns 0 for an empty set. */

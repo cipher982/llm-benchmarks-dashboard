@@ -25,6 +25,7 @@ import {
     support,
     axisTicks,
     toPath,
+    rowsBeyondDomain,
     slugKey,
     type SlugLookup,
 } from '../../../utils/chartMath';
@@ -234,16 +235,20 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
     const theme = useTheme();
     const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
 
-    const { rows, xMax, hidden } = useMemo(() => {
+    const { rows, xMax, hidden, beyond } = useMemo(() => {
         const usable = (data ?? []).filter(
             (d) => d.density_points?.length && d.mean_tokens_per_second > 0,
         );
         const sorted = [...usable].sort((a, b) => b.mean_tokens_per_second - a.mean_tokens_per_second);
         const shown = sorted.slice(0, maxRows);
 
-        const domainMax = densityDomainMax(
-            shown.map((d) => ({ density_points: d.density_points, max: d.max_tokens_per_second })),
-        );
+        const forDomain = shown.map((d) => ({
+            density_points: d.density_points,
+            max: d.max_tokens_per_second,
+            mean: d.mean_tokens_per_second,
+        }));
+        const domainMax = densityDomainMax(forDomain);
+        const beyond = rowsBeyondDomain(forDomain, domainMax);
 
         const built: RidgeRow[] = shown.map((d, i) => ({
             key: `${d.provider}-${d.model_name}-${i}`,
@@ -253,7 +258,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
             curve: resampleDensity(d.density_points, domainMax, RIDGE_POINTS),
         }));
 
-        return { rows: built, xMax: domainMax, hidden: sorted.length - shown.length };
+        return { rows: built, xMax: domainMax, hidden: sorted.length - shown.length, beyond };
     }, [data, maxRows]);
 
     if (!rows.length) {
@@ -412,6 +417,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
             </Frame>
             <Note>
                 Visible-token throughput, same basis as the table · curves normalised per model
+                {beyond > 0 && ` · ${beyond} model${beyond === 1 ? "'s tail runs" : "s' tails run"} past the axis`}
                 {hidden > 0 && ` · ${hidden} slower models not drawn, all ${rows.length + hidden} are in the table below`}
             </Note>
         </>
