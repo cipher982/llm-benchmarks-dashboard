@@ -277,6 +277,12 @@ const CellProvider = styled('span')({
         borderBottom: `1px solid ${colors.rule}`,
     },
     '& a:hover': { color: colors.textDim },
+
+    '& b': {
+        fontWeight: typography.weights.normal,
+    },
+    '& b[data-state="stale"]': { color: colors.warn },
+    '& b[data-state="stopped"]': { color: colors.bad },
 });
 
 const CellValue = styled('span')({
@@ -334,6 +340,11 @@ interface CellDatum {
     provider: string;
     values: (number | null)[];
     mean: number;
+    /** `stale` or `critical` when the collector has stopped keeping up. */
+    freshness?: string;
+    deprecated?: boolean;
+    /** Providers serving this model that this cell does not draw. */
+    otherProviders: number;
 }
 
 /**
@@ -368,6 +379,19 @@ const SmallMultiple = memo(({ datum, yMax, slugs }: { datum: CellDatum; yMax: nu
 
     const link = slugs?.get(slugKey(datum.provider, datum.model));
 
+    // A series that stopped a week ago must not look identical to one measured
+    // this morning. The old chart carried this as a faded dashed line and a
+    // "(stopped)" / "(stale)" legend entry; dropping the Recharts line dropped
+    // the signal with it, on a site whose whole value is knowing which numbers
+    // are still being collected.
+    const style = getFreshnessLineStyle(
+        { freshness_status: datum.freshness } as TimeSeriesProvider,
+        true,
+    );
+    const stopped = datum.freshness === 'critical' || datum.deprecated;
+    const stale = datum.freshness === 'stale';
+    const staleTag = stopped ? 'stopped' : stale ? 'stale' : null;
+
     // The area fill only makes sense under a continuous run; with breaks it
     // would imply throughput the collector never observed.
     const areaPath =
@@ -387,6 +411,7 @@ const SmallMultiple = memo(({ datum, yMax, slugs }: { datum: CellDatum; yMax: nu
                     {link ? (
                         <Link href={`/providers/${link.providerSlug}`}>{datum.provider}</Link>
                     ) : datum.provider}
+                    {staleTag && <b data-state={stopped ? 'stopped' : 'stale'}> {staleTag}</b>}
                 </CellProvider>
                 <CellValue>
                     {Math.round(datum.mean)}
@@ -403,7 +428,13 @@ const SmallMultiple = memo(({ datum, yMax, slugs }: { datum: CellDatum; yMax: nu
                 <line className="sm-mean" x1={0} y1={meanY.toFixed(1)} x2={CELL_WIDTH} y2={meanY.toFixed(1)} />
                 {areaPath && <path className="sm-area" d={areaPath} />}
                 {segments.map((segment, i) => (
-                    <path className="sm-line" key={i} d={toPath(segment)} />
+                    <path
+                        className="sm-line"
+                        key={i}
+                        d={toPath(segment)}
+                        strokeDasharray={staleTag ? style.dash ?? '4 3' : undefined}
+                        strokeOpacity={staleTag ? 0.55 : 1}
+                    />
                 ))}
             </Spark>
         </Cell>
@@ -436,7 +467,14 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
     // One cell per model, using whichever provider carries the most samples for
     // it. Drawing every provider of every model is what produced the wall.
     const { cells, hidden } = useMemo(() => {
-        const ranked = sortModelVisibilityRows(data.models.map(buildModelVisibility))
+        // Defensive about the payload shape rather than the values. A response
+        // missing `models` or `timestamps` — a partial projection, a mocked
+        // route, a truncated cache entry — used to throw here, and because this
+        // renders inside the page rather than behind an error boundary it took
+        // the whole of /cloud down with it. A chart that cannot draw should
+        // draw nothing.
+        const models = Array.isArray(data?.models) ? data.models : [];
+        const ranked = sortModelVisibilityRows(models.map(buildModelVisibility))
             .filter((row) => row.visibleCount > 0);
 
         const built: CellDatum[] = ranked.map(({ model, visibleProviders }) => {
@@ -450,12 +488,15 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 provider: best.provider,
                 values,
                 mean: meanOf(values),
+                freshness: best.freshness_status,
+                deprecated: best.deprecated,
+                otherProviders: visibleProviders.length - 1,
             };
         }).filter((c) => c.mean > 0);
 
         const sorted = built.sort((a, b) => b.mean - a.mean);
         return { cells: sorted.slice(0, maxCells), hidden: Math.max(sorted.length - maxCells, 0) };
-    }, [data.models, maxCells]);
+    }, [data?.models, maxCells]);
 
     /**
      * A shared ceiling across every cell. This is the whole reason the grid
@@ -478,7 +519,15 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         [cells, yMax],
     );
 
-    if (!data.timestamps.length || !cells.length) {
+    // Most popular models are served by several providers and a cell draws one.
+    // Saying so is the difference between a simplification and a claim that a
+    // model has a single throughput curve.
+    const droppedProviders = useMemo(
+        () => cells.reduce((total, c) => total + Math.max(c.otherProviders, 0), 0),
+        [cells],
+    );
+
+    if (!data?.timestamps?.length || !cells.length) {
         return <Note>No time series data available.</Note>;
     }
 
@@ -493,8 +542,9 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 ))}
             </Grid>
             <Note>
-                Shared vertical scale, 0 to {Math.round(yMax)} tok/s (99th percentile) · dashed rule is the
-                model&apos;s own mean
+                One cell per model, showing its best-covered provider · shared vertical scale, 0 to{' '}
+                {Math.round(yMax)} tok/s (99th percentile) · dashed rule is the model&apos;s own mean
+                {droppedProviders > 0 ? ` · ${droppedProviders} further provider${droppedProviders === 1 ? '' : 's'} not drawn` : ''}
                 {clipped > 0 ? ` · ${clipped} samples above the ceiling drawn at it` : ''}
                 {hidden > 0 ? ` · ${hidden} slower models not drawn` : ''}
             </Note>
