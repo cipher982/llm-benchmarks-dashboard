@@ -9,7 +9,6 @@ const nextConfig = {
   // Required for working behind a reverse proxy
   assetPrefix: (process.env.NODE_ENV === 'production') ? '/' : '',
   // Allow CSS imports from node_modules
-  transpilePackages: ['@mui/x-data-grid'],
   // Add CORS headers to all responses in development mode only
   async headers() {
     return process.env.NODE_ENV !== 'production' 

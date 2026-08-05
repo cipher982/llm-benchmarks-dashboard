@@ -9,6 +9,7 @@ COPY package*.json ./
 RUN npm ci
 
 # Copy only necessary source files
+COPY fonts/ ./fonts/
 COPY components/ ./components/
 COPY pages/ ./pages/
 COPY public/ ./public/
@@ -44,8 +45,13 @@ COPY --from=builder /app/server.js ./server.js
 
 # Set environment variables
 ENV PORT=3000
-# NODE_ENV should be provided by the environment; server.js validates it
 ENV HOST=0.0.0.0
+# Pinned rather than inherited. The design fixtures serve synthesised benchmark
+# numbers and are gated on `NODE_ENV !== 'production'` as well as an explicit
+# flag; leaving NODE_ENV to the environment made that gate depend on a variable
+# nothing guaranteed. server.js additionally refuses to boot if DESIGN_FIXTURES
+# is set at all.
+ENV NODE_ENV=production
 
 EXPOSE 3000
 
