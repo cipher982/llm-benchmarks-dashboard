@@ -58,3 +58,54 @@ describe('TimeSeries chart helpers', () => {
     expect(style.opacity).toBeLessThan(1);
   });
 });
+
+describe('Provider visibility', () => {
+  // Reproduces production on 2026-08-05: llama-3.3-70b was being measured at
+  // four providers and the chart drew two. Together (12/144 slots) and
+  // DeepInfra (11/144) fell under a 10%-of-window coverage rule, having only
+  // started being measured two days earlier.
+  const sparse = (n, total = 144) => [
+    ...Array(n).fill(50),
+    ...Array(total - n).fill(null),
+  ];
+
+  test('a provider measured only recently is still drawn', () => {
+    const visibility = buildModelVisibility(
+      model('llama-3.3-70b', [
+        provider('bedrock', sparse(144)),
+        provider('groq', sparse(71)),
+        provider('together', sparse(12)),
+        provider('deepinfra', sparse(11)),
+      ])
+    );
+
+    expect(visibility.visibleProviders.map(p => p.provider).sort()).toEqual([
+      'bedrock',
+      'deepinfra',
+      'groq',
+      'together',
+    ]);
+  });
+
+  test('a single stray point is not drawn as a line', () => {
+    const visibility = buildModelVisibility(
+      model('barely-measured', [
+        provider('bedrock', sparse(144)),
+        provider('together', sparse(1)),
+      ])
+    );
+
+    expect(visibility.visibleProviders.map(p => p.provider)).toEqual(['bedrock']);
+  });
+
+  test('visibility does not depend on the width of the window', () => {
+    // The same 12 real measurements, viewed over 14 days and over 30 days. A
+    // ratio threshold made the provider vanish on the longer view; the number
+    // of measurements did not change, only the denominator.
+    const short = buildModelVisibility(model('m', [provider('together', sparse(12, 144))]));
+    const long = buildModelVisibility(model('m', [provider('together', sparse(12, 720))]));
+
+    expect(short.visibleCount).toBe(1);
+    expect(long.visibleCount).toBe(1);
+  });
+});

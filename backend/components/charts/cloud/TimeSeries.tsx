@@ -27,7 +27,24 @@ interface ChartDataPoint {
     [key: string]: string | number | null;
 }
 
-const COVERAGE_THRESHOLD = 10;
+// Two points is a line segment; one is a dot. Deliberately an absolute count,
+// not a share of the window.
+//
+// This was `coverage >= 10%`, which hid any provider that had not been measured
+// for most of the selected range — so a provider whose measurements started
+// recently was invisible for two weeks no matter how well it was being measured
+// today. On 2026-08-05 llama-3.3-70b was being measured at four providers and
+// the chart drew two: Together at 8.3% and DeepInfra at 7.6% were both dropped,
+// having produced ~40 samples each over the two days since a scheduler fix
+// started including them. The site said the model had two providers when it had
+// four.
+//
+// A ratio over a fixed window is the wrong shape for this question for the same
+// reason it is wrong for coverage alarms: it moves when the denominator moves,
+// not when the thing being measured changes. Sparse series now render with
+// visible breaks, which is honest — a gap in the line is what a gap in the data
+// looks like.
+const MIN_POINTS_TO_DRAW = 2;
 const MAX_FILL_GAP = 2; // Fill gaps of 1-2 nulls, keep gaps of 3+ as breaks (real outages)
 
 /**
@@ -68,15 +85,19 @@ const fillSmallGaps = (values: (number | null)[]): (number | null)[] => {
     return result;
 };
 
+export const getProviderPointCount = (provider: TimeSeriesProvider): number =>
+    (provider.values || []).filter((value) => value !== null && value !== undefined).length;
+
+/** Share of the window a provider covers. Still reported for ordering and
+ * display; no longer decides whether a provider exists. */
 export const getProviderCoverage = (provider: TimeSeriesProvider): number => {
     const values = provider.values || [];
-    const nonNullCount = values.filter((value) => value !== null && value !== undefined).length;
     const totalCount = values.length;
-    return totalCount > 0 ? (nonNullCount / totalCount) * 100 : 0;
+    return totalCount > 0 ? (getProviderPointCount(provider) / totalCount) * 100 : 0;
 };
 
 export const getVisibleProviders = (model: TimeSeriesModel): TimeSeriesProvider[] =>
-    model.providers.filter((provider) => getProviderCoverage(provider) >= COVERAGE_THRESHOLD);
+    model.providers.filter((provider) => getProviderPointCount(provider) >= MIN_POINTS_TO_DRAW);
 
 export const getFreshnessLineStyle = (provider: TimeSeriesProvider, isOnlyVisibleProvider: boolean) => {
     if (provider.freshness_status === 'critical') {
