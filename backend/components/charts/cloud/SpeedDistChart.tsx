@@ -14,7 +14,8 @@
  */
 
 import React, { useMemo } from 'react';
-import { styled } from '@mui/material/styles';
+import { styled, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { colors, typography, spacing, breakpoints } from '../../design-system';
 import { SpeedDistributionPoint } from '../../../types/ProcessedData';
 import {
@@ -123,6 +124,73 @@ const Plot = styled('div')({
     },
 });
 
+/**
+ * The 390px form.
+ *
+ * The desktop ridgeline drops its label rail below 600px, which left 22
+ * anonymous curves — a reader could not identify a model, rank one, or connect
+ * the plot to the table. That is decoration, not measurement. At this width the
+ * same data becomes a short stack of labelled rows: fewer models, each one
+ * identifiable, each still carrying its own density silhouette.
+ */
+const MobileRows = styled('ol')({
+    listStyle: 'none',
+    margin: 0,
+    padding: `${spacing.scale[2]}px ${spacing.scale[4]}px ${spacing.scale[3]}px`,
+
+    '& li': {
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) auto',
+        alignItems: 'baseline',
+        gap: '0 8px',
+        padding: `${spacing.scale[2]}px 0`,
+        borderBottom: `1px solid ${colors.ruleSoft}`,
+    },
+    '& li:last-child': { borderBottom: 0 },
+
+    '& .m-name': {
+        fontFamily: typography.fontFamily,
+        fontSize: typography.sizes.md,
+        color: colors.text,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+    },
+    '& .m-provider': {
+        fontFamily: typography.monoFamily,
+        fontSize: typography.sizes.micro,
+        letterSpacing: typography.tracking.tag,
+        textTransform: 'uppercase',
+        color: colors.textMute,
+    },
+    '& .m-mean': {
+        fontFamily: typography.monoFamily,
+        fontVariantNumeric: 'tabular-nums',
+        fontSize: typography.sizes.lg,
+        fontWeight: typography.weights.medium,
+        letterSpacing: typography.tracking.figure,
+        color: colors.text,
+    },
+    '& .m-mean i': {
+        fontStyle: 'normal',
+        fontSize: typography.sizes.micro,
+        color: colors.textMute,
+        marginLeft: '3px',
+    },
+    '& .m-curve': {
+        gridColumn: '1 / -1',
+        display: 'block',
+        marginTop: '4px',
+    },
+    '& .m-curve path': {
+        fill: colors.accent,
+        fillOpacity: 0.12,
+        stroke: colors.accent,
+        strokeWidth: 1,
+        vectorEffect: 'non-scaling-stroke',
+    },
+});
+
 const Note = styled('p')({
     margin: 0,
     padding: `0 ${spacing.scale[4]}px ${spacing.scale[3]}px`,
@@ -142,6 +210,9 @@ interface RidgeRow {
 }
 
 const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22 }) => {
+    const theme = useTheme();
+    const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
+
     const { rows, xMax, hidden } = useMemo(() => {
         const usable = (data ?? []).filter(
             (d) => d.density_points?.length && d.mean_tokens_per_second > 0,
@@ -166,6 +237,62 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22 }) =
 
     if (!rows.length) {
         return null;
+    }
+
+    if (isNarrow) {
+        const shown = rows.slice(0, 8);
+        const notDrawn = rows.length - shown.length + hidden;
+
+        return (
+            <>
+                <MobileRows>
+                    {shown.map((row) => {
+                        const [lo, hi] = support(row.curve);
+                        const slice = row.curve.slice(lo, hi + 1);
+                        const width = 100;
+                        const height = 18;
+                        const pts: Array<[number, number]> = slice.map((y, i) => [
+                            // Positioned across the shared domain, so a faster
+                            // model's silhouette still sits further right than a
+                            // slower one's — the ranking survives the format.
+                            ((lo + i) / (row.curve.length - 1)) * width,
+                            height - y * height,
+                        ]);
+                        const d = pts.length > 1
+                            ? `${toPath(pts)}L${pts[pts.length - 1][0].toFixed(1)} ${height}L${pts[0][0].toFixed(1)} ${height}Z`
+                            : '';
+
+                        return (
+                            <li key={row.key}>
+                                <span className="m-name">
+                                    {row.model} <span className="m-provider">{row.provider}</span>
+                                </span>
+                                <span className="m-mean">
+                                    {Math.round(row.mean)}<i>tok/s</i>
+                                </span>
+                                {d && (
+                                    <svg
+                                        className="m-curve"
+                                        viewBox={`0 0 ${width} ${height}`}
+                                        width="100%"
+                                        height={height}
+                                        preserveAspectRatio="none"
+                                        role="img"
+                                        aria-label={`${row.model} throughput distribution, mean ${Math.round(row.mean)} tokens per second`}
+                                    >
+                                        <path d={d} />
+                                    </svg>
+                                )}
+                            </li>
+                        );
+                    })}
+                </MobileRows>
+                <Note>
+                    Generated throughput · 0–{xMax} tok/s across every row
+                    {notDrawn > 0 && ` · ${notDrawn} slower models in the table below`}
+                </Note>
+            </>
+        );
     }
 
     const amp = ROW_HEIGHT * OVERLAP;

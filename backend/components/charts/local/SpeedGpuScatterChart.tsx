@@ -83,9 +83,9 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
                 width={730}
                 height={250}
                 margin={{
-                    top: 20,
-                    right: 0,
-                    bottom: 30,
+                    top: 12,
+                    right: 16,
+                    bottom: 46,
                     left: 10,
                 }}
             >
@@ -133,14 +133,20 @@ const SpeedGpuScatterChart: React.FC<SpeedGpuScatterChartProps> = ({ isMobile, d
                     />
                 </YAxis>
                 <Tooltip content={<CustomTooltip />} cursor={{ stroke: colors.rule }} />
+                {/* Horizontal and below the plot at every width. Docked
+                    top-right it sat directly over the 20-24GB cluster, masking
+                    exactly the high-memory runs the chart exists to compare. */}
                 <Legend
-                    layout={isMobile ? "horizontal" : "vertical"}
-                    verticalAlign={isMobile ? "bottom" : "top"}
-                    align={isMobile ? "center" : "right"}
+                    layout="horizontal"
+                    verticalAlign="bottom"
+                    align="left"
                     wrapperStyle={{
-                        ...(isMobile ? { bottom: 0 } : { right: 0 }),
+                        bottom: 0,
+                        left: 10,
                         fontFamily: typography.monoFamily,
                         fontSize: '10px',
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
                         color: colors.textDim,
                     }}
                 />

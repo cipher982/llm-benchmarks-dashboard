@@ -257,12 +257,24 @@ function TanStackTable<T>({
   });
 
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
+  const headerRef = React.useRef<HTMLDivElement>(null);
   const rows = table.getRowModel().rows;
+
+  // The row canvas starts below the sticky header, so the virtualizer's offsets
+  // are shifted by exactly that much. Without telling it, the window it chooses
+  // to render drifts from what is actually on screen.
+  const [headerHeight, setHeaderHeight] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const measured = headerRef.current?.offsetHeight ?? 0;
+    setHeaderHeight((current) => (current === measured ? current : measured));
+  });
 
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 35, // Approximate row height
+    estimateSize: () => 26, // Row height in the Console table
+    overscan: 8,
+    scrollMargin: headerHeight,
     enabled: virtualized && rows.length > 100,
   });
 
@@ -284,18 +296,29 @@ function TanStackTable<T>({
     return (
       <TableWrapper className={className} style={{ height }}>
         <TableContainer ref={tableContainerRef}>
+          {/* The virtual rows get their own positioning context, below the
+              header in normal flow.
+
+              They used to be absolutely positioned inside the same element as
+              the sticky header, so the row at `translateY(0)` rendered
+              underneath it — the table silently dropped whichever row sorted
+              first. On /cloud that hid llama-3-8b at 275 tok/s while the meter
+              strip above reported "Max tok/s 275", so the page stated a number
+              its own leaderboard appeared to contradict. A benchmark site
+              cannot hide the fastest row. */}
           <div
             role="table"
             aria-label="Benchmark data table"
-            style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}
+            style={{ width: '100%' }}
           >
             {/* Header */}
             <div
+              ref={headerRef}
               role="row"
-              style={{ 
-                display: 'flex', 
-                position: 'sticky', 
-                top: 0, 
+              style={{
+                display: 'flex',
+                position: 'sticky',
+                top: 0,
                 zIndex: 10,
                 backgroundColor: colors.surface
               }}
@@ -344,42 +367,49 @@ function TanStackTable<T>({
               })}
             </div>
 
-            {/* Virtual Rows */}
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const row = rows[virtualRow.index];
-              const borderLeft = rowStateRule(row.original);
+            {/* Virtual Rows, in their own canvas so `translateY(0)` is the top
+                of the rows rather than the top of the header. */}
+            <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const row = rows[virtualRow.index];
+                const borderLeft = rowStateRule(row.original);
 
-              return (
-                <div
-                  key={row.id}
-                  role="row"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    display: 'flex',
-                    backgroundColor: virtualRow.index % 2 === 1 ? colors.zebra : undefined,
-                  }}
-                >
-                  {row.getVisibleCells().map((cell, cellIndex) => (
-                    <VirtualCell
-                      key={cell.id}
-                      role="cell"
-                      width={columnWidths[cellIndex]}
-                      style={{
-                        justifyContent: alignOf(cell.column) === 'right' ? 'flex-end' : 'flex-start',
-                        ...(cellIndex === 0 && borderLeft ? { borderLeft } : {}),
-                      }}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </VirtualCell>
-                  ))}
-                </div>
-              );
-            })}
+                return (
+                  <div
+                    key={row.id}
+                    role="row"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualRow.size}px`,
+                      // `scrollMargin` is already folded into `start`; the row
+                      // canvas is itself offset by that much in normal flow, so
+                      // leaving it in would double-count and open a blank band
+                      // under the header.
+                      transform: `translateY(${virtualRow.start - headerHeight}px)`,
+                      display: 'flex',
+                      backgroundColor: virtualRow.index % 2 === 1 ? colors.zebra : undefined,
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell, cellIndex) => (
+                      <VirtualCell
+                        key={cell.id}
+                        role="cell"
+                        width={columnWidths[cellIndex]}
+                        style={{
+                          justifyContent: alignOf(cell.column) === 'right' ? 'flex-end' : 'flex-start',
+                          ...(cellIndex === 0 && borderLeft ? { borderLeft } : {}),
+                        }}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </VirtualCell>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </TableContainer>
       </TableWrapper>

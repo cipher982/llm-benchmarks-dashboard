@@ -110,6 +110,19 @@ const FastestLlmApiPage: NextPage<Props> = ({ models, lastUpdated }) => {
                         Sorted by tokens/second (descending). TTFT = time to first token in milliseconds.
                         Click any model or provider to see full benchmark history.
                     </Typography>
+                    {/* A "Top 20" section rendering column headers over an
+                        empty body reads as a broken page, and the build-time
+                        fetch that fills this can fail silently. Say so instead. */}
+                    {models.length === 0 ? (
+                        <Typography
+                            variant="body2"
+                            sx={{ color: "warning.main", fontFamily: "var(--font-mono)", py: 2 }}
+                        >
+                            Rankings unavailable — this page is built from a snapshot and the
+                            benchmark API could not be reached at build time. The live numbers are
+                            on <Link href="/cloud" style={{ color: "inherit" }}>/cloud</Link>.
+                        </Typography>
+                    ) : (
                     <Paper variant="outlined" sx={{ overflow: "auto" }}>
                         <Table size="small">
                             <TableHead>
@@ -146,6 +159,7 @@ const FastestLlmApiPage: NextPage<Props> = ({ models, lastUpdated }) => {
                             </TableBody>
                         </Table>
                     </Paper>
+                    )}
                 </Section>
 
                 <Section title="Key Insights">

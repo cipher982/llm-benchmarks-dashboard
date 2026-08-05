@@ -16,7 +16,7 @@ import ComparisonTable from '../components/tables/local/ComparisonTable';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { FastestFrameworks } from '../utils/transformations';
-import { MainContainer, MeterStrip, SplitRow } from '../components/design-system/components';
+import { MainContainer, MeterStrip } from '../components/design-system/components';
 import { calculateMB } from '../utils/stats';
 import { LocalBenchmark } from '../types/LocalData';
 import { buildStaticPageSeoMetadata } from '../utils/seoUtils';
@@ -188,20 +188,16 @@ const LocalBenchmarks: FC = () => {
                     </ChartWrapper>
                 </StyledChartContainer>
 
-                <SplitRow asideWidth={420}>
-                    <section>
-                        <SectionHeaderRow>
-                            <SectionHeader>Fastest by model size</SectionHeader>
-                        </SectionHeaderRow>
-                        <TableContentContainer isMobile={isMobile}>
-                            <ComparisonTable comparisonData={comparisonData} />
-                        </TableContentContainer>
-                    </section>
+                {/* Three winners used to sit in a 420px rail beside the
+                    comparison table, leaving that rail empty for hundreds of
+                    pixels while squeezing the table. A short full-width row
+                    costs one strip and gives the table the whole width. */}
+                {Object.keys(fastestFrameworks).length > 0 && (
                     <section>
                         <SectionHeaderRow>
                             <SectionHeader>Fastest framework overall</SectionHeader>
                         </SectionHeaderRow>
-                        <MeterStrip columns={2}>
+                        <MeterStrip columns={Math.max(Object.keys(fastestFrameworks).length, 2)}>
                             {Object.entries(fastestFrameworks).map(([category, winner]) => (
                                 <div key={category}>
                                     <dt>{category}</dt>
@@ -210,7 +206,19 @@ const LocalBenchmarks: FC = () => {
                             ))}
                         </MeterStrip>
                     </section>
-                </SplitRow>
+                )}
+
+                <StyledTableContainer isMobile={isMobile}>
+                    <SectionHeaderRow>
+                        <SectionHeader>Fastest by model size</SectionHeader>
+                        <RailNote>
+                            <b>{comparisonData.length}</b> models compared
+                        </RailNote>
+                    </SectionHeaderRow>
+                    <TableContentContainer isMobile={isMobile}>
+                        <ComparisonTable comparisonData={comparisonData} />
+                    </TableContentContainer>
+                </StyledTableContainer>
 
                 <StyledTableContainer isMobile={isMobile}>
                     <SectionHeaderRow>

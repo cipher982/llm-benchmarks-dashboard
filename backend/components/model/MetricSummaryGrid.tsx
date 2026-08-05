@@ -1,5 +1,16 @@
+/**
+ * Summary metrics on the provider and model templates.
+ *
+ * These were four bordered MUI cards on a 12-column grid. At 390px each card
+ * spanned the full width, so four numbers cost roughly half a viewport, and the
+ * values were set barely larger than the prose beside them — the opposite of
+ * "numbers are the typography". It is the Console meter strip now, the same one
+ * that opens `/cloud`, `/status` and `/local`, so a measurement looks the same
+ * wherever it appears on the site.
+ */
+
 import React from "react";
-import { Card, CardContent, Grid, Typography } from "@mui/material";
+import { MeterStrip } from "../design-system/components";
 
 export interface MetricSummaryItem {
     label: string;
@@ -12,28 +23,30 @@ interface MetricSummaryGridProps {
 }
 
 const MetricSummaryGrid: React.FC<MetricSummaryGridProps> = ({ items }) => {
+    if (!items.length) return null;
+
     return (
-        <Grid container spacing={3}>
+        <MeterStrip columns={Math.min(items.length, 4)}>
             {items.map((item) => (
-                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.label}>
-                    <Card elevation={0} sx={{ border: "1px solid", borderColor: "divider", height: "100%" }}>
-                        <CardContent>
-                            <Typography variant="overline" sx={{ color: "text.secondary" }}>
-                                {item.label}
-                            </Typography>
-                            <Typography variant="h5" component="p" sx={{ fontWeight: 600, mt: 1 }}>
-                                {item.value}
-                            </Typography>
-                            {item.helperText && (
-                                <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
-                                    {item.helperText}
-                                </Typography>
-                            )}
-                        </CardContent>
-                    </Card>
-                </Grid>
+                <div key={item.label}>
+                    <dt>{item.label}</dt>
+                    <dd>{item.value}</dd>
+                    {item.helperText && (
+                        <dd
+                            style={{
+                                fontSize: "10px",
+                                fontWeight: 400,
+                                letterSpacing: 0,
+                                marginTop: "4px",
+                                opacity: 0.7,
+                            }}
+                        >
+                            {item.helperText}
+                        </dd>
+                    )}
+                </div>
             ))}
-        </Grid>
+        </MeterStrip>
     );
 };
 

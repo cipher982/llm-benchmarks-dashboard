@@ -15,6 +15,8 @@ import React, { useMemo } from 'react';
 import { ColumnDef, SortingState } from '@tanstack/react-table';
 import Link from 'next/link';
 import { Tooltip } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { TableRow } from '../../../types/ProcessedData';
 import TanStackTable from '../TanStackTable';
 import { colors, typography } from '../../design-system';
@@ -71,6 +73,9 @@ const providerStyle: React.CSSProperties = {
 const dim: React.CSSProperties = { color: colors.textMute };
 
 const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
+    const theme = useTheme();
+    const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
+
     // Shared ceiling for the range strips. Computed once so a row's strip means
     // the same thing as the row above it.
     const scaleMax = useMemo(
@@ -364,6 +369,22 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
         },
     ], [scaleMax, trends]);
 
+    /**
+     * At 390px the table is wider than the screen and scrolls horizontally, so
+     * whatever sits in the first ~390px is all most readers will ever see. The
+     * full column set put Model, Provider and State there — identity and
+     * metadata — and pushed Mean off-screen, which on a throughput benchmark is
+     * exactly backwards. The narrow set leads with the measurement.
+     */
+    const visibleColumns = useMemo(() => {
+        if (!isNarrow) return columns;
+        const keep = new Set(['model_name', 'tokens_per_second_mean', 'spread', 'time_to_first_token_mean']);
+        return columns.filter((column) => {
+            const id = (column as any).id ?? (column as any).accessorKey;
+            return keep.has(id);
+        });
+    }, [columns, isNarrow]);
+
     const tableData = useMemo(() => data.map((row, index) => ({ id: index, ...row })), [data]);
 
     const initialSorting: SortingState = [{ id: 'tokens_per_second_mean', desc: true }];
@@ -371,7 +392,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
     return (
         <TanStackTable
             data={tableData}
-            columns={columns}
+            columns={visibleColumns}
             height={620}
             virtualized={data.length > 100}
             sortable={true}
