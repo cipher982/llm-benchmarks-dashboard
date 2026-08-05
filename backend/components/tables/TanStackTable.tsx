@@ -23,6 +23,7 @@ import {
   typography,
   spacing,
 } from '../design-system';
+import { virtualRowOffset } from '../../utils/virtualTable';
 
 const FLAGGED_STATUSES = new Set([
   'likely_deprecated',
@@ -263,11 +264,28 @@ function TanStackTable<T>({
   // The row canvas starts below the sticky header, so the virtualizer's offsets
   // are shifted by exactly that much. Without telling it, the window it chooses
   // to render drifts from what is actually on screen.
+  //
+  // Measured once and then only when the header actually changes size. An
+  // effect with no dependency array would re-read `offsetHeight` after every
+  // render — including every scroll-driven virtualizer render — forcing a
+  // synchronous reflow per frame, and would still miss a resize that did not
+  // happen to coincide with a render.
   const [headerHeight, setHeaderHeight] = React.useState(0);
   React.useLayoutEffect(() => {
-    const measured = headerRef.current?.offsetHeight ?? 0;
-    setHeaderHeight((current) => (current === measured ? current : measured));
-  });
+    const node = headerRef.current;
+    if (!node) return;
+
+    const measure = () => {
+      const measured = node.offsetHeight;
+      setHeaderHeight((current) => (current === measured ? current : measured));
+    };
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [virtualized, rows.length > 0]);
 
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
@@ -306,15 +324,20 @@ function TanStackTable<T>({
               strip above reported "Max tok/s 275", so the page stated a number
               its own leaderboard appeared to contradict. A benchmark site
               cannot hide the fastest row. */}
+          {/* `aria-rowcount` because the DOM only ever holds the ~30 rows in
+              the virtual window; without it a screen reader reports the window
+              as the whole table. */}
           <div
             role="table"
             aria-label="Benchmark data table"
+            aria-rowcount={rows.length}
             style={{ width: '100%' }}
           >
             {/* Header */}
             <div
               ref={headerRef}
               role="row"
+              aria-rowindex={1}
               style={{
                 display: 'flex',
                 position: 'sticky',
@@ -327,22 +350,13 @@ function TanStackTable<T>({
                 const sortDirection = header.column.getIsSorted();
                 const canSort = sortable && header.column.getCanSort();
                 
-                const handleKeyDown = (e: React.KeyboardEvent) => {
-                  if (canSort && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    header.column.getToggleSortingHandler()?.(e as any);
-                  }
-                };
-                
                 return (
                   <VirtualHeaderCell
                     key={header.id}
                     role="columnheader"
                     aria-sort={canSort ? (sortDirection === 'asc' ? 'ascending' : sortDirection === 'desc' ? 'descending' : 'none') : undefined}
                     sortable={canSort}
-                    tabIndex={canSort ? 0 : undefined}
                     onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                    onKeyDown={canSort ? handleKeyDown : undefined}
                     style={{
                       width: columnWidths[index],
                       minWidth: columnWidths[index],
@@ -378,17 +392,14 @@ function TanStackTable<T>({
                   <div
                     key={row.id}
                     role="row"
+                    aria-rowindex={virtualRow.index + 2}
                     style={{
                       position: 'absolute',
                       top: 0,
                       left: 0,
                       width: '100%',
                       height: `${virtualRow.size}px`,
-                      // `scrollMargin` is already folded into `start`; the row
-                      // canvas is itself offset by that much in normal flow, so
-                      // leaving it in would double-count and open a blank band
-                      // under the header.
-                      transform: `translateY(${virtualRow.start - headerHeight}px)`,
+                      transform: `translateY(${virtualRowOffset(virtualRow.start, headerHeight)}px)`,
                       display: 'flex',
                       backgroundColor: virtualRow.index % 2 === 1 ? colors.zebra : undefined,
                     }}
@@ -432,14 +443,7 @@ function TanStackTable<T>({
                       (header.column.getIsSorted() === 'asc' ? 'ascending' : 
                        header.column.getIsSorted() === 'desc' ? 'descending' : 'none') : undefined}
                     sortable={sortable && header.column.getCanSort()}
-                    tabIndex={sortable && header.column.getCanSort() ? 0 : undefined}
                     onClick={sortable ? header.column.getToggleSortingHandler() : undefined}
-                    onKeyDown={(e) => {
-                      if (sortable && header.column.getCanSort() && (e.key === 'Enter' || e.key === ' ')) {
-                        e.preventDefault();
-                        header.column.getToggleSortingHandler()?.(e as any);
-                      }
-                    }}
                     style={{
                       width: header.column.columnDef.size,
                       textAlign: alignOf(header.column),
