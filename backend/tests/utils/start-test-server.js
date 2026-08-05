@@ -16,10 +16,16 @@ const PORT_FILE = path.join(__dirname, '.test-server-port');
 
 async function startTestServer() {
   try {
-    // Find an available port
-    console.log('🔍 Looking for available port...');
-    const port = await findAvailablePort(3000, 3999);
-    console.log(`✅ Found available port: ${port}`);
+    // A fixed port by default, not a discovered one.
+    //
+    // Playwright can only wait for a server it knows the address of, and
+    // `webServer.url` has to be static in the config. With a discovered port
+    // there was nothing to wait on, so Playwright began navigating the moment
+    // the command was spawned and raced the dev server's boot — the suite
+    // failed with ERR_CONNECTION_REFUSED whenever the server lost. That suite
+    // is a tracked pre-deploy gate, so the race blocked deploys.
+    const port = Number(process.env.TEST_SERVER_PORT) || 3210;
+    console.log(`🔌 Using port ${port}`);
 
     // Write port to file for Playwright
     fs.writeFileSync(PORT_FILE, port.toString(), 'utf8');

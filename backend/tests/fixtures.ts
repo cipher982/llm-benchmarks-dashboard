@@ -20,8 +20,9 @@ function getDynamicBaseURL(): string {
     return `http://localhost:${port}`;
   }
 
-  // Fallback to environment variable or default
-  return process.env.TEST_SERVER_URL || process.env.TEST_URL || 'http://localhost:3000';
+  // Same default as start-test-server.js and the webServer url.
+  return process.env.TEST_SERVER_URL || process.env.TEST_URL
+    || `http://localhost:${process.env.TEST_SERVER_PORT || 3210}`;
 }
 
 // Load API fixtures

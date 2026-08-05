@@ -138,7 +138,10 @@ const payload = {
   },
   ridge: { xMax, points: RIDGE_POINTS, rows: ridge },
   series: { timestamps, models: series },
-  table: table.slice(0, 40),
+  // Every row, not a slice. The results table virtualizes above 100 rows, so a
+  // 40-row extract meant every local render and every screenshot exercised the
+  // non-virtualized branch — the one path that had a bug hiding the top row.
+  table,
   // Every model, trimmed to what the throughput-vs-consistency scatter plots.
   scatter: table.map((r) => ({ p: r.provider, m: r.model, x: r.mean, y: r.spread })),
   providers,

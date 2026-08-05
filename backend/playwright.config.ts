@@ -34,9 +34,12 @@ export default defineConfig({
   ],
 
   webServer: {
-    // Start our custom test server that finds an available port
     command: 'node tests/utils/start-test-server.js',
-    // Don't specify a URL - our fixtures will read the dynamic port
+    // Wait for the server to actually answer before running anything. Without
+    // this Playwright raced the dev server's boot and the suite failed with
+    // ERR_CONNECTION_REFUSED — which matters because `test:a11y` is a tracked
+    // pre-deploy gate, so a flaky start blocked deploys.
+    url: `http://localhost:${process.env.TEST_SERVER_PORT || 3210}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
     env: { MONGODB_URI: '' },
