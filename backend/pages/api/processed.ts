@@ -5,6 +5,7 @@ import { cleanTransformCloud } from '../../utils/processCloud';
 import { corsMiddleware, fetchAndProcessMetrics } from '../../utils/apiMiddleware';
 import logger from '../../utils/logger';
 import { roundNumbers } from '../../utils/dataUtils';
+import { designFixturesEnabled, getFixtureProcessed } from '../../utils/designFixtures';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -339,7 +340,7 @@ async function handler(
             include.includes('series')
         );
         const useStatic = req.query.bypass_static !== "true" && !lifecycleFilters && isFullRequest;
-        
+
         // First priority: Try to serve static file (unless bypassed)
         if (useStatic) {
             const staticServed = await tryServeStaticFile(days, res);
@@ -347,7 +348,25 @@ async function handler(
                 return; // Response already sent
             }
         }
-        
+
+        // Design mode (DESIGN_FIXTURES=1): every partial projection deliberately
+        // bypasses the static file and goes to MongoDB, so `?include=series` —
+        // the cloud page's small multiples — had no offline path even with the
+        // static files present. Serve the static file whatever the projection,
+        // and fall back to the committed extract, which is all a fresh clone
+        // has since those files are gitignored.
+        if (designFixturesEnabled()) {
+            if (!useStatic && await tryServeStaticFile(days, res)) {
+                return;
+            }
+            const fixture = await getFixtureProcessed();
+            if (fixture) {
+                res.setHeader('X-Cache-Status', 'DESIGN-FIXTURE');
+                res.status(200).json(fixture);
+                return;
+            }
+        }
+
         // If we reach here, static file was not available - generate dynamically
         logger.info(`Static file not available for days=${days}, generating dynamically`);
         

@@ -40,6 +40,8 @@ const SiteFooter = () => {
       <span aria-hidden="true"> · </span>
       <Link href="/status">collector status</Link>
       <span aria-hidden="true"> · </span>
+      {/* An API route, not a page — next/link would prefetch a JSON payload. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a href="/api/processed?days=14">raw api</a>
     </footer>
   );

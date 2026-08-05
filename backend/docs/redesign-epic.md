@@ -1,6 +1,37 @@
 # Epic: llm-benchmarks.com redesign
 
-Status: scoping · Owner: David · Created 2026-08-03
+Status: Phases 0–5 shipped · Owner: David · Created 2026-08-03 · Ported 2026-08-05
+
+## Outcome
+
+Console is ported onto the real components. Page height at 1440×900, against
+the production baseline in `.design/shots/prod/`:
+
+| Route | Before | After | Target |
+|---|---|---|---|
+| `/cloud` | 22,015px | **1,905px** | under 4,000px |
+| `/status` | 26,376px | **1,350px** | under 4,500px |
+| `/local` | 2,303px | 1,910px | — |
+| `/guides/fastest-llm-api` | 2,055px | 1,317px | — |
+| `/providers/groq` | 1,824px | 1,779px | — |
+
+Verification: `npm run test:pure` green (68 tests, 9 suites); axe clean on
+`/cloud` and `/local` at 1440×900 and 390×844 against a **production build**;
+`tests/contrast-checker.js` rewritten for the new palette and green, including
+the ten-colour series ramp at the 3:1 non-text threshold.
+
+Two notes on verification, both worth knowing before re-running it:
+
+- Against `next dev`, axe reports `document-title` and `html-has-lang` on every
+  route. `_document.tsx` does not render under the dev server, so those are an
+  artifact of the harness rather than the design. Confirmed by checking out the
+  pre-redesign `_app.tsx` and reproducing them, and by the production build
+  emitting `<html lang="en">` and a `<title>` correctly. `tests/accessibility.test.ts`
+  already carried a comment about this under a different symptom.
+- `npm run test:a11y` could not start its own server in this environment; the
+  axe pass was run directly against `next start`.
+
+What is not done, and why, is at the bottom under **Still open**.
 
 ## Why
 
@@ -126,10 +157,17 @@ motion zeroed, analytics blocked and the dev overlay hidden. `review.mjs` emits
 one scrollable HTML page and takes `--against <label>` for before/after.
 Baselines captured: `prod`, `refs` (Modal, OpenRouter).
 
-Open gap: `/providers/[provider]` and `/models/[provider]/[model]` return 500
-locally because they query MongoDB with no static or fixture fallback. Add a
-fixture path so those two templates can be iterated offline — otherwise a
-third of the site's page templates can only be reviewed against production.
+Gap closed 2026-08-05. `/status`, `/providers/[provider]` and
+`/models/[provider]/[model]` now serve `utils/designFixtures.ts` — derived from
+the committed `public/design/data.json` extract, so the shapes and names are
+real — behind `DESIGN_FIXTURES=1`, which `design:dev` sets.
+
+The gate is deliberately *not* "no `MONGODB_URI` configured". Under that rule a
+production deploy that lost its connection string would quietly serve fabricated
+status and model data instead of failing, which is worse than a 500.
+`tests/designFixtures.test.js` pins the distinction. The first version of the
+gate did use the Mongo check, and it broke `tests/modelService.naming.test.js`
+by bypassing that suite's database mocks — which is how the problem surfaced.
 
 ### Phase 1 — direction bake-off
 
@@ -287,5 +325,42 @@ first viewport carries eight global aggregates, a 22-model distribution, nine
 provider aggregate rows, a 113-model scatter and the first six result rows. No
 sentence appears above the fold.
 
-Still to do in this phase: port the direction onto the real components, then
-delete the mocks and the `public/design/` extract.
+## What the port changed against the mock
+
+The mock was a static page; the real one sorts, filters and refetches. Four
+things had to differ, and each is a decision rather than an omission.
+
+**The rank column is gone.** The mock rendered a fixed list sorted by mean, so
+`01, 02, 03` meant something. Every column in the real table sorts, so a rank
+would either print the pre-sort index — which is what it did on first port,
+showing `58` at the top of a list sorted by throughput — or renumber under the
+reader on every click. Neither is worth a column.
+
+**The small multiples use a p99 ceiling, not a maximum.** A shared y-scale is
+the whole reason a grid beats 22 autoscaled charts, but throughput spikes: one
+sample at five times a model's mean set the ceiling to 613 tok/s and pressed
+all twelve series flat against their baselines. The ceiling is now the 99th
+percentile, samples above it are clamped to it, and the note under the grid
+says how many were.
+
+**The distribution states its basis.** The ridgeline is computed over generated
+throughput while the table's Mean column prefers visible-token throughput, so
+the two rank models differently and the fastest row in one is not the fastest
+row in the other. That is real and pre-existing; the Console layout puts them
+on the same screen, which makes it look like a bug unless it is labelled.
+
+**A missing sample count reads as unknown, not zero.** `samples` was added to
+the table row in this pass, so a window whose rows predate it has no counts.
+Summing those to `0` would print a confident wrong total under "Samples".
+
+## Still open
+
+- **Model-page insight copy.** `modelService` generates sentences like "suitable
+  for latency-sensitive workloads" — benefit framing, which the raw-data
+  constraint rules out. Left alone deliberately: it is SEO surface, and
+  rewriting it is a content decision with search consequences rather than a
+  layout one.
+- **The light "spec sheet" variant.** Still explicitly out of scope per decision
+  1; the tokens are structured as semantic pairs so it remains possible.
+- **`npm run test:a11y`'s own server.** Unrelated to the redesign, but it is why
+  the axe pass had to be run by hand.

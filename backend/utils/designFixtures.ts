@@ -48,7 +48,7 @@ interface Extract {
 /**
  * Whether to serve fixtures instead of querying MongoDB. Explicit opt-in only.
  */
-export function useDesignFixtures(env: NodeJS.ProcessEnv = process.env): boolean {
+export function designFixturesEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
     return env.DESIGN_FIXTURES === '1' && env.NODE_ENV !== 'production';
 }
 
@@ -296,6 +296,78 @@ export async function getFixtureModelPageData(
         dataSpanDays: 14,
         isDeprecated: false,
         shouldNoIndex: false,
+    };
+}
+
+// =============================================================================
+// PROCESSED BUNDLE
+// =============================================================================
+
+/**
+ * The `/api/processed` payload.
+ *
+ * `?include=series` is a partial request, and partial requests deliberately
+ * bypass the static file and go to MongoDB — so the cloud page's small
+ * multiples were the one block that stayed unreviewable even with the static
+ * files on disk. Those files are gitignored anyway, so a fresh clone had
+ * nothing to fall back to.
+ *
+ * Density curves are reconstructed from the ridge rows, which is why only the
+ * 22 fastest models carry a distribution here. That is a property of the
+ * extract, not of the chart.
+ */
+export async function getFixtureProcessed(): Promise<Record<string, unknown> | null> {
+    const extract = await loadExtract();
+    if (!extract) return null;
+
+    const speedDistribution = extract.ridge.rows.map((row) => ({
+        provider: row.provider,
+        model_name: `${row.provider}-${row.model}`,
+        display_name: row.model,
+        mean_tokens_per_second: row.mean,
+        min_tokens_per_second: row.min,
+        max_tokens_per_second: row.max,
+        density_points: row.curve.map((y, i) => ({
+            x: (i / (row.curve.length - 1)) * extract.ridge.xMax,
+            y,
+        })),
+        lifecycle_status: 'active',
+    }));
+
+    const table = extract.table.map((row) => ({
+        provider: row.provider,
+        providerCanonical: row.provider,
+        providerSlug: slugify(row.provider),
+        model_name: row.model,
+        modelCanonical: row.model,
+        modelSlug: slugify(row.model),
+        tokens_per_second_mean: row.mean,
+        tokens_per_second_min: row.min,
+        tokens_per_second_max: row.max,
+        samples: row.n ?? null,
+        generated_tokens_per_second_mean: Number((row.mean * 1.08).toFixed(2)),
+        throughput_basis: 'visible',
+        time_to_first_token_mean: row.ttft ?? 0,
+        last_benchmark_date: '2026-01-15T12:00:00.000Z',
+        lifecycle_status: 'active',
+    }));
+
+    return {
+        speedDistribution,
+        timeSeries: {
+            timestamps: extract.series.timestamps,
+            models: extract.series.models.map((m) => ({
+                model_name: m.model,
+                display_name: m.model,
+                providers: [{
+                    provider: m.provider,
+                    providerCanonical: m.provider,
+                    values: m.values,
+                }],
+            })),
+        },
+        table,
+        meta: { table: { totalRows: table.length, filteredRows: table.length, flaggedStatuses: [] } },
     };
 }
 

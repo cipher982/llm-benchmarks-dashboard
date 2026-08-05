@@ -47,20 +47,21 @@ const STATUS_DISPLAY: Record<string, { label: string; tone: 'ok' | 'warn' | 'bad
     never_succeeded: { label: 'never ran', tone: 'bad' },
 };
 
-const linkStyle: React.CSSProperties = {
+// The underline is what marks a cell as navigable, so it belongs only on the
+// cells that actually link. A row without slugs — rows written before the
+// naming contract existed still lack them — must not look clickable.
+const linkRule: React.CSSProperties = {
     color: 'inherit',
     textDecoration: 'none',
     borderBottom: `1px solid ${colors.rule}`,
 };
 
 const modelStyle: React.CSSProperties = {
-    ...linkStyle,
     fontFamily: typography.fontFamily,
     fontSize: typography.sizes.md,
 };
 
 const providerStyle: React.CSSProperties = {
-    ...linkStyle,
     color: colors.textDim,
     fontSize: typography.sizes.micro,
     letterSpacing: typography.tracking.tag,
@@ -98,7 +99,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
                 return (
                     <Link
                         href={`/models/${providerSlug}/${modelSlug}`}
-                        style={modelStyle}
+                        style={{ ...modelStyle, ...linkRule }}
                         onClick={() =>
                             trackUmamiEvent('model_click', {
                                 source: 'cloud_table',
@@ -127,7 +128,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
                 return (
                     <Link
                         href={`/providers/${providerSlug}`}
-                        style={providerStyle}
+                        style={{ ...providerStyle, ...linkRule }}
                         onClick={() =>
                             trackUmamiEvent('provider_click', {
                                 source: 'cloud_table',

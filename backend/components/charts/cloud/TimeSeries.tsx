@@ -22,7 +22,7 @@ import { styled } from '@mui/material/styles';
 import { colors, typography, spacing, breakpoints } from '../../design-system';
 import { TimeSeriesData, TimeSeriesModel, TimeSeriesProvider } from '../../../types/ProcessedData';
 import { TimeRangeSelector } from '../../TimeRangeSelector';
-import { toPath, mean as meanOf } from '../../../utils/chartMath';
+import { toPath, mean as meanOf, percentile } from '../../../utils/chartMath';
 
 interface TimeSeriesChartProps {
     onTimeRangeChange?: (days: number) => Promise<void>;
@@ -336,7 +336,9 @@ const SmallMultiple = memo(({ datum, yMax }: { datum: CellDatum; yMax: number })
                 return;
             }
             const x = (i / Math.max(datum.values.length - 1, 1)) * CELL_WIDTH;
-            const y = CELL_HEIGHT - (v / yMax) * CELL_HEIGHT;
+            // Clamped, so a sample above the shared ceiling draws along the top
+            // of its cell rather than escaping the viewBox.
+            const y = CELL_HEIGHT - Math.min(v / yMax, 1) * CELL_HEIGHT;
             run.push([x, y]);
         });
         if (run.length) pts.push(run);
@@ -427,12 +429,26 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
         return { cells: sorted.slice(0, maxCells), hidden: Math.max(sorted.length - maxCells, 0) };
     }, [data.models, maxCells]);
 
-    // A shared ceiling across every cell. This is the whole reason the grid
-    // supports comparison and 22 autoscaled charts did not.
+    /**
+     * A shared ceiling across every cell. This is the whole reason the grid
+     * supports comparison and 22 autoscaled charts did not.
+     *
+     * The ceiling is the 99th percentile rather than the maximum. Throughput
+     * spikes: one sample at five times a model's mean would set the scale for
+     * every cell and press all twelve series flat against their own baselines,
+     * so the shared scale would cost legibility without buying comparison. The
+     * few samples above the ceiling are clipped to it, and the note under the
+     * grid says so.
+     */
     const yMax = useMemo(() => {
         const all = cells.flatMap((c) => c.values).filter((v): v is number => v != null);
-        return all.length ? Math.max(...all) * 1.08 : 1;
+        return all.length ? Math.max(percentile(all, 99) * 1.05, 1) : 1;
     }, [cells]);
+
+    const clipped = useMemo(
+        () => cells.flatMap((c) => c.values).filter((v): v is number => v != null && v > yMax).length,
+        [cells, yMax],
+    );
 
     if (!data.timestamps.length || !cells.length) {
         return <Note>No time series data available.</Note>;
@@ -449,7 +465,9 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 ))}
             </Grid>
             <Note>
-                Shared vertical scale, 0 to {Math.round(yMax)} tok/s · dashed rule is the model&apos;s own mean
+                Shared vertical scale, 0 to {Math.round(yMax)} tok/s (99th percentile) · dashed rule is the
+                model&apos;s own mean
+                {clipped > 0 ? ` · ${clipped} samples above the ceiling drawn at it` : ''}
                 {hidden > 0 ? ` · ${hidden} slower models not drawn` : ''}
             </Note>
         </div>

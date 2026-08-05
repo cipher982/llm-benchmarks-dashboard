@@ -205,7 +205,6 @@ const VirtualCell = styled('div')<{ width: number }>(({ width }) => ({
  * through at all.
  */
 declare module '@tanstack/react-table' {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends unknown, TValue> {
     align?: 'left' | 'right';
   }
