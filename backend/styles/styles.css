@@ -11,21 +11,45 @@
     border: 0;
 }
 
+/* Console tokens, mirrored from components/design-system/index.ts for the few
+   rules that live in plain CSS rather than in a styled component. */
+:root {
+    --ground: #0C0D0F;
+    --surface: #101215;
+    --rule: #212429;
+    --text: #DFE3E8;
+    --text-dim: #9AA3AD;
+    --text-mute: #7A828C;
+    --accent: #7DD3C0;
+}
+
+html,
+body {
+    background: var(--ground);
+}
+
+/* Site attribution. The method notes and column definitions are page content
+   and live on the page that defines those columns, not here. */
 .SiteFooter {
-    max-width: 1200px;
-    margin: 24px auto 0;
-    padding: 12px 16px 20px;
-    color: #3f3f3f;
-    background: #ffffff;
-    border-top: 1px solid #d8d8d8;
-    font-family: Tahoma, sans-serif;
-    font-size: 12px;
-    text-align: center;
+    margin: 0;
+    padding: 12px 16px 14px;
+    color: var(--text-mute);
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-mono), "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    text-align: left;
 }
 
 .SiteFooter a {
-    color: inherit;
-    font-weight: 700;
+    color: var(--text-dim);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.SiteFooter a:hover {
+    color: var(--text);
 }
 
 /* Legacy alias for backwards compatibility */

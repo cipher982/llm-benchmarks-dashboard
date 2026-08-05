@@ -1,0 +1,39 @@
+{
+  "viewports": {
+    "desktop": {
+      "width": 1440,
+      "height": 900
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  "routes": [
+    {
+      "id": "variant-a",
+      "path": "/design/a.html",
+      "note": "Readout \u2014 panels + charts as hero"
+    },
+    {
+      "id": "variant-b",
+      "path": "/design/b.html",
+      "note": "Ledger \u2014 table as hero, chrome removed"
+    },
+    {
+      "id": "variant-c",
+      "path": "/design/c.html",
+      "note": "Outlier \u2014 signature visual + editorial hierarchy"
+    },
+    {
+      "id": "variant-d",
+      "path": "/design/d.html",
+      "note": "Console \u2014 mono-dominant, maximum density"
+    },
+    {
+      "id": "variant-e",
+      "path": "/design/e.html",
+      "note": "Broadsheet \u2014 editorial, charts as exhibits"
+    }
+  ]
+}

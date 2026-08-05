@@ -1,33 +1,30 @@
 /**
- * Material-UI Theme Configuration
- * 
- * Modern theme implementation using our Windows 98 design system.
- * Integrates design tokens with Material-UI's theming system.
- * 
- * @fileoverview Clean Material-UI theme with design system integration
- * @version 2.0.0
+ * Material-UI theme for the Console design system.
+ *
+ * MUI is still used for layout primitives, media queries and a handful of
+ * controls, so its defaults have to resolve to the same tokens the rest of the
+ * site uses. Everything here reads from `../design-system`; nothing declares a
+ * colour of its own.
  */
 
 import { createTheme, Theme } from '@mui/material/styles';
-import { 
-  colors, 
-  providerColors, 
-  typography, 
-  spacing, 
-  breakpoints, 
+import {
+  colors,
+  providerColors,
+  seriesRamp,
+  typography,
+  spacing,
+  breakpoints,
   sizing,
   Provider,
   getProviderColor as designSystemGetProviderColor,
-  type ProviderName 
+  type ProviderName
 } from '../design-system';
 
 // =============================================================================
 // MATERIAL-UI THEME EXTENSIONS
 // =============================================================================
 
-/**
- * Extend Material-UI's theme interface to include our design system
- */
 declare module '@mui/material/styles' {
   interface Palette {
     providers: Record<ProviderName, string>;
@@ -41,6 +38,7 @@ declare module '@mui/material/styles' {
     designSystem: {
       colors: typeof colors;
       providerColors: typeof providerColors;
+      seriesRamp: typeof seriesRamp;
       typography: typeof typography;
       spacing: typeof spacing;
       breakpoints: typeof breakpoints;
@@ -52,6 +50,7 @@ declare module '@mui/material/styles' {
     designSystem?: {
       colors?: typeof colors;
       providerColors?: typeof providerColors;
+      seriesRamp?: typeof seriesRamp;
       typography?: typeof typography;
       spacing?: typeof spacing;
       breakpoints?: typeof breakpoints;
@@ -71,9 +70,6 @@ export const getProviderColor = (theme: Theme, provider: Provider): string => {
   return designSystemGetProviderColor(provider);
 };
 
-/**
- * Re-export Provider enum and types for convenience
- */
 export { Provider } from '../design-system';
 export type { ProviderName } from '../design-system';
 
@@ -82,88 +78,98 @@ export type { ProviderName } from '../design-system';
 // MATERIAL-UI THEME CREATION
 // =============================================================================
 
-/**
- * Create the Material-UI theme using our design system tokens
- */
 const theme = createTheme({
-  // Design system integration
   designSystem: {
     colors,
     providerColors,
+    seriesRamp,
     typography,
     spacing,
     breakpoints,
     sizing,
   },
-  
-  // Palette using design system colors
+
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: colors.primary,
-      contrastText: colors.primaryText,
+      main: colors.accent,
+      contrastText: colors.accentInk,
     },
     secondary: {
-      main: colors.borderMedium,
-      contrastText: colors.primaryText,
+      main: colors.textDim,
+      contrastText: colors.ground,
     },
     error: {
-      main: colors.error,
-      contrastText: colors.primaryText,
+      main: colors.bad,
+      contrastText: colors.ground,
+    },
+    warning: {
+      main: colors.warn,
+      contrastText: colors.ground,
+    },
+    success: {
+      main: colors.ok,
+      contrastText: colors.ground,
     },
     background: {
-      default: colors.background,
+      default: colors.ground,
       paper: colors.surface,
     },
     text: {
-      primary: colors.textPrimary,
-      secondary: colors.textSecondary,
-      disabled: colors.textDisabled,
+      primary: colors.text,
+      secondary: colors.textDim,
+      disabled: colors.textMute,
     },
-    divider: colors.borderMedium,
-    // Provider colors integrated into theme
+    divider: colors.rule,
     providers: providerColors,
   },
-  
-  // Spacing using design system
+
   spacing: spacing.unit,
-  
-  // Breakpoints using design system
+
   breakpoints: {
     values: breakpoints,
   },
-  
-  // Typography using design system
+
+  // The type scale is deliberately compressed. Headings are section labels, not
+  // display type — the largest thing on a page should be a measured value.
   typography: {
     fontFamily: typography.fontFamily,
     h1: {
-      fontSize: typography.sizes['3xl'],
-      fontWeight: typography.weights.normal,
+      fontFamily: typography.monoFamily,
+      fontSize: typography.sizes.md,
+      fontWeight: typography.weights.medium,
+      letterSpacing: typography.tracking.tag,
       lineHeight: typography.lineHeights.tight,
     },
     h2: {
-      fontSize: typography.sizes['2xl'],
-      fontWeight: typography.weights.normal,
+      fontFamily: typography.monoFamily,
+      fontSize: typography.sizes.micro,
+      fontWeight: typography.weights.medium,
+      letterSpacing: typography.tracking.label,
+      textTransform: 'uppercase',
       lineHeight: typography.lineHeights.tight,
     },
     h3: {
-      fontSize: typography.sizes.xl,
-      fontWeight: typography.weights.normal,
+      fontFamily: typography.monoFamily,
+      fontSize: typography.sizes.xs,
+      fontWeight: typography.weights.medium,
+      letterSpacing: typography.tracking.label,
+      textTransform: 'uppercase',
       lineHeight: typography.lineHeights.normal,
     },
     h4: {
-      fontSize: typography.sizes.lg,
-      fontWeight: typography.weights.normal,
+      fontSize: typography.sizes.md,
+      fontWeight: typography.weights.medium,
       lineHeight: typography.lineHeights.normal,
     },
     h5: {
-      fontSize: typography.sizes.md,
-      fontWeight: typography.weights.normal,
+      fontSize: typography.sizes.base,
+      fontWeight: typography.weights.medium,
       lineHeight: typography.lineHeights.normal,
     },
     h6: {
-      fontSize: typography.sizes.base,
-      fontWeight: typography.weights.normal,
+      fontSize: typography.sizes.sm,
+      fontWeight: typography.weights.medium,
       lineHeight: typography.lineHeights.normal,
     },
     body1: {
@@ -175,48 +181,46 @@ const theme = createTheme({
       lineHeight: typography.lineHeights.normal,
     },
     caption: {
+      fontFamily: typography.monoFamily,
       fontSize: typography.sizes.xs,
       lineHeight: typography.lineHeights.tight,
     },
   },
-  
-  // Shape using design system
+
   shape: {
-    borderRadius: 0, // Windows 98 sharp corners
+    borderRadius: 0,
   },
-  
-  // Component overrides using design system tokens
+
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
           borderRadius: 0,
-          border: `2px outset ${colors.surfaceElevated}`,
-          backgroundColor: colors.surfaceElevated,
-          color: colors.textPrimary,
-          fontFamily: typography.fontFamily,
-          fontSize: typography.sizes.base,
-          textTransform: 'none',
-          minHeight: `${sizing.buttonHeight.md}px`,
-          padding: `${spacing.scale[1]}px ${spacing.scale[4]}px`,
+          border: `1px solid ${colors.rule}`,
+          backgroundColor: colors.raised,
+          color: colors.textDim,
+          fontFamily: typography.monoFamily,
+          fontSize: typography.sizes.micro,
+          letterSpacing: typography.tracking.tag,
+          textTransform: 'uppercase',
+          minHeight: `${sizing.buttonHeight.sm}px`,
+          padding: `${spacing.scale[1]}px ${spacing.scale[2]}px`,
+          boxShadow: 'none',
           '&:hover': {
-            backgroundColor: colors.hover,
-            border: `2px outset ${colors.surfaceElevated}`,
-          },
-          '&:active': {
-            border: `2px inset ${colors.surfaceElevated}`,
+            backgroundColor: colors.raised,
+            border: `1px solid ${colors.rule}`,
+            color: colors.text,
+            boxShadow: 'none',
           },
         },
         containedPrimary: {
-          backgroundColor: colors.primary,
-          color: colors.primaryText,
-          border: `2px outset ${colors.primary}`,
+          backgroundColor: colors.accent,
+          color: colors.accentInk,
+          border: `1px solid ${colors.accent}`,
           '&:hover': {
-            backgroundColor: colors.primary,
-            border: `2px outset ${colors.primary}`,
-          },
-          '&:active': {
-            border: `2px inset ${colors.primary}`,
+            backgroundColor: colors.accent,
+            color: colors.accentInk,
+            border: `1px solid ${colors.accent}`,
           },
         },
       },
@@ -224,22 +228,21 @@ const theme = createTheme({
     MuiTable: {
       styleOverrides: {
         root: {
-          borderColor: colors.borderMedium,
-          border: `1px solid ${colors.borderMedium}`,
+          borderColor: colors.rule,
         },
       },
     },
     MuiInputBase: {
       styleOverrides: {
         root: {
-          color: '#FFFFFF',
-          fontFamily: typography.fontFamily,
-          fontSize: typography.sizes.base,
+          color: colors.text,
+          fontFamily: typography.monoFamily,
+          fontSize: typography.sizes.sm,
           '& .MuiInputBase-input': {
-            color: '#FFFFFF',
+            color: colors.text,
           },
           '& .MuiSvgIcon-root': {
-            color: '#FFFFFF',
+            color: colors.textMute,
           },
         },
       },
@@ -247,23 +250,28 @@ const theme = createTheme({
     MuiSelect: {
       styleOverrides: {
         icon: {
-          color: '#FFFFFF',
+          color: colors.textMute,
         },
       },
     },
     MuiTableCell: {
       styleOverrides: {
         head: {
-          fontWeight: typography.weights.normal,
-          backgroundColor: colors.surfaceElevated,
-          borderBottom: `1px solid ${colors.borderMedium}`,
-          fontFamily: typography.fontFamily,
-          fontSize: typography.sizes.base,
+          fontFamily: typography.monoFamily,
+          fontSize: typography.sizes.micro,
+          fontWeight: typography.weights.medium,
+          letterSpacing: typography.tracking.label,
+          textTransform: 'uppercase',
+          color: colors.textMute,
+          backgroundColor: colors.surface,
+          borderBottom: `1px solid ${colors.rule}`,
         },
         root: {
-          borderBottom: `1px solid ${colors.borderMedium}`,
-          fontFamily: typography.fontFamily,
-          fontSize: typography.sizes.base,
+          borderBottom: `1px solid ${colors.ruleSoft}`,
+          fontFamily: typography.monoFamily,
+          fontSize: typography.sizes.sm,
+          fontVariantNumeric: 'tabular-nums',
+          color: colors.text,
           padding: `${spacing.scale[1]}px ${spacing.scale[2]}px`,
         },
       },
@@ -271,83 +279,41 @@ const theme = createTheme({
     MuiListItemIcon: {
       styleOverrides: {
         root: {
-          color: colors.primary,
+          color: colors.textMute,
+        },
+      },
+    },
+    MuiLink: {
+      styleOverrides: {
+        root: {
+          color: colors.accent,
+          textDecorationColor: colors.rule,
         },
       },
     },
     MuiCssBaseline: {
       styleOverrides: `
-        body {
-          background-color: ${colors.background};
-          font-family: ${typography.fontFamily};
+        html {
+          background-color: ${colors.ground};
         }
-        
-        .MuiDataGrid-root {
-          border: 1px solid ${colors.borderMedium};
-          font-family: ${typography.fontFamily};
+
+        body {
+          background-color: ${colors.ground};
+          color: ${colors.text};
+          font-family: ${typography.monoFamily};
           font-size: ${typography.sizes.base};
-          background-color: ${colors.surface};
-          color: #FFFFFF;
-          
-          & .MuiDataGrid-columnHeaders {
-            background-color: ${colors.surfaceElevated};
-            border-bottom: 2px solid ${colors.borderMedium};
-            font-weight: ${typography.weights.normal};
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-columnHeaderTitle {
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-cell {
-            border-bottom: 1px solid ${colors.borderMedium};
-            border-right: 1px solid ${colors.borderMedium};
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-columnSeparator {
-            color: ${colors.borderMedium};
-          }
-          
-          & .MuiDataGrid-sortIcon {
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-menuIcon {
-            color: #FFFFFF;
-          }
-          
-          & .MuiDataGrid-footerContainer {
-            background-color: ${colors.surface};
-            border-top: 1px solid ${colors.borderMedium};
-            color: #FFFFFF;
-          }
-          
-          & .MuiTablePagination-root {
-            color: #FFFFFF;
-          }
-          
-          & .MuiTablePagination-selectLabel,
-          & .MuiTablePagination-displayedRows {
-            color: #FFFFFF;
-          }
-          
-          & .MuiTablePagination-select {
-            color: #FFFFFF;
-          }
-          
-          & .MuiTablePagination-selectIcon {
-            color: #FFFFFF;
-          }
-          
-          & .MuiIconButton-root {
-            color: #FFFFFF;
-          }
-          
-          & .MuiIconButton-root.Mui-disabled {
-            color: rgba(255, 255, 255, 0.3);
-          }
+          line-height: ${typography.lineHeights.normal};
+          -webkit-font-smoothing: antialiased;
+        }
+
+        ::selection {
+          background-color: ${colors.accent};
+          color: ${colors.accentInk};
+        }
+
+        :focus-visible {
+          outline: 1px solid ${colors.accent};
+          outline-offset: 1px;
         }
       `,
     },
@@ -360,20 +326,14 @@ const theme = createTheme({
 
 export default theme;
 
-/**
- * Type-safe theme access for components
- */
 export type AppTheme = typeof theme;
 
-/**
- * Design system re-exports for convenience
- */
 export {
   colors,
   providerColors,
+  seriesRamp,
   typography,
   spacing,
   breakpoints,
   sizing,
 } from '../design-system';
-

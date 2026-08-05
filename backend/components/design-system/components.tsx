@@ -1,22 +1,24 @@
 /**
- * Windows 98 Component Library
- * 
- * Complete set of reusable Windows 98 themed components built with
- * Material-UI's styled() function and our design system.
- * 
- * @fileoverview Modern component library using design system tokens
- * @version 2.0.0
+ * Console component library.
+ *
+ * The page is a stack of full-bleed blocks separated by hairlines. There is no
+ * card, no bevel and no shadow: depth is the ground → surface → raised step and
+ * nothing else. Blocks are introduced by a 30px rail carrying an all-caps micro
+ * label on the left and its controls on the right.
+ *
+ * Export names are unchanged from the Win98 library so existing pages keep
+ * compiling while they are ported block by block.
  */
 
 import { styled } from '@mui/material/styles';
-import { CircularProgress, Box } from '@mui/material';
-import { 
-  colors, 
-  typography, 
-  spacing, 
+import { CircularProgress } from '@mui/material';
+import {
+  colors,
+  typography,
+  numeric,
+  spacing,
   sizing,
   breakpoints,
-  create3DBorder,
   createButtonStyles,
   type BaseComponentProps,
   type ResponsiveProps,
@@ -31,39 +33,32 @@ import {
 // LOADING COMPONENTS
 // =============================================================================
 
-/**
- * Full-screen loading container with Windows 98 styling
- */
 export const LoadingContainer = styled('div')({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   height: '100vh',
-  backgroundColor: colors.background,
-  fontFamily: typography.fontFamily,
+  backgroundColor: colors.ground,
+  fontFamily: typography.monoFamily,
 });
 
 /**
- * Chart-specific loading container
+ * Placeholder that holds a chart's slot while it loads. Sized well below the
+ * old 600px so a loading page is not taller than the page it becomes.
  */
 export const ChartLoadingContainer = styled('div')({
   width: '100%',
-  height: '600px',
+  minHeight: '220px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: colors.surface,
-  border: `2px inset ${colors.surfaceElevated}`,
-  boxShadow: sizing.shadows.md,
+  backgroundColor: colors.ground,
 });
 
-/**
- * Windows 98 themed circular progress indicator
- */
 export const StyledCircularProgress = styled(CircularProgress)({
-  color: colors.primary,
+  color: colors.accent,
   '& .MuiCircularProgress-circle': {
-    strokeLinecap: 'square', // Windows 98 sharp edges
+    strokeLinecap: 'butt',
   },
 });
 
@@ -72,23 +67,21 @@ export const StyledCircularProgress = styled(CircularProgress)({
 // =============================================================================
 
 const fixedNavOffset = {
-  desktop: '50px',
-  stacked: '128px',
-} as const;
-
-const desktopShellOffset = {
-  desktop: '68px',
-  stacked: '144px',
+  desktop: `${sizing.navHeight}px`,
+  stacked: `${sizing.navHeight * 2}px`,
 } as const;
 
 /**
- * Main application container with responsive behavior
+ * Page body. Full-bleed — the Console layout runs edge to edge and uses rules,
+ * not margins, to separate blocks.
  */
 export const MainContainer = styled('main')<ResponsiveProps>(({ isMobile }) => ({
   paddingTop: isMobile ? fixedNavOffset.stacked : fixedNavOffset.desktop,
   margin: 0,
-  backgroundColor: colors.background,
-  fontFamily: typography.fontFamily,
+  backgroundColor: colors.ground,
+  color: colors.text,
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.base,
   minHeight: '100vh',
   [`@media (max-width: ${breakpoints.md}px)`]: {
     paddingTop: fixedNavOffset.stacked,
@@ -96,16 +89,18 @@ export const MainContainer = styled('main')<ResponsiveProps>(({ isMobile }) => (
 }));
 
 /**
- * Centered content container with max-width
+ * Constrains prose to a readable measure. Measured content is not centred —
+ * only sentences are.
  */
 export const CenteredContentContainer = styled('div')({
-  maxWidth: '1200px',
-  margin: '0 auto',
-  padding: `0 ${spacing.scale[4]}px`,
+  maxWidth: '92ch',
+  margin: 0,
+  padding: `${spacing.scale[3]}px ${spacing.scale[4]}px`,
 });
 
 /**
- * Desktop shell that centers application windows on the Win98 desktop
+ * Wrapper for the model and provider templates, which are documents rather
+ * than dashboards and so keep a measure.
  */
 export const DesktopShell = styled('div')(({ theme }) => ({
   width: '100%',
@@ -113,73 +108,49 @@ export const DesktopShell = styled('div')(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',
   boxSizing: 'border-box',
-  padding: `${desktopShellOffset.desktop} ${theme.spacing(2)} ${theme.spacing(8)}`,
-  [theme.breakpoints.down('md')]: {
-    padding: `${desktopShellOffset.stacked} ${theme.spacing(1)} ${theme.spacing(6)}`,
-  },
-  [theme.breakpoints.down('sm')]: {
-    padding: `${desktopShellOffset.stacked} ${theme.spacing(1)} ${theme.spacing(5)}`,
-  },
+  backgroundColor: colors.ground,
+  padding: `0 0 ${theme.spacing(8)}`,
 }));
 
 /**
- * High-contrast application window surface for dense content layouts
+ * Content column for those document pages.
  */
 export const DesktopWindow = styled('div')(({ theme }) => ({
   width: '100%',
   maxWidth: 1120,
-  backgroundColor: colors.surface,
-  color: colors.textPrimary,
-  boxShadow: sizing.shadows.md,
-  borderTop: `2px solid ${colors.borderLight}`,
-  borderLeft: `2px solid ${colors.borderLight}`,
-  borderRight: `2px solid ${colors.borderDark}`,
-  borderBottom: `2px solid ${colors.borderDark}`,
-  padding: theme.spacing(4, 5),
+  backgroundColor: colors.ground,
+  color: colors.text,
+  borderLeft: `1px solid ${colors.rule}`,
+  borderRight: `1px solid ${colors.rule}`,
   display: 'flex',
   flexDirection: 'column',
-  gap: theme.spacing(4), // 32px – mirrors section spacing cadence
   [theme.breakpoints.down('lg')]: {
-    padding: theme.spacing(4),
-    maxWidth: 1000,
-  },
-  [theme.breakpoints.down('md')]: {
-    padding: theme.spacing(3),
-    gap: theme.spacing(3),
-  },
-  [theme.breakpoints.down('sm')]: {
-    padding: theme.spacing(2),
-    gap: theme.spacing(2.5),
+    borderLeft: 'none',
+    borderRight: 'none',
   },
 }));
 
-/**
- * Flexible layout container with Windows 98 styling
- */
-export const FlexContainer = styled('div')<LayoutProps>(({ 
-  direction = 'row', 
-  gap = 4, 
+export const FlexContainer = styled('div')<LayoutProps>(({
+  direction = 'row',
+  gap = 4,
   align = 'stretch',
   justify = 'start',
-  isMobile 
+  isMobile
 }) => ({
   display: 'flex',
   flexDirection: isMobile ? 'column' : direction,
   gap: spacing.scale[gap],
   alignItems: align,
   justifyContent: justify,
-  
+
   [`@media (max-width: ${breakpoints.md}px)`]: {
     flexDirection: 'column',
   },
 }));
 
-/**
- * Flex item with responsive behavior
- */
-export const FlexItem = styled('div')<{ flex?: number } & ResponsiveProps>(({ 
-  flex = 1, 
-  isMobile 
+export const FlexItem = styled('div')<{ flex?: number } & ResponsiveProps>(({
+  flex = 1,
+  isMobile
 }) => ({
   flex,
   maxWidth: isMobile ? '100%' : undefined,
@@ -187,47 +158,38 @@ export const FlexItem = styled('div')<{ flex?: number } & ResponsiveProps>(({
 }));
 
 // =============================================================================
-// WINDOWS 98 WINDOW COMPONENTS
+// CONSOLE STRUCTURE
 // =============================================================================
 
 /**
- * Complete Windows 98 application window
+ * A block of the page. Separated from the next by a single rule; no padding of
+ * its own, because the content inside decides its own gutter.
  */
-export const Window = styled('div')<ResponsiveProps>(({ isMobile }) => ({
-  border: `2px outset ${colors.surfaceElevated}`,
-  backgroundColor: colors.surface,
-  boxShadow: sizing.shadows.md,
-  margin: isMobile ? 0 : spacing.scale[8],
-  fontFamily: typography.fontFamily,
-  
-  [`@media (min-width: ${breakpoints.md}px)`]: {
-    maxWidth: '640px',
-    margin: `${spacing.scale[8]}px auto`,
-  },
-  
-  [`@media (max-width: ${breakpoints.sm}px)`]: {
-    height: '100vh',
-    margin: 0,
-    width: '100%',
-  },
+export const Window = styled('section')<ResponsiveProps>(() => ({
+  backgroundColor: colors.ground,
+  borderBottom: `1px solid ${colors.rule}`,
+  fontFamily: typography.monoFamily,
 }));
 
 /**
- * Windows 98 title bar with gradient
+ * The rail that heads a block: micro label left, controls right. Replaces the
+ * gradient title bar.
  */
 export const TitleBar = styled('div')<{ title?: string }>(({ title }) => ({
-  background: `linear-gradient(90deg, ${colors.primary} 0%, #1084d0 100%)`,
-  color: colors.primaryText,
-  padding: `${spacing.scale[1]}px ${spacing.scale[2]}px`,
   display: 'flex',
-  justifyContent: 'space-between',
   alignItems: 'center',
-  fontFamily: typography.fontFamily,
-  fontSize: typography.sizes.base,
-  fontWeight: typography.weights.normal,
-  height: `${sizing.titleBarHeight}px`,
+  gap: `${spacing.scale[3]}px`,
+  minHeight: `${sizing.sectionHeaderHeight}px`,
+  padding: `${spacing.scale[2]}px ${spacing.scale[4]}px`,
+  backgroundColor: colors.surface,
+  borderBottom: `1px solid ${colors.rule}`,
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.micro,
+  letterSpacing: typography.tracking.label,
+  textTransform: 'uppercase',
+  color: colors.textDim,
   userSelect: 'none',
-  
+
   '&::before': title ? {
     content: `"${title}"`,
     whiteSpace: 'nowrap',
@@ -237,41 +199,22 @@ export const TitleBar = styled('div')<{ title?: string }>(({ title }) => ({
 }));
 
 /**
- * Title bar controls (minimize, maximize, close buttons)
+ * Controls docked to the right of a rail — time range, filters.
  */
 export const TitleBarControls = styled('div')({
+  marginLeft: 'auto',
   display: 'flex',
-  gap: '2px',
-  
+  gap: '1px',
+
   '& button': {
-    width: '16px',
-    height: '14px',
-    border: `1px outset ${colors.surfaceElevated}`,
-    backgroundColor: colors.surfaceElevated,
-    fontSize: '8px',
-    lineHeight: 1,
-    padding: 0,
-    color: colors.textPrimary,
-    cursor: 'pointer',
-    fontFamily: typography.fontFamily,
-    
-    '&:active': {
-      border: `1px inset ${colors.surfaceElevated}`,
-    },
-    
-    '&:hover': {
-      backgroundColor: colors.hover,
-    },
+    ...createButtonStyles('default'),
   },
 });
 
-/**
- * Window content area
- */
 export const WindowBody = styled('div')({
-  padding: spacing.scale[8],
-  backgroundColor: colors.surface,
-  fontFamily: typography.fontFamily,
+  padding: `${spacing.scale[3]}px ${spacing.scale[4]}px`,
+  backgroundColor: colors.ground,
+  fontFamily: typography.monoFamily,
 });
 
 // =============================================================================
@@ -279,90 +222,59 @@ export const WindowBody = styled('div')({
 // =============================================================================
 
 /**
- * Description section with Windows 98 styling
+ * Prose block. The only place sentences are allowed, and it sits below the
+ * measurement rather than above it.
  */
-export const DescriptionSection = styled('section')<ResponsiveProps>(({ isMobile }) => ({
+export const DescriptionSection = styled('section')<ResponsiveProps>(() => ({
   backgroundColor: colors.surface,
-  padding: spacing.scale[8],
-  border: `2px outset ${colors.surfaceElevated}`,
-  marginBottom: spacing.scale[8],
-  boxShadow: sizing.shadows.md,
+  borderBottom: `1px solid ${colors.rule}`,
+  padding: `${spacing.scale[3]}px ${spacing.scale[4]}px ${spacing.scale[4]}px`,
   fontFamily: typography.fontFamily,
-  
-  [`@media (max-width: ${breakpoints.md}px)`]: {
-    padding: spacing.scale[4],
-    marginBottom: spacing.scale[4],
+  fontSize: typography.sizes.sm,
+  lineHeight: typography.lineHeights.relaxed,
+  color: colors.textMute,
+
+  '& b, & strong': {
+    color: colors.textDim,
+    fontWeight: typography.weights.medium,
+  },
+  '& a': {
+    color: colors.accent,
   },
 }));
 
-/**
- * Chart container with inset border styling
- */
-export const ChartContainer = styled('section')<ResponsiveProps>(({ isMobile }) => ({
-  backgroundColor: colors.surface,
-  padding: spacing.scale[8],
-  border: `2px inset ${colors.surfaceElevated}`,
+export const ChartContainer = styled('section')<ResponsiveProps>(() => ({
+  backgroundColor: colors.ground,
+  borderBottom: `1px solid ${colors.rule}`,
   maxWidth: '100%',
   overflowX: 'auto',
-  marginBottom: spacing.scale[8],
-  boxShadow: sizing.shadows.md,
-  fontFamily: typography.fontFamily,
-  
-  [`@media (max-width: ${breakpoints.md}px)`]: {
-    padding: spacing.scale[4],
-    marginBottom: spacing.scale[4],
-  },
+  fontFamily: typography.monoFamily,
 }));
 
-/**
- * Table container with Windows 98 styling
- */
-export const TableContainer = styled('section')<ResponsiveProps>(({ isMobile }) => ({
-  backgroundColor: colors.surface,
-  padding: spacing.scale[8],
-  border: `2px inset ${colors.surfaceElevated}`,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: '400px',
-  marginBottom: spacing.scale[8],
-  boxShadow: sizing.shadows.md,
-  fontFamily: typography.fontFamily,
-  
-  [`@media (max-width: ${breakpoints.md}px)`]: {
-    padding: spacing.scale[4],
-    marginBottom: spacing.scale[4],
-  },
+export const TableContainer = styled('section')<ResponsiveProps>(() => ({
+  backgroundColor: colors.ground,
+  borderBottom: `1px solid ${colors.rule}`,
+  display: 'block',
+  fontFamily: typography.monoFamily,
 }));
 
 // =============================================================================
 // CONTENT CONTAINERS
 // =============================================================================
 
-/**
- * Chart content with proper sizing
- */
 export const ChartContent = styled('div')({
-  maxWidth: '1100px',
-  maxHeight: '600px',
   width: '100%',
-  height: '100%',
-  margin: '0 auto',
-  paddingBottom: spacing.scale[6],
+  margin: 0,
+  padding: `${spacing.scale[2]}px ${spacing.scale[4]}px ${spacing.scale[3]}px`,
 });
 
 /**
- * Table content with responsive sizing
+ * Tables are wide and dense; they scroll horizontally rather than wrap.
  */
-export const TableContent = styled('div')<ResponsiveProps>(({ isMobile }) => ({
-  height: '100%',
+export const TableContent = styled('div')<ResponsiveProps>(() => ({
   width: '100%',
-  maxWidth: '850px',
-  overflow: 'auto',
-  paddingLeft: isMobile ? 0 : spacing.scale[6],
-  paddingRight: isMobile ? 0 : spacing.scale[6],
-  margin: '0 auto',
+  overflowX: 'auto',
+  margin: 0,
 }));
 
 // =============================================================================
@@ -370,106 +282,214 @@ export const TableContent = styled('div')<ResponsiveProps>(({ isMobile }) => ({
 // =============================================================================
 
 /**
- * Page title with Windows 98 styling
+ * Page title. Small and left-aligned: it identifies the page, it does not
+ * introduce it.
  */
 export const PageTitle = styled('h1')({
-  textAlign: 'center',
-  color: colors.textPrimary,
-  marginBottom: spacing.scale[4],
-  fontSize: typography.sizes['3xl'],
-  fontWeight: typography.weights.normal,
-  fontFamily: typography.fontFamily,
+  margin: 0,
+  color: colors.text,
+  fontSize: typography.sizes.md,
+  fontWeight: typography.weights.medium,
+  fontFamily: typography.monoFamily,
+  letterSpacing: typography.tracking.tag,
   lineHeight: typography.lineHeights.tight,
 });
 
 /**
- * Section header
+ * Block label. Same treatment as the rail, so a heading and a rail read as one
+ * system wherever they appear together.
  */
 export const SectionHeader = styled('h2')({
-  textAlign: 'center',
-  color: colors.textPrimary,
-  marginBottom: spacing.scale[4],
-  fontSize: typography.sizes.xl,
-  fontWeight: typography.weights.normal,
-  fontFamily: typography.fontFamily,
-  lineHeight: typography.lineHeights.normal,
+  margin: 0,
+  color: colors.textDim,
+  fontSize: typography.sizes.micro,
+  fontWeight: typography.weights.medium,
+  fontFamily: typography.monoFamily,
+  letterSpacing: typography.tracking.label,
+  textTransform: 'uppercase',
+  lineHeight: typography.lineHeights.tight,
 });
 
-/**
- * Subsection header
- */
 export const SubsectionHeader = styled('h5')({
-  color: colors.textPrimary,
-  marginBottom: spacing.scale[3],
-  fontSize: typography.sizes.lg,
-  fontWeight: typography.weights.normal,
-  fontFamily: typography.fontFamily,
+  margin: `0 0 ${spacing.scale[2]}px`,
+  color: colors.textDim,
+  fontSize: typography.sizes.xs,
+  fontWeight: typography.weights.medium,
+  fontFamily: typography.monoFamily,
+  letterSpacing: typography.tracking.tag,
+  textTransform: 'uppercase',
   lineHeight: typography.lineHeights.normal,
 });
 
-/**
- * Body text with Windows 98 styling
- */
 export const BodyText = styled('p')({
-  color: colors.textPrimary,
-  fontSize: typography.sizes.base,
+  color: colors.textMute,
+  fontSize: typography.sizes.sm,
   fontFamily: typography.fontFamily,
-  lineHeight: typography.lineHeights.normal,
-  marginBottom: spacing.scale[3],
+  lineHeight: typography.lineHeights.relaxed,
+  margin: `0 0 ${spacing.scale[2]}px`,
 });
+
+/**
+ * A measured value. Anything the site actually measured is set with this.
+ */
+export const Figure = styled('span')<{ size?: 'sm' | 'md' | 'lg' | 'xl' }>(({ size = 'lg' }) => ({
+  ...numeric,
+  fontSize: typography.sizes[size],
+  fontWeight: typography.weights.medium,
+  letterSpacing: typography.tracking.figure,
+  lineHeight: typography.lineHeights.tight,
+  color: colors.text,
+}));
+
+/**
+ * The unit that trails a figure. Deliberately much smaller — the number is the
+ * content, the unit is a footnote to it.
+ */
+export const FigureUnit = styled('small')({
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.xs,
+  fontWeight: typography.weights.normal,
+  color: colors.textMute,
+  marginLeft: '3px',
+  letterSpacing: 0,
+});
+
+/**
+ * All-caps micro label above a figure or beside a row.
+ */
+export const MicroLabel = styled('span')({
+  display: 'block',
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.micro,
+  letterSpacing: typography.tracking.label,
+  textTransform: 'uppercase',
+  color: colors.textMute,
+  whiteSpace: 'nowrap',
+});
+
+// =============================================================================
+// METER STRIP
+// =============================================================================
+
+/**
+ * The row of global aggregates that opens a page. Every cell is a distinct
+ * statistic — a value that appears here does not appear again lower down.
+ */
+export const MeterStrip = styled('dl')<{ columns?: number }>(({ columns = 8 }) => ({
+  display: 'grid',
+  gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+  margin: 0,
+  backgroundColor: colors.surface,
+  borderBottom: `1px solid ${colors.rule}`,
+
+  '& > div': {
+    padding: `${spacing.scale[2]}px ${spacing.scale[4]}px`,
+    borderRight: `1px solid ${colors.rule}`,
+    minWidth: 0,
+  },
+  '& > div:last-of-type': {
+    borderRight: 0,
+  },
+  '& dt': {
+    fontSize: typography.sizes.micro,
+    letterSpacing: typography.tracking.label,
+    textTransform: 'uppercase',
+    color: colors.textMute,
+    marginBottom: '5px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  '& dd': {
+    ...numeric,
+    margin: 0,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.medium,
+    letterSpacing: typography.tracking.figure,
+    lineHeight: 1,
+    color: colors.text,
+  },
+
+  [`@media (max-width: ${breakpoints.lg}px)`]: {
+    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+    '& > div': { borderBottom: `1px solid ${colors.rule}` },
+    '& > div:nth-of-type(4n)': { borderRight: 0 },
+  },
+  [`@media (max-width: ${breakpoints.sm}px)`]: {
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    '& > div:nth-of-type(4n)': { borderRight: `1px solid ${colors.rule}` },
+    '& > div:nth-of-type(2n)': { borderRight: 0 },
+  },
+}));
+
+/**
+ * Two blocks side by side with a rule between them, collapsing to a stack.
+ */
+export const SplitRow = styled('div')<{ asideWidth?: number }>(({ asideWidth = 420 }) => ({
+  display: 'grid',
+  gridTemplateColumns: `minmax(0, 1fr) ${asideWidth}px`,
+  borderBottom: `1px solid ${colors.rule}`,
+
+  '& > *': {
+    borderRight: `1px solid ${colors.rule}`,
+    minWidth: 0,
+  },
+  '& > *:last-child': {
+    borderRight: 0,
+  },
+
+  [`@media (max-width: ${breakpoints.lg}px)`]: {
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    '& > *': {
+      borderRight: 0,
+      borderBottom: `1px solid ${colors.rule}`,
+    },
+    '& > *:last-child': { borderBottom: 0 },
+  },
+}));
 
 // =============================================================================
 // BUTTON COMPONENTS
 // =============================================================================
 
-/**
- * Windows 98 styled button component
- */
-export const Button = styled('button')<{ 
-  variant?: ButtonVariant; 
-  size?: ButtonSize; 
-  disabled?: boolean 
+export const Button = styled('button')<{
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  disabled?: boolean
 }>(({ variant = 'default', size = 'md', disabled }) => {
   const baseStyles = createButtonStyles(variant);
-  
+
   const sizeStyles = {
-    sm: { 
+    sm: {
       minHeight: `${sizing.buttonHeight.sm}px`,
       padding: `${spacing.scale[1]}px ${spacing.scale[2]}px`,
+      fontSize: typography.sizes.micro,
+    },
+    md: {
+      minHeight: `${sizing.buttonHeight.md}px`,
+      padding: `${spacing.scale[1]}px ${spacing.scale[3]}px`,
+      fontSize: typography.sizes.micro,
+    },
+    lg: {
+      minHeight: `${sizing.buttonHeight.lg}px`,
+      padding: `${spacing.scale[2]}px ${spacing.scale[4]}px`,
       fontSize: typography.sizes.xs,
     },
-    md: { 
-      minHeight: `${sizing.buttonHeight.md}px`,
-      padding: `${spacing.scale[1]}px ${spacing.scale[4]}px`,
-      fontSize: typography.sizes.base,
-    },
-    lg: { 
-      minHeight: `${sizing.buttonHeight.lg}px`,
-      padding: `${spacing.scale[2]}px ${spacing.scale[6]}px`,
-      fontSize: typography.sizes.md,
-    },
   };
-  
+
   const disabledStyles = disabled ? {
-    opacity: 0.5,
+    opacity: 0.4,
     cursor: 'not-allowed',
     pointerEvents: 'none' as const,
   } : {};
-  
+
   return {
     ...baseStyles,
     ...sizeStyles[size],
     ...disabledStyles,
-    
-    '&:active': !disabled ? {
-      ...baseStyles,
-      border: variant === 'primary' 
-        ? `2px inset ${colors.primary}` 
-        : `2px inset ${colors.surfaceElevated}`,
-    } : {},
-    
+
     '&:hover': !disabled ? {
-      backgroundColor: variant === 'primary' ? colors.primary : colors.hover,
+      color: variant === 'primary' ? colors.accentInk : colors.text,
     } : {},
   };
 });
@@ -478,50 +498,46 @@ export const Button = styled('button')<{
 // NAVIGATION COMPONENTS
 // =============================================================================
 
-/**
- * Menu bar container
- */
 export const MenuBar = styled('div')({
-  backgroundColor: colors.surfaceElevated,
-  borderBottom: `1px solid ${colors.borderMedium}`,
   display: 'flex',
-  fontFamily: typography.fontFamily,
-  fontSize: typography.sizes.base,
+  alignItems: 'center',
+  height: `${sizing.navHeight}px`,
+  backgroundColor: colors.surface,
+  borderBottom: `1px solid ${colors.rule}`,
+  fontFamily: typography.monoFamily,
 });
 
 /**
- * Menu item
+ * Navigation item. Separated by rules rather than spacing, so the bar reads as
+ * a strip of cells like the rest of the page.
  */
 export const MenuItem = styled('a')<{ active?: boolean }>(({ active }) => ({
-  padding: `${spacing.scale[1]}px ${spacing.scale[2]}px`,
+  padding: `0 ${spacing.scale[4]}px`,
+  height: `${sizing.navHeight}px`,
+  lineHeight: `${sizing.navHeight}px`,
   cursor: 'pointer',
-  color: colors.textPrimary,
   textDecoration: 'none',
-  fontFamily: typography.fontFamily,
-  fontSize: typography.sizes.base,
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.xs,
+  letterSpacing: typography.tracking.tag,
+  textTransform: 'uppercase',
   userSelect: 'none',
-  
-  ...(active && {
-    backgroundColor: colors.selected,
-    color: colors.selectedText,
-  }),
-  
+  borderLeft: `1px solid ${colors.rule}`,
+  color: active ? colors.text : colors.textMute,
+  backgroundColor: active ? colors.raised : 'transparent',
+
   '&:hover': {
-    backgroundColor: active ? colors.selected : colors.primary,
-    color: colors.primaryText,
+    color: colors.text,
   },
 }));
 
-/**
- * Status bar
- */
 export const StatusBar = styled('div')({
-  backgroundColor: colors.surfaceElevated,
-  borderTop: `1px solid ${colors.borderLight}`,
-  borderBottom: `1px solid ${colors.borderMedium}`,
-  padding: `${spacing.scale[1]}px ${spacing.scale[2]}px`,
-  fontFamily: typography.fontFamily,
-  fontSize: typography.sizes.base,
+  backgroundColor: colors.surface,
+  borderTop: `1px solid ${colors.rule}`,
+  padding: `${spacing.scale[2]}px ${spacing.scale[4]}px`,
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.xs,
+  color: colors.textMute,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -531,47 +547,38 @@ export const StatusBar = styled('div')({
 // UTILITY COMPONENTS
 // =============================================================================
 
-/**
- * Separator/Divider
- */
 export const Separator = styled('hr')({
   border: 'none',
-  borderTop: `1px solid ${colors.borderMedium}`,
-  margin: `${spacing.scale[4]}px 0`,
+  borderTop: `1px solid ${colors.rule}`,
+  margin: 0,
 });
 
-/**
- * Panel with 3D border effect
- */
 export const Panel = styled('div')<{ inset?: boolean }>(({ inset = false }) => ({
-  backgroundColor: colors.surface,
-  padding: spacing.scale[4],
-  border: inset 
-    ? `2px inset ${colors.surfaceElevated}`
-    : `2px outset ${colors.surfaceElevated}`,
-  fontFamily: typography.fontFamily,
+  backgroundColor: inset ? colors.surface : colors.raised,
+  padding: `${spacing.scale[3]}px ${spacing.scale[4]}px`,
+  border: `1px solid ${colors.rule}`,
+  fontFamily: typography.monoFamily,
 }));
 
-/**
- * Scrollable area with Windows 98 styling
- */
 export const ScrollArea = styled('div')({
   maxHeight: '400px',
   overflowY: 'auto',
   overflowX: 'hidden',
-  border: `2px inset ${colors.surfaceElevated}`,
+  border: `1px solid ${colors.rule}`,
   backgroundColor: colors.surface,
-  
-  // Windows 98 scrollbar styles (where supported)
+
   '&::-webkit-scrollbar': {
-    width: '16px',
+    width: '10px',
+    height: '10px',
   },
   '&::-webkit-scrollbar-track': {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surface,
   },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: colors.borderMedium,
-    border: `1px outset ${colors.surfaceElevated}`,
+    backgroundColor: colors.rule,
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
+    backgroundColor: colors.textMute,
   },
 });
 

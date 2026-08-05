@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variant B — Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ground:   #0A0A0B;
+  --rule:     #1E1E20;
+  --rule-soft:#151517;
+  --text:     #F2F2F0;
+  --text-dim: #9A9A96;
+  --text-mute:#63635F;
+  --up:       #5FCF89;
+  --down:     #E2725B;
+  --sans: 'Familjen Grotesk', system-ui, sans-serif;
+  --mono: 'Fragment Mono', ui-monospace, monospace;
+  --page: 1080px;
+}
+* { box-sizing: border-box; }
+html { background: var(--ground); }
+body { margin: 0; background: var(--ground); color: var(--text);
+  font: 400 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: var(--page); margin: 0 auto; padding: 0 40px; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.015em; }
+
+/* No panels anywhere. Rules and whitespace are the only structure. */
+hr { border: 0; border-top: 1px solid var(--rule); margin: 0; }
+
+header.top { border-bottom: 1px solid var(--rule); }
+.top .wrap { display: flex; align-items: center; height: 60px; gap: 30px; }
+.mark { font-weight: 700; font-size: 16px; letter-spacing: -0.03em; }
+.mark span { color: var(--text-mute); font-weight: 400; }
+nav.main { display: flex; gap: 22px; font-size: 14px; }
+nav.main a { color: var(--text-mute); }
+nav.main a[aria-current], nav.main a:hover { color: var(--text); }
+.top .right { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--text-mute); }
+
+/* ---------- opening statement, no hero art ---------- */
+.intro { padding: 52px 0 34px; display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: end; }
+.intro h1 { font-size: 27px; margin: 0 0 10px; max-width: 24ch; line-height: 1.18; }
+.intro p { margin: 0; color: var(--text-mute); font-size: 14px; max-width: 58ch; }
+.facts { display: flex; gap: 34px; font-family: var(--mono); text-align: right; }
+.facts b { display: block; font-size: 21px; font-weight: 400; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em; }
+.facts span { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-mute); }
+
+/* ---------- ranked list, the primary form ---------- */
+.blockhead { display: flex; align-items: baseline; gap: 14px; padding: 42px 0 18px; }
+.blockhead h2 { font-size: 17px; margin: 0; }
+.blockhead p { margin: 0; font-size: 13px; color: var(--text-mute); }
+.blockhead .ctl { margin-left: auto; display: flex; gap: 14px; font-family: var(--mono); font-size: 11px; }
+.ctl button { background: 0; border: 0; padding: 0; cursor: pointer; color: var(--text-mute);
+  font: inherit; letter-spacing: .06em; }
+.ctl button[aria-pressed="true"] { color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
+
+.ranks { display: grid; grid-template-columns: 1fr 1fr; column-gap: 56px; }
+.ranks ol { list-style: none; margin: 0; padding: 0; }
+.ranks li { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: baseline;
+  padding: 11px 0; border-bottom: 1px solid var(--rule-soft); }
+.ranks .n { font-family: var(--mono); font-size: 12px; color: var(--text-mute); }
+.ranks .nm { font-size: 15px; }
+.ranks .nm i { display: block; font-style: normal; font-size: 11.5px; color: var(--text-mute); margin-top: 1px; }
+.ranks .v { text-align: right; font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.ranks .v em { display: block; font-style: normal; font-size: 11px; margin-top: 2px; }
+.up { color: var(--up); } .down { color: var(--down); }
+
+/* ---------- the ledger: distribution lives inside the row ---------- */
+.ledger { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.ledger th { text-align: right; font: 400 10px var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-mute); padding: 0 0 10px; border-bottom: 1px solid var(--rule); }
+.ledger th.l { text-align: left; }
+.ledger td { padding: 9px 0; border-bottom: 1px solid var(--rule-soft); text-align: right;
+  font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ledger td.l { text-align: left; font-family: var(--sans); font-size: 14.5px; }
+.ledger td.n { color: var(--text-mute); font-size: 11.5px; width: 34px; text-align: left; }
+.ledger td.p { font-size: 11.5px; color: var(--text-mute); letter-spacing: .04em; text-align: left; width: 100px; }
+.ledger .strip { width: 34%; padding-left: 22px; padding-right: 22px; }
+.ledger tr:hover td { color: var(--text); }
+.rg-track { stroke: var(--rule); stroke-width: 1; }
+.rg-span { stroke: var(--text-dim); stroke-width: 1; }
+.rg-mean { fill: var(--text); }
+tr:hover .rg-span { stroke: var(--text); }
+.spark-line { fill: none; stroke: var(--text-mute); stroke-width: 1; }
+tr:hover .spark-line { stroke: var(--text); }
+.more { padding: 22px 0 0; font-family: var(--mono); font-size: 11.5px; color: var(--text-mute);
+  display: flex; justify-content: center; }
+
+/* ---------- time series, hairline ---------- */
+.smgrid { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 40px; row-gap: 4px; }
+.sm-cell { margin: 0; padding: 16px 0; border-bottom: 1px solid var(--rule-soft); }
+.sm-cell figcaption { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; margin-bottom: 8px; }
+.sm-model { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-provider { grid-row: 2; font: 400 10.5px var(--mono); color: var(--text-mute); letter-spacing: .06em; }
+.sm-value { grid-row: 1 / span 2; align-self: center; font-family: var(--mono); font-size: 16px;
+  font-variant-numeric: tabular-nums; }
+.sm-value i { font-style: normal; font-size: 9.5px; color: var(--text-mute); margin-left: 3px; }
+.sm { height: 40px; }
+.sm-area { fill: none; }
+.sm-line { fill: none; stroke: var(--text-dim); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.sm-cell:hover .sm-line { stroke: var(--text); }
+.sm-mean { stroke: var(--rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
+
+footer { border-top: 1px solid var(--rule); margin-top: 56px; padding: 30px 0 60px; }
+footer .wrap { display: flex; gap: 30px; font-size: 12.5px; color: var(--text-mute); }
+footer .links { margin-left: auto; display: flex; gap: 22px; font-family: var(--mono); font-size: 11.5px; }
+
+@media (max-width: 880px) {
+  .wrap { padding: 0 20px; }
+  .intro, .ranks, .smgrid { grid-template-columns: 1fr; }
+  .facts { justify-content: flex-start; text-align: left; }
+  .ledger .strip { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="mark">llm-benchmarks<span>.com</span></span>
+    <nav class="main">
+      <a href="#" aria-current="page">Cloud</a><a href="#">Local</a><a href="#">Status</a><a href="#">Guides</a>
+    </nav>
+    <span class="right" id="stamp"></span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="intro">
+    <div>
+      <h1>What inference providers actually deliver, sampled every two hours.</h1>
+      <p>Independent measurement of token generation speed across cloud LLM providers.
+         Nothing self-reported.</p>
+    </div>
+    <div class="facts" id="facts"></div>
+  </div>
+</div>
+
+<hr>
+
+<div class="wrap">
+  <div class="blockhead">
+    <h2>Fastest right now</h2>
+    <p>Mean throughput, current window</p>
+    <div class="ctl">
+      <button>1D</button><button>3D</button><button>7D</button>
+      <button aria-pressed="true">14D</button><button>30D</button>
+    </div>
+  </div>
+  <div class="ranks"><ol id="rankA"></ol><ol id="rankB"></ol></div>
+
+  <div class="blockhead">
+    <h2>Full ledger</h2>
+    <p>Range and trend for every model measured</p>
+    <div class="ctl">
+      <button>All</button><button aria-pressed="true">Active</button><button>Flagged</button>
+    </div>
+  </div>
+  <table class="ledger">
+    <thead><tr>
+      <th class="l">#</th><th class="l">Model</th><th class="l">Provider</th>
+      <th class="l strip">min · mean · max</th>
+      <th>Mean</th><th>Spread</th><th>TTFT</th><th>Trend</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="more">showing 40 of 113 — load more</div>
+
+  <div class="blockhead">
+    <h2>Over time</h2>
+    <p>Shared scale, top 12 by throughput</p>
+    <div class="ctl">
+      <button>7D</button><button aria-pressed="true">14D</button><button>30D</button>
+    </div>
+  </div>
+  <div class="smgrid" id="smgrid"></div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>Collected continuously since 2024. Method and code are open.</span>
+    <span class="links"><a href="#">GitHub</a><a href="#">Method</a><a href="#">API</a><a href="#">drose.io</a></span>
+  </div>
+</footer>
+
+<script type="module">
+import { loadData, smallMultiples, sparkline, rangeStrip, seriesFor, fmt } from './charts.js';
+
+const d = await loadData();
+document.getElementById('stamp').textContent =
+  `${fmt.date(d.window.from)} — ${fmt.date(d.window.to)} · ${d.window.points} samples`;
+
+document.getElementById('facts').innerHTML = `
+  <div><b>${d.counts.models}</b><span>models</span></div>
+  <div><b>${d.counts.providers}</b><span>providers</span></div>
+  <div><b>2h</b><span>interval</span></div>`;
+
+// A fabricated delta, standing in for period-over-period change the real page would compute.
+const delta = (i) => {
+  const v = [13, -40, 22, 3, -12, 4, -4, 465, -14, 16][i % 10];
+  return `<em class="${v >= 0 ? 'up' : 'down'}">${v >= 0 ? '↑' : '↓'}${Math.abs(v)}%</em>`;
+};
+const rankItem = (r, i) => `<li>
+  <span class="n">${i + 1}.</span>
+  <span class="nm">${r.model}<i>${r.provider}</i></span>
+  <span class="v">${fmt.int(r.mean)} tok/s${delta(i)}</span></li>`;
+
+const top10 = d.table.slice(0, 10);
+document.getElementById('rankA').innerHTML = top10.slice(0, 5).map((r, i) => rankItem(r, i)).join('');
+document.getElementById('rankB').innerHTML = top10.slice(5).map((r, i) => rankItem(r, i + 5)).join('');
+
+const scaleMax = Math.max(...d.table.map((r) => r.max));
+document.getElementById('rows').innerHTML = d.table.map((r, i) => {
+  const sp = seriesFor(d.series, r.model);
+  return `<tr>
+    <td class="n">${String(i + 1).padStart(2, '0')}</td>
+    <td class="l">${r.model}</td>
+    <td class="p">${r.provider}</td>
+    <td class="strip">${rangeStrip(r, { scaleMax })}</td>
+    <td>${fmt.int(r.mean)}</td>
+    <td>${fmt.pct(r.spread)}</td>
+    <td>${r.ttft == null ? '—' : fmt.dec(r.ttft, 2) + 's'}</td>
+    <td>${sp ? sparkline(sp, { width: 70, height: 16 }) : '—'}</td>
+  </tr>`;
+}).join('');
+
+document.getElementById('smgrid').innerHTML = smallMultiples(d.series, { cellWidth: 300, cellHeight: 60 });
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "viewports": {
+    "desktop": { "width": 1440, "height": 900 }
+  },
+  "routes": [
+    { "id": "modal-home", "path": "https://modal.com/" },
+    { "id": "modal-pricing", "path": "https://modal.com/pricing" },
+    { "id": "openrouter-home", "path": "https://openrouter.ai/" },
+    { "id": "openrouter-rankings", "path": "https://openrouter.ai/rankings" },
+    { "id": "openrouter-models", "path": "https://openrouter.ai/models" }
+  ]
+}

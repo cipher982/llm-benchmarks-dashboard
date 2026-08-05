@@ -1,0 +1,10 @@
+{
+  "viewports": { "desktop": { "width": 1440, "height": 900 } },
+  "routes": [
+    { "id": "g-a", "path": "/design/gallery.html#a" },
+    { "id": "g-b", "path": "/design/gallery.html#b" },
+    { "id": "g-c", "path": "/design/gallery.html#c" },
+    { "id": "g-d", "path": "/design/gallery.html#d" },
+    { "id": "g-e", "path": "/design/gallery.html#e" }
+  ]
+}

@@ -74,7 +74,13 @@ pagespeed/
 .env.local
 .env.*.local
 !.env.example
-backend/scripts/
+# Ad-hoc one-off scripts against a live database. The tracked tooling under
+# backend/scripts (design/, pre-deploy.zsh, smoke-model-pages.js, …) predates
+# this rule and stays tracked; a blanket ignore here silently kept new tooling
+# out of the repo.
+backend/scripts/*_check.js
+backend/scripts/debug_*.js
+backend/scripts/monitoring/
 
 # test artifacts
 backend/playwright-report/

@@ -1,0 +1,16 @@
+{
+  "viewports": {
+    "desktop": { "width": 1440, "height": 900 },
+    "mobile": { "width": 390, "height": 844 }
+  },
+  "routes": [
+    { "id": "cloud", "path": "/cloud", "note": "primary landing page" },
+    { "id": "local", "path": "/local", "note": "local benchmarks" },
+    { "id": "status", "path": "/status", "note": "API status dashboard" },
+    { "id": "provider", "path": "/providers/groq", "note": "provider landing page", "needsDb": true },
+    { "id": "model", "path": "/models/groq/llama-3.1-8b", "note": "model landing page", "needsDb": true },
+    { "id": "guide-fastest", "path": "/guides/fastest-llm-api", "note": "SEO guide" },
+    { "id": "guide-compare", "path": "/guides/llm-provider-comparison", "note": "SEO guide" },
+    { "id": "guide-deprecated", "path": "/guides/deprecated-model-replacements", "note": "SEO guide" }
+  ]
+}

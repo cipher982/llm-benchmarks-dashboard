@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variant C — Trace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400;75..100,500;75..100,600;75..100,700&family=Martian+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ground:   #060607;
+  --rule:     #1B1B1E;
+  --rule-soft:#121214;
+  --text:     #FAFAF8;
+  --text-dim: #9E9E9A;
+  --text-mute:#5C5C58;
+  --sans: 'Archivo', system-ui, sans-serif;
+  --mono: 'Martian Mono', ui-monospace, monospace;
+  --page: 1280px;
+}
+* { box-sizing: border-box; }
+html { background: var(--ground); }
+body { margin: 0; background: var(--ground); color: var(--text);
+  font: 400 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: var(--page); margin: 0 auto; padding: 0 44px; }
+a { color: inherit; text-decoration: none; }
+
+header.top { position: absolute; top: 0; left: 0; right: 0; z-index: 3; }
+.top .wrap { display: flex; align-items: center; height: 64px; gap: 34px; }
+.mark { font-family: var(--mono); font-weight: 500; font-size: 12px; letter-spacing: -0.04em; }
+nav.main { display: flex; gap: 20px; font-size: 13.5px; }
+nav.main a { color: var(--text-dim); }
+nav.main a[aria-current], nav.main a:hover { color: var(--text); }
+.top .right { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-mute);
+  letter-spacing: -0.02em; }
+
+/* ---------- the trace: data as the opening image ---------- */
+.trace { position: relative; overflow: hidden; border-bottom: 1px solid var(--rule);
+  padding: 132px 0 0; }
+.trace .plot { position: absolute; inset: 88px 0 0; opacity: .9; }
+.trace .plot svg { width: 100%; height: 100%; }
+.trace .scrim { position: absolute; inset: 0;
+  background: linear-gradient(100deg, var(--ground) 22%, transparent 62%),
+              linear-gradient(to top, var(--ground) 2%, transparent 26%); }
+.trace .wrap { position: relative; z-index: 2; padding-bottom: 96px; }
+.kicker { font-family: var(--mono); font-size: 10px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-mute); margin: 0 0 24px; }
+h1 { font-size: 60px; line-height: 0.97; letter-spacing: -0.045em; font-weight: 600;
+  margin: 0 0 22px; max-width: 13ch; font-stretch: 92%; }
+.trace p.sub { margin: 0; max-width: 44ch; color: var(--text-dim); font-size: 16px; line-height: 1.5; }
+.legend { display: flex; gap: 30px; margin-top: 44px; font-family: var(--mono); font-size: 10px;
+  letter-spacing: .02em; color: var(--text-mute); text-transform: uppercase; }
+.legend b { display: block; font-family: var(--sans); font-size: 20px; font-weight: 500;
+  color: var(--text); letter-spacing: -0.02em; margin-bottom: 3px; text-transform: none; }
+
+.ridge-area { fill: none; }
+.ridge-line { fill: none; stroke: var(--c, var(--text-dim)); stroke-width: 1;
+  vector-effect: non-scaling-stroke; }
+.ridge-mean { fill: none; }
+.ridge-ticks { display: none; }
+
+/* ---------- leaderboard: editorial scale contrast ---------- */
+.lead { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--rule); }
+.lead > div { padding: 52px 44px 46px; border-right: 1px solid var(--rule); }
+.lead > div:last-child { border-right: 0; }
+.lead h3 { margin: 0 0 26px; font-family: var(--mono); font-size: 10px; font-weight: 400;
+  letter-spacing: .02em; text-transform: uppercase; color: var(--text-mute); }
+.lead .num { font-size: 76px; line-height: .82; font-weight: 600; letter-spacing: -0.055em;
+  font-variant-numeric: tabular-nums; font-stretch: 88%; }
+.lead .num small { font-size: 17px; font-weight: 400; letter-spacing: -0.01em; color: var(--text-mute);
+  margin-left: 8px; font-stretch: 100%; }
+.lead .who { margin: 22px 0 0; font-size: 15px; }
+.lead .who i { font-style: normal; color: var(--text-mute); }
+.lead .why { margin: 8px 0 0; font-size: 13px; color: var(--text-mute); max-width: 30ch; line-height: 1.5; }
+
+/* ---------- sections ---------- */
+section { padding: 68px 0 12px; }
+.shead { display: flex; align-items: baseline; gap: 18px; margin-bottom: 26px; }
+.shead h2 { font-size: 15px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; margin: 0; }
+.shead p { margin: 0; color: var(--text-mute); font-size: 13px; }
+.shead .ctl { margin-left: auto; display: flex; gap: 3px; }
+.ctl button { font: 400 10px/1 var(--mono); letter-spacing: -0.02em; color: var(--text-mute);
+  background: 0; border: 1px solid var(--rule); padding: 7px 9px; cursor: pointer; }
+.ctl button[aria-pressed="true"] { color: var(--ground); background: var(--text); border-color: var(--text); }
+
+table { width: 100%; border-collapse: collapse; }
+thead th { text-align: right; font: 400 9.5px var(--mono); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-mute); padding: 0 14px 12px; border-bottom: 1px solid var(--rule); }
+thead th.l { text-align: left; padding-left: 0; }
+tbody td { padding: 13px 14px; border-bottom: 1px solid var(--rule-soft); text-align: right;
+  font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+tbody td.l { text-align: left; font-family: var(--sans); font-size: 15px; letter-spacing: 0; padding-left: 0; }
+tbody td.n { font-size: 10px; color: var(--text-mute); width: 40px; text-align: left; padding-left: 0; }
+tbody td.p { font-size: 10px; color: var(--text-mute); text-align: left; text-transform: uppercase; }
+tbody td.big { font-size: 17px; color: var(--text); letter-spacing: -0.05em; }
+tbody tr:hover td { background: #0D0D0F; }
+.rg-track { stroke: var(--rule); stroke-width: 1; }
+.rg-span { stroke: var(--text-mute); stroke-width: 2; }
+.rg-mean { fill: var(--text); }
+.spark-line { fill: none; stroke: var(--text-mute); stroke-width: 1; }
+
+.smgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px 30px; }
+.sm-cell { margin: 0; }
+.sm-cell figcaption { display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin-bottom: 10px; }
+.sm-model { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-provider { display: none; }
+.sm-value { font-family: var(--mono); font-size: 13px; letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums; }
+.sm-value i { font-style: normal; font-size: 8.5px; color: var(--text-mute); margin-left: 2px; }
+.sm { height: 56px; border-bottom: 1px solid var(--rule); }
+.sm-area { fill: #FFFFFF08; }
+.sm-line { fill: none; stroke: var(--text-dim); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.sm-mean { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 1 4; vector-effect: non-scaling-stroke; }
+
+footer { border-top: 1px solid var(--rule); margin-top: 72px; padding: 34px 0 68px; }
+footer .wrap { display: flex; gap: 30px; font-size: 12.5px; color: var(--text-mute); }
+footer .links { margin-left: auto; display: flex; gap: 24px; font-family: var(--mono); font-size: 10px; }
+
+@media (max-width: 900px) {
+  .wrap { padding: 0 20px; }
+  h1 { font-size: 38px; }
+  .lead, .smgrid { grid-template-columns: 1fr; }
+  .lead > div { border-right: 0; border-bottom: 1px solid var(--rule); padding: 34px 20px; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="mark">LLM-BENCHMARKS</span>
+    <nav class="main">
+      <a href="#" aria-current="page">Cloud</a><a href="#">Local</a><a href="#">Status</a><a href="#">Guides</a>
+    </nav>
+    <span class="right" id="stamp"></span>
+  </div>
+</header>
+
+<div class="trace">
+  <div class="plot" id="plot"></div>
+  <div class="scrim"></div>
+  <div class="wrap">
+    <p class="kicker">Cloud inference · sampled every 2h · since 2024</p>
+    <h1>Every provider, measured.</h1>
+    <p class="sub">Each curve behind this is a real distribution of token generation speed,
+       sampled from a live API endpoint on a fixed schedule. Fastest at the top.</p>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<div class="lead" id="lead"></div>
+
+<section class="wrap">
+  <div class="shead">
+    <h2>Full results</h2>
+    <p>Ranked by mean throughput over 14 days</p>
+    <div class="ctl">
+      <button>1D</button><button>3D</button><button>7D</button>
+      <button aria-pressed="true">14D</button><button>30D</button>
+    </div>
+  </div>
+  <table>
+    <thead><tr>
+      <th class="l">#</th><th class="l">Model</th><th class="l">Provider</th>
+      <th class="l" style="width:26%">Range</th>
+      <th>Mean</th><th>Spread</th><th>TTFT</th><th>Trend</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</section>
+
+<section class="wrap">
+  <div class="shead">
+    <h2>Over time</h2>
+    <p>Shared scale · top 12</p>
+    <div class="ctl"><button>7D</button><button aria-pressed="true">14D</button><button>30D</button></div>
+  </div>
+  <div class="smgrid" id="smgrid"></div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Independent measurement. Method and collection code are open.</span>
+    <span class="links"><a href="#">GITHUB</a><a href="#">METHOD</a><a href="#">API</a><a href="#">DROSE.IO</a></span>
+  </div>
+</footer>
+
+<script type="module">
+import { loadData, ridgeline, smallMultiples, sparkline, rangeStrip, seriesFor, fmt } from './charts.js';
+
+const d = await loadData();
+document.getElementById('stamp').textContent =
+  `${fmt.date(d.window.from)}—${fmt.date(d.window.to)}`;
+
+// Sequential ramp: warm at the fast end, cooling as throughput falls. The ramp
+// encodes the sort order, which is the one thing the hero image is saying.
+const STOPS = ['#FFD27F', '#FFA14A', '#F2653F', '#C9396B', '#7B3F9D'];
+const rampAt = (t) => {
+  const p = t * (STOPS.length - 1);
+  const i = Math.min(STOPS.length - 2, Math.floor(p));
+  return mix(STOPS[i], STOPS[i + 1], p - i);
+};
+function mix(a, b, t) {
+  const c = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [r1, g1, b1] = c(a), [r2, g2, b2] = c(b);
+  const v = (x, y) => Math.round(x + (y - x) * t);
+  return `rgb(${v(r1, r2)} ${v(g1, g2)} ${v(b1, b2)})`;
+}
+
+document.getElementById('plot').innerHTML = ridgeline(d.ridge, {
+  width: 1440, rowHeight: 30, overlap: 2.6,
+  colorFor: (i, n) => rampAt(i / (n - 1)),
+});
+
+document.getElementById('legend').innerHTML = `
+  <div><b>${d.counts.models}</b>models</div>
+  <div><b>${d.counts.providers}</b>providers</div>
+  <div><b>${d.window.points}</b>samples / model</div>`;
+
+const card = (label, value, unit, row, why) => `
+  <div>
+    <h3>${label}</h3>
+    <div class="num">${value}<small>${unit}</small></div>
+    <p class="who">${row.model} <i>· ${row.provider}</i></p>
+    <p class="why">${why}</p>
+  </div>`;
+
+const f = d.leaders.fastest[0], t = d.leaders.lowestTtft[0], s = d.leaders.mostStable[0];
+document.getElementById('lead').innerHTML =
+  card('Fastest', fmt.int(f.mean), 'tok/s', f, 'Highest mean generation speed across the window.') +
+  card('Quickest to first token', fmt.dec(t.ttft, 2), 's', t, 'Lowest measured time to first token.') +
+  card('Most consistent', fmt.pct(s.spread), 'spread', s, 'Narrowest gap between slowest and fastest sample.');
+
+const scaleMax = Math.max(...d.table.map((r) => r.max));
+document.getElementById('rows').innerHTML = d.table.map((r, i) => {
+  const sp = seriesFor(d.series, r.model);
+  return `<tr>
+    <td class="n">${String(i + 1).padStart(2, '0')}</td>
+    <td class="l">${r.model}</td>
+    <td class="p">${r.provider}</td>
+    <td>${rangeStrip(r, { scaleMax, height: 16 })}</td>
+    <td class="big">${fmt.int(r.mean)}</td>
+    <td>${fmt.pct(r.spread)}</td>
+    <td>${r.ttft == null ? '—' : fmt.dec(r.ttft, 2)}</td>
+    <td>${sp ? sparkline(sp, { width: 64, height: 15 }) : '—'}</td>
+  </tr>`;
+}).join('');
+
+document.getElementById('smgrid').innerHTML = smallMultiples(d.series, { cellWidth: 260, cellHeight: 60 });
+</script>
+</body>
+</html>

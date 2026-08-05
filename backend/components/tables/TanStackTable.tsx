@@ -1,9 +1,10 @@
 /**
- * TanStack Table with Windows 98 Design System
- * 
- * Headless table component using TanStack Table v8 with full Windows 98 styling.
- * Supports sorting, virtualization, and custom cell renderers while maintaining
- * strict adherence to design system tokens.
+ * Dense results table.
+ *
+ * Headless TanStack Table v8 in Console dress: hairline row rules, mono cells
+ * with tabular figures, and lifecycle state carried by a 2px left rule in a
+ * semantic colour rather than a tinted row background — a wash of orange across
+ * a near-black ground reads as damage rather than as data.
  */
 
 import React, { useMemo } from 'react';
@@ -17,11 +18,10 @@ import {
   SortingState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { 
-  colors, 
-  typography, 
-  spacing, 
-  sizing
+import {
+  colors,
+  typography,
+  spacing,
 } from '../design-system';
 
 const FLAGGED_STATUSES = new Set([
@@ -37,15 +37,25 @@ const CAUTION_STATUSES = new Set([
   'monitor',
 ]);
 
+/**
+ * The one rule a row gets for its lifecycle state. Deprecated and flagged both
+ * mean "do not rely on this number"; monitor means "watch it".
+ */
+function rowStateRule(rowData: any): string | undefined {
+  const lifecycleStatus = rowData?.lifecycle_status as string | undefined;
+  if (rowData?.deprecated) return `2px solid ${colors.warn}`;
+  if (lifecycleStatus && FLAGGED_STATUSES.has(lifecycleStatus)) return `2px solid ${colors.bad}`;
+  if (lifecycleStatus && CAUTION_STATUSES.has(lifecycleStatus)) return `2px solid ${colors.warn}`;
+  return undefined;
+}
+
 // =============================================================================
 // STYLED COMPONENTS
 // =============================================================================
 
 const TableWrapper = styled('div')({
-  backgroundColor: colors.surface,
-  border: `2px inset ${colors.surfaceElevated}`,
-  boxShadow: sizing.shadows.md,
-  fontFamily: typography.fontFamily,
+  backgroundColor: colors.ground,
+  fontFamily: typography.monoFamily,
   overflow: 'hidden',
 });
 
@@ -53,75 +63,82 @@ const TableContainer = styled('div')({
   width: '100%',
   height: '100%',
   overflow: 'auto',
-  
-  // Windows 98 scrollbar styles
+
   '&::-webkit-scrollbar': {
-    width: '16px',
-    height: '16px',
+    width: '10px',
+    height: '10px',
   },
   '&::-webkit-scrollbar-track': {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surface,
   },
   '&::-webkit-scrollbar-thumb': {
-    backgroundColor: colors.borderMedium,
-    border: `1px outset ${colors.surfaceElevated}`,
+    backgroundColor: colors.rule,
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
+    backgroundColor: colors.textMute,
   },
   '&::-webkit-scrollbar-corner': {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surface,
   },
 });
 
 const Table = styled('table')({
   width: '100%',
-  borderCollapse: 'separate',
-  borderSpacing: 0,
-  fontFamily: typography.fontFamily,
-  fontSize: typography.sizes.base,
+  borderCollapse: 'collapse',
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.sm,
+  fontVariantNumeric: 'tabular-nums',
 });
 
 const TableHead = styled('thead')({
   position: 'sticky',
   top: 0,
   zIndex: 10,
-  backgroundColor: colors.surfaceElevated,
-});
-
-const TableBody = styled('tbody')({
   backgroundColor: colors.surface,
 });
 
-const HeaderCell = styled('th')<{ sortable?: boolean }>(({ sortable }) => ({
-  backgroundColor: colors.surfaceElevated,
-  color: colors.textPrimary,
-  fontFamily: typography.fontFamily,
-  fontSize: typography.sizes.base,
-  fontWeight: typography.weights.semibold,
+const TableBody = styled('tbody')({
+  backgroundColor: colors.ground,
+});
+
+/**
+ * Column head styling, shared by the `th` used in the plain table and the
+ * `div role="columnheader"` used in the virtualized one. The virtualized path
+ * lays its rows out with flexbox and absolute positioning, so it cannot use
+ * real table elements — rendering a `th` inside a `div` threw a hydration error
+ * on every page carrying this table.
+ */
+const headerCellStyles = (sortable?: boolean) => ({
+  backgroundColor: colors.surface,
+  color: colors.textMute,
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.micro,
+  fontWeight: typography.weights.medium,
+  letterSpacing: typography.tracking.label,
+  textTransform: 'uppercase' as const,
   padding: `${spacing.scale[2]}px ${spacing.scale[3]}px`,
-  textAlign: 'left',
-  userSelect: 'none',
+  textAlign: 'left' as const,
+  whiteSpace: 'nowrap' as const,
+  userSelect: 'none' as const,
   cursor: sortable ? 'pointer' : 'default',
-  border: `1px solid ${colors.borderMedium}`,
-  borderTop: `2px solid ${colors.borderLight}`,
-  borderLeft: `2px solid ${colors.borderLight}`,
-  borderRight: `1px solid ${colors.borderDark}`,
-  borderBottom: `1px solid ${colors.borderDark}`,
-  
-  '&:hover': sortable ? {
-    backgroundColor: colors.hover,
+  borderBottom: `1px solid ${colors.rule}`,
+
+  '&:hover': sortable ? { color: colors.text } : {},
+
+  '&:focus-visible': sortable ? {
+    outline: `1px solid ${colors.accent}`,
+    outlineOffset: '-1px',
   } : {},
-  
-  '&:active': sortable ? {
-    backgroundColor: colors.pressed,
-    borderTop: `1px solid ${colors.borderDark}`,
-    borderLeft: `1px solid ${colors.borderDark}`,
-    borderRight: `2px solid ${colors.borderLight}`,
-    borderBottom: `2px solid ${colors.borderLight}`,
-  } : {},
-  
-  '&:focus': sortable ? {
-    outline: `2px solid ${colors.primary}`,
-    outlineOffset: '-2px',
-  } : {},
+});
+
+const HeaderCell = styled('th')<{ sortable?: boolean }>(({ sortable }) => headerCellStyles(sortable));
+
+const VirtualHeaderCell = styled('div')<{ sortable?: boolean }>(({ sortable }) => ({
+  ...headerCellStyles(sortable),
+  display: 'flex',
+  alignItems: 'center',
+  boxSizing: 'border-box',
+  overflow: 'hidden',
 }));
 
 const SortableHeaderButton = styled('button')({
@@ -132,59 +149,49 @@ const SortableHeaderButton = styled('button')({
   alignItems: 'center',
   justifyContent: 'space-between',
   cursor: 'pointer',
-  
-  '&:focus': {
-    outline: `2px solid ${colors.primary}`,
-    outlineOffset: '-2px',
+
+  '&:focus-visible': {
+    outline: `1px solid ${colors.accent}`,
+    outlineOffset: '-1px',
   },
 });
 
 const SortIndicator = styled('span')<{ direction?: 'asc' | 'desc' }>(({ direction }) => ({
   marginLeft: spacing.scale[1],
-  fontSize: typography.sizes.xs,
-  color: colors.textSecondary,
-  
+  fontSize: typography.sizes.micro,
+  color: direction ? colors.accent : colors.rule,
+
   '&::after': {
     content: direction === 'asc' ? '"▲"' : direction === 'desc' ? '"▼"' : '"◆"',
   },
 }));
 
-const DataCell = styled('td')({
-  backgroundColor: colors.surface,
-  color: colors.textPrimary,
-  fontFamily: typography.fontFamily,
-  fontSize: typography.sizes.base,
-  padding: `${spacing.scale[2]}px ${spacing.scale[3]}px`,
-  border: `1px solid ${colors.borderMedium}`,
-  height: '35px',
-  boxSizing: 'border-box',
-  verticalAlign: 'middle',
+const cellStyles = {
+  color: colors.text,
+  fontFamily: typography.monoFamily,
+  fontSize: typography.sizes.sm,
+  fontVariantNumeric: 'tabular-nums' as const,
+  padding: `${spacing.scale[1]}px ${spacing.scale[3]}px`,
+  borderBottom: `1px solid ${colors.ruleSoft}`,
+  boxSizing: 'border-box' as const,
+};
 
-  '&:hover': {
-    backgroundColor: colors.hover,
-  },
+const DataCell = styled('td')({
+  ...cellStyles,
+  height: '26px',
+  verticalAlign: 'middle',
 });
 
-
-const VirtualCell = styled('td')<{ width: number }>(({ width }) => ({
+const VirtualCell = styled('div')<{ width: number }>(({ width }) => ({
+  ...cellStyles,
   display: 'flex',
   alignItems: 'center',
   width: `${width}px`,
   minWidth: `${width}px`,
   maxWidth: `${width}px`,
-  backgroundColor: colors.surface,
-  color: colors.textPrimary,
-  fontFamily: typography.fontFamily,
-  fontSize: typography.sizes.base,
-  padding: `${spacing.scale[2]}px ${spacing.scale[3]}px`,
-  border: `1px solid ${colors.borderMedium}`,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
-  
-  '&:hover': {
-    backgroundColor: colors.hover,
-  },
 }));
 
 // =============================================================================
@@ -275,7 +282,7 @@ function TanStackTable<T>({
                 position: 'sticky', 
                 top: 0, 
                 zIndex: 10,
-                backgroundColor: colors.surfaceElevated 
+                backgroundColor: colors.surface
               }}
             >
               {headers.map((header, index) => {
@@ -290,7 +297,7 @@ function TanStackTable<T>({
                 };
                 
                 return (
-                  <HeaderCell
+                  <VirtualHeaderCell
                     key={header.id}
                     role="columnheader"
                     aria-sort={canSort ? (sortDirection === 'asc' ? 'ascending' : sortDirection === 'desc' ? 'descending' : 'none') : undefined}
@@ -316,7 +323,7 @@ function TanStackTable<T>({
                         </>
                       )
                     )}
-                  </HeaderCell>
+                  </VirtualHeaderCell>
                 );
               })}
             </div>
@@ -324,27 +331,7 @@ function TanStackTable<T>({
             {/* Virtual Rows */}
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
               const row = rows[virtualRow.index];
-              const rowData = row.original as any;
-              const lifecycleStatus = rowData?.lifecycle_status as string | undefined;
-              const isDeprecated = Boolean(rowData?.deprecated);
-              const isFlaggedStatus = lifecycleStatus ? FLAGGED_STATUSES.has(lifecycleStatus) : false;
-              const isCautionStatus = !isFlaggedStatus && lifecycleStatus ? CAUTION_STATUSES.has(lifecycleStatus) : false;
-
-              const backgroundColor = isDeprecated
-                ? 'rgba(255, 152, 0, 0.12)'
-                : isFlaggedStatus
-                  ? 'rgba(211, 47, 47, 0.08)'
-                  : isCautionStatus
-                    ? 'rgba(255, 193, 7, 0.12)'
-                    : undefined;
-
-              const borderLeft = isDeprecated
-                ? '3px solid rgba(255, 152, 0, 0.5)'
-                : isFlaggedStatus
-                  ? '3px solid rgba(211, 47, 47, 0.4)'
-                  : isCautionStatus
-                    ? '3px solid rgba(255, 193, 7, 0.4)'
-                    : undefined;
+              const borderLeft = rowStateRule(row.original);
 
               return (
                 <div
@@ -358,7 +345,7 @@ function TanStackTable<T>({
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
                     display: 'flex',
-                    backgroundColor,
+                    backgroundColor: virtualRow.index % 2 === 1 ? colors.zebra : undefined,
                   }}
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => (
@@ -423,34 +410,12 @@ function TanStackTable<T>({
             ))}
           </TableHead>
           <TableBody>
-            {rows.map((row) => {
-              const rowData = row.original as any;
-              const lifecycleStatus = rowData?.lifecycle_status as string | undefined;
-              const isDeprecated = Boolean(rowData?.deprecated);
-              const isFlaggedStatus = lifecycleStatus ? FLAGGED_STATUSES.has(lifecycleStatus) : false;
-              const isCautionStatus = !isFlaggedStatus && lifecycleStatus ? CAUTION_STATUSES.has(lifecycleStatus) : false;
-
-              const backgroundColor = isDeprecated
-                ? 'rgba(255, 152, 0, 0.12)'
-                : isFlaggedStatus
-                  ? 'rgba(211, 47, 47, 0.08)'
-                  : isCautionStatus
-                    ? 'rgba(255, 193, 7, 0.12)'
-                    : undefined;
-
-              const borderLeft = isDeprecated
-                ? '3px solid rgba(255, 152, 0, 0.5)'
-                : isFlaggedStatus
-                  ? '3px solid rgba(211, 47, 47, 0.4)'
-                  : isCautionStatus
-                    ? '3px solid rgba(255, 193, 7, 0.4)'
-                    : undefined;
+            {rows.map((row, rowIndex) => {
+              const borderLeft = rowStateRule(row.original);
               return (
                 <tr
                   key={row.id}
-                  style={backgroundColor ? {
-                    backgroundColor,
-                  } : undefined}
+                  style={rowIndex % 2 === 1 ? { backgroundColor: colors.zebra } : undefined}
                 >
                   {row.getVisibleCells().map((cell, cellIndex) => (
                     <DataCell

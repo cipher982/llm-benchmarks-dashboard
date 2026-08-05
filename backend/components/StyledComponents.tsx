@@ -1,235 +1,190 @@
+/**
+ * Page-level layout primitives, Console direction.
+ *
+ * Same export names as the Win98 set they replace, so pages keep compiling.
+ * The shape changed underneath: no cards, no bevels, no centred 850px column —
+ * a block is full-bleed, introduced by a rail, and closed by a hairline.
+ */
+
 import { styled } from '@mui/material/styles';
 import { CircularProgress } from '@mui/material';
-import { colors } from './design-system';
+import { colors, typography, numeric, spacing, sizing } from './design-system';
 
 // Loading Components
-export const LoadingContainer = styled('div')(({ theme }) => ({
+export const LoadingContainer = styled('div')({
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     height: '100vh',
-    backgroundColor: theme.palette.background.default,
-}));
+    backgroundColor: colors.ground,
+});
 
-export const ChartLoadingContainer = styled('div')(({ theme }) => ({
+export const ChartLoadingContainer = styled('div')({
     width: '100%',
-    height: '600px',
+    minHeight: '220px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.palette.background.default,
-}));
+    backgroundColor: colors.ground,
+});
 
-export const StyledCircularProgress = styled(CircularProgress)(({ theme }) => ({
-    color: theme.palette.primary.main,
-}));
+export const StyledCircularProgress = styled(CircularProgress)({
+    color: colors.accent,
+});
 
 // Content Containers
-export const CenteredContentContainer = styled('div')(({ theme }) => ({
-    maxWidth: '1200px',
-    margin: 'auto',
-    padding: theme.spacing(0, 2),
-}));
+export const CenteredContentContainer = styled('div')({
+    maxWidth: '92ch',
+    margin: 0,
+});
 
-export const ChartContentContainer = styled('div')(({ theme }) => ({
-    maxWidth: '1100px',
+export const ChartContentContainer = styled('div')({
     width: '100%',
-    height: 'auto',
-    margin: 'auto',
-    paddingBottom: theme.spacing(3),
-}));
+    padding: `${spacing.scale[2]}px ${spacing.scale[4]}px ${spacing.scale[3]}px`,
+});
 
-export const TableContentContainer = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
-    height: '100%',
+/**
+ * Dense tables scroll horizontally instead of being squeezed into a measure.
+ */
+export const TableContentContainer = styled('div')<{ isMobile?: boolean }>({
     width: '100%',
-    maxWidth: '850px',
-    overflow: 'auto',
-    paddingLeft: isMobile ? 0 : theme.spacing(3),
-    paddingRight: isMobile ? 0 : theme.spacing(3),
-    margin: 'auto',
-}));
-
-// Section Headers
-export const SectionHeader = styled('h2')(({ theme }) => ({
-    textAlign: 'center',
-    color: theme.palette.text.primary,
-    marginBottom: theme.spacing(2),
-    fontSize: theme.typography.h4.fontSize,
-    fontWeight: theme.typography.h4.fontWeight,
-}));
-
-// Section header with inline controls (for time range selectors)
-export const SectionHeaderRow = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
-    display: 'flex',
-    flexDirection: isMobile ? 'column' : 'row',
-    justifyContent: 'space-between',
-    alignItems: isMobile ? 'center' : 'center',
-    marginBottom: theme.spacing(2),
-    gap: theme.spacing(2),
-    [theme.breakpoints.down('sm')]: {
-        flexDirection: 'column',
-        gap: theme.spacing(1),
-    },
-}));
-
-export const SectionHeaderWithControl = styled('div')(({ theme }) => ({
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-    marginBottom: theme.spacing(2),
-}));
-
-export const PageTitle = styled('h1')(({ theme }) => ({
-    textAlign: 'center',
-    color: theme.palette.text.primary,
-    marginBottom: theme.spacing(2),
-    fontSize: theme.typography.h1.fontSize,
-    fontWeight: theme.typography.h1.fontWeight,
-}));
-
-// Enhanced Section Containers with Windows 2000 styling
-export const StyledDescriptionSection = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
-    backgroundColor: colors.surface,
-    padding: theme.spacing(6),
-    border: `1px solid ${colors.borderMedium}`,
-    borderTop: `1px solid ${colors.borderLight}`,
-    borderLeft: `1px solid ${colors.borderLight}`,
-    marginBottom: theme.spacing(4),
-    boxShadow: '1px 1px 2px rgba(0, 0, 0, 0.1)',
-    fontFamily: 'Tahoma, "MS Sans Serif", sans-serif',
-    [theme.breakpoints.down('md')]: {
-        padding: theme.spacing(3),
-        marginBottom: theme.spacing(3),
-    },
-}));
-
-export const StyledChartContainer = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
-    backgroundColor: colors.surface,
-    padding: theme.spacing(4),
-    border: `1px solid ${colors.borderDark}`,
-    borderTop: `1px solid ${colors.borderMedium}`,
-    borderLeft: `1px solid ${colors.borderMedium}`,
-    maxWidth: '100%',
     overflowX: 'auto',
-    marginBottom: theme.spacing(4),
-    boxShadow: 'inset 1px 1px 0 rgba(0, 0, 0, 0.1)',
-    fontFamily: 'Tahoma, "MS Sans Serif", sans-serif',
-    [theme.breakpoints.down('md')]: {
-        padding: theme.spacing(2),
-        marginBottom: theme.spacing(3),
-    },
-}));
+});
 
-export const StyledTableContainer = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
+// =============================================================================
+// SECTION RAIL
+// =============================================================================
+
+/**
+ * The rail that heads every block. `SectionHeader` sits at its left, controls
+ * at its right.
+ */
+export const SectionHeaderRow = styled('div')<{ isMobile?: boolean }>({
+    display: 'flex',
+    alignItems: 'center',
+    gap: `${spacing.scale[3]}px`,
+    minHeight: `${sizing.sectionHeaderHeight}px`,
+    padding: `${spacing.scale[2]}px ${spacing.scale[4]}px`,
     backgroundColor: colors.surface,
-    padding: theme.spacing(4),
-    border: `1px solid ${colors.borderDark}`,
-    borderTop: `1px solid ${colors.borderMedium}`,
-    borderLeft: `1px solid ${colors.borderMedium}`,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '400px',
-    marginBottom: theme.spacing(4),
-    boxShadow: 'inset 1px 1px 0 rgba(0, 0, 0, 0.1)',
-    fontFamily: 'Tahoma, "MS Sans Serif", sans-serif',
-    [theme.breakpoints.down('md')]: {
-        padding: theme.spacing(2),
-        marginBottom: theme.spacing(3),
-    },
-}));
+    borderBottom: `1px solid ${colors.rule}`,
+    flexWrap: 'wrap',
+});
 
-// Time Range Selector (if needed)
-export const TimeRangeContainer = styled('div')(({ theme }) => ({
+/** Alias kept for pages that read the rail as "header plus its controls". */
+export const SectionHeaderWithControl = SectionHeaderRow;
+
+export const SectionHeader = styled('h2')({
+    margin: 0,
+    color: colors.textDim,
+    fontFamily: typography.monoFamily,
+    fontSize: typography.sizes.micro,
+    fontWeight: typography.weights.medium,
+    letterSpacing: typography.tracking.label,
+    textTransform: 'uppercase',
+    lineHeight: typography.lineHeights.tight,
+    whiteSpace: 'nowrap',
+});
+
+export const PageTitle = styled('h1')({
+    margin: 0,
+    color: colors.text,
+    fontFamily: typography.monoFamily,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    letterSpacing: typography.tracking.tag,
+    lineHeight: typography.lineHeights.tight,
+});
+
+/** Controls docked right on a rail. */
+export const RailControls = styled('div')({
+    marginLeft: 'auto',
     display: 'flex',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: theme.spacing(2),
-    marginBottom: theme.spacing(3),
-    [theme.breakpoints.down('sm')]: {
-        flexDirection: 'column',
-        gap: theme.spacing(1),
+    gap: `${spacing.scale[2]}px`,
+    flexWrap: 'wrap',
+});
+
+/**
+ * Free text on a rail — a count, a window, a caveat. Dim and small so it never
+ * competes with the values inside the block.
+ */
+export const RailNote = styled('span')({
+    ...numeric,
+    fontSize: typography.sizes.micro,
+    letterSpacing: typography.tracking.tag,
+    textTransform: 'uppercase',
+    color: colors.textMute,
+
+    '& b': {
+        color: colors.textDim,
+        fontWeight: typography.weights.medium,
     },
-}));
+});
+
+// =============================================================================
+// SECTION CONTAINERS
+// =============================================================================
+
+/**
+ * Prose. The only sentences on a page, and they sit under the measurement.
+ */
+export const StyledDescriptionSection = styled('div')<{ isMobile?: boolean }>({
+    backgroundColor: colors.surface,
+    borderBottom: `1px solid ${colors.rule}`,
+    padding: `${spacing.scale[3]}px ${spacing.scale[4]}px ${spacing.scale[4]}px`,
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.sm,
+    lineHeight: typography.lineHeights.relaxed,
+    color: colors.textMute,
+
+    '& p': { margin: `0 0 ${spacing.scale[2]}px`, maxWidth: '92ch' },
+    '& p:last-child': { marginBottom: 0 },
+    '& b, & strong': { color: colors.textDim, fontWeight: typography.weights.medium },
+    '& a': { color: colors.accent },
+});
+
+export const StyledChartContainer = styled('div')<{ isMobile?: boolean }>({
+    backgroundColor: colors.ground,
+    borderBottom: `1px solid ${colors.rule}`,
+    maxWidth: '100%',
+    fontFamily: typography.monoFamily,
+});
+
+export const StyledTableContainer = styled('div')<{ isMobile?: boolean }>({
+    backgroundColor: colors.ground,
+    borderBottom: `1px solid ${colors.rule}`,
+    display: 'block',
+    fontFamily: typography.monoFamily,
+});
+
+export const TimeRangeContainer = styled('div')({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1px',
+});
 
 // Flexible layout containers
-export const FlexContainer = styled('div')<{ isMobile?: boolean; direction?: 'row' | 'column'; gap?: number }>(({ theme, isMobile, direction = 'row', gap = 2 }) => ({
+export const FlexContainer = styled('div')<{ isMobile?: boolean; direction?: 'row' | 'column'; gap?: number }>(({ theme, isMobile, direction = 'row', gap = 0 }) => ({
     display: 'flex',
     flexDirection: isMobile ? 'column' : direction,
-    justifyContent: 'space-between',
     gap: theme.spacing(gap),
     [theme.breakpoints.down('md')]: {
         flexDirection: 'column',
     },
 }));
 
-export const FlexItem = styled('div')<{ flex?: number; isMobile?: boolean }>(({ theme, flex, isMobile }) => ({
+export const FlexItem = styled('div')<{ flex?: number; isMobile?: boolean }>(({ flex }) => ({
     flex: flex || 1,
-    padding: theme.spacing(0, isMobile ? 0 : 2),
-    maxWidth: isMobile ? '100%' : undefined,
+    minWidth: 0,
     overflowX: 'auto',
 }));
 
-// Leaderboard specific
-export const LeaderboardContainer = styled('div')(({ theme }) => ({
+export const LeaderboardContainer = styled('div')({
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing(2),
-}));
+});
 
-// Chart wrapper
-export const ChartWrapper = styled('div')<{ isMobile?: boolean }>(({ theme, isMobile }) => ({
-    maxWidth: isMobile ? '100%' : '1200px',
-    margin: 'auto',
-    padding: theme.spacing(2, 0),
-}));
-
-// Windows 98 Application Window Wrapper
-export const Win98AppWindow = styled('div')<{ title?: string; isMobile?: boolean }>(({ theme, isMobile }) => ({
-    border: `2px outset ${colors.surfaceElevated}`,
-    backgroundColor: theme.palette.background.paper,
-    boxShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)',
-    margin: isMobile ? 0 : theme.spacing(4),
-    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-    maxWidth: isMobile ? '100%' : '640px',
-    width: isMobile ? '100%' : 'auto',
-    [theme.breakpoints.up('md')]: {
-        margin: 'auto',
-        marginTop: theme.spacing(8),
-        marginBottom: theme.spacing(8),
-    },
-    [theme.breakpoints.down('sm')]: {
-        height: '100vh',
-        margin: 0,
-    },
-}));
-
-export const Win98TitleBar = styled('div')<{ title: string }>(({ title }) => ({
-    background: `linear-gradient(to bottom, ${colors.primary} 0%, ${colors.primaryLight} 100%)`,
-    color: '#FFFFFF',
-    padding: '2px 4px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    fontFamily: 'Tahoma, sans-serif',
-    fontSize: '13px',
-    fontWeight: 700,
-    height: '24px',
-    borderBottom: `1px solid ${colors.borderDark}`,
-    '&::before': {
-        content: `"${title}"`,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-    },
-}));
-
-export const Win98WindowBody = styled('div')(({ theme }) => ({
-    padding: theme.spacing(8),
-    backgroundColor: theme.palette.background.paper,
-    fontFamily: '"MS Sans Serif", Tahoma, sans-serif',
-}));
+export const ChartWrapper = styled('div')<{ isMobile?: boolean }>({
+    width: '100%',
+    margin: 0,
+});
