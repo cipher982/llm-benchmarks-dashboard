@@ -55,7 +55,7 @@ async function handler(
       return CloudMetrics.find({ run_ts: { $gte: dateFilter } })
         .select(
           "model_name provider tokens_per_second generated_tokens_per_second visible_tokens_per_second " +
-          "time_to_first_token run_ts display_name"
+          "transport_provider route_model_id time_to_first_token run_ts display_name"
         )
         .batchSize(MAX_RECORDS)  // Force MongoDB to send all data in fewer batches
         .lean()
@@ -86,6 +86,8 @@ async function handler(
           generated_tokens_per_second: doc.generated_tokens_per_second ?? null,
           visible_tokens_per_second: doc.visible_tokens_per_second ?? null,
           provider: doc.provider || "",
+          transport_provider: doc.transport_provider || "direct",
+          route_model_id: doc.route_model_id,
           streaming: doc.streaming || false,
           time_to_first_token: doc.time_to_first_token ?? null
         };

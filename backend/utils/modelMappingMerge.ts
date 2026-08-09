@@ -37,12 +37,14 @@ export const latestBenchmarkDate = (items: ProcessedData[]): string | undefined 
 export const mergeProcessedModelGroup = ({
     items,
     providerCanonical,
+    transportProvider,
     modelDisplay,
     modelCanonical,
     metadata = {},
 }: {
     items: ProcessedData[];
     providerCanonical: string;
+    transportProvider?: string;
     modelDisplay: string;
     modelCanonical: string;
     metadata?: MergeMetadata;
@@ -53,8 +55,11 @@ export const mergeProcessedModelGroup = ({
 
     const mergedItem: CloudBenchmark = {
         _id: items[0]._id,
-        provider: getProviderDisplayName(providerCanonical),
+        provider: transportProvider === 'openrouter'
+            ? `${getProviderDisplayName(providerCanonical)} via OpenRouter`
+            : getProviderDisplayName(providerCanonical),
         providerCanonical,
+        transportProvider: transportProvider || 'direct',
         providerSlug: createSlug(providerCanonical),
         model_name: modelDisplay,
         modelCanonical,

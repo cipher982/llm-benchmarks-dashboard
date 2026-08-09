@@ -190,7 +190,7 @@ export type MetadataLookup = (providerCanonical: string, modelCanonical: string)
 /**
  * Group benchmark rows into published lines and merge each group's samples.
  *
- * Grouping is by `(providerCanonical, display_name)` — an exact string match,
+ * Grouping is by `(providerCanonical, display_name, transportProvider)` — an exact string match,
  * which is why two spellings of one model publish as two lines. Nothing here
  * decides what a name should be; that judgment lives in the identity resolver
  * and reaches this function through the `models` collection.
@@ -207,11 +207,13 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
 
     const providerCanonical = item.providerCanonical;
     const modelCanonical = item.modelCanonical;
+    const transportProvider = item.transportProvider || 'direct';
     const metadata = lookup(providerCanonical, modelCanonical);
 
     const groupKey = JSON.stringify({
       providerCanonical,
       modelDisplay: metadata.display_name,
+      transportProvider,
     });
 
     metadataMap.set(groupKey, metadata);
@@ -226,12 +228,17 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
   }
 
   return Array.from(modelGroups.entries()).map(([groupKey, items]) => {
-    const { providerCanonical, modelDisplay } = JSON.parse(groupKey) as { providerCanonical: string; modelDisplay: string };
+    const { providerCanonical, modelDisplay, transportProvider } = JSON.parse(groupKey) as {
+      providerCanonical: string;
+      modelDisplay: string;
+      transportProvider: string;
+    };
     const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
 
     return mergeProcessedModelGroup({
       items,
       providerCanonical,
+      transportProvider,
       modelDisplay,
       modelCanonical: items[0].modelCanonical,
       metadata: {

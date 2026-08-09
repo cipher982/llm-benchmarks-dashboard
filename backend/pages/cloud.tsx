@@ -336,7 +336,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         for (const model of timeSeriesData.models) {
             for (const provider of model.providers) {
                 if (!provider.values?.length) continue;
-                map.set(`${provider.providerCanonical}/${model.model_name}`, provider.values);
+                map.set(`${provider.providerCanonical}/${provider.transportProvider || 'direct'}/${model.model_name}`, provider.values);
             }
         }
         return map;

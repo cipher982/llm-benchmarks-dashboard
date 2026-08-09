@@ -14,6 +14,8 @@ const LocalMetrics = mongoose.models.metrics_v2 || mongoose.model("metrics_v2", 
 
 const CloudSchema = new mongoose.Schema({
   provider: String,
+  transport_provider: { type: String, default: "direct" },
+  route_model_id: String,
   model_name: String,
   output_tokens: Number,
   tokens_per_second: Number,

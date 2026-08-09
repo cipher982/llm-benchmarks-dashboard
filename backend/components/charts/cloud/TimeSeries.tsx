@@ -483,7 +483,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             )[0];
             const values = fillSmallGaps(best.values || []);
             return {
-                key: `${model.model_name}-${best.providerCanonical}`,
+                key: `${model.model_name}-${best.providerCanonical}-${best.transportProvider || 'direct'}`,
                 model: model.display_name || model.model_name,
                 provider: best.provider,
                 values,

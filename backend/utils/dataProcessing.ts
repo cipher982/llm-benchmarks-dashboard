@@ -160,6 +160,7 @@ const createSnapshotSegment = (
     return {
         provider: provider.provider,
         providerCanonical: provider.providerCanonical,
+        transportProvider: provider.transportProvider || 'direct',
         values: snapshotValues,
         deprecated: true,
         deprecation_date: snapshot.deprecation_date.toISOString(),
@@ -257,6 +258,7 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
             return {
                 provider: benchmark.provider as Provider,
                 providerCanonical: benchmark.providerCanonical,
+                transportProvider: benchmark.transportProvider || 'direct',
                 values: processedValues,
                 deprecated: benchmark.deprecated,
                 deprecation_date: benchmark.deprecation_date,
@@ -284,7 +286,9 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
 
         // Process providers: split if needed, or keep as-is
         const processedProviders: any[] = [];
-        const existingProviders = new Set(providers.map(p => p.providerCanonical));
+        const existingProviders = new Set(
+            providers.map(p => `${p.providerCanonical}:${p.transportProvider || 'direct'}`)
+        );
 
         providers.forEach(provider => {
             const snapshot = snapshotMap.get(provider.providerCanonical);
@@ -313,10 +317,11 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
 
         // Add snapshot-only providers (no real data in window)
         const snapshotOnlyProviders = matchingSnapshots
-            .filter(snapshot => !existingProviders.has(snapshot.provider_canonical))
+            .filter(snapshot => !existingProviders.has(`${snapshot.provider_canonical}:direct`))
             .map(snapshot => ({
                 provider: getProviderDisplayName(snapshot.provider_canonical) as Provider,
                 providerCanonical: snapshot.provider_canonical,
+                transportProvider: 'direct',
                 values: Array(nRuns).fill(snapshot.snapshot_mean) as (number | null)[],
                 deprecated: true,
                 deprecation_date: snapshot.deprecation_date.toISOString(),
@@ -478,6 +483,7 @@ export const processRawTableData = async (data: CloudBenchmark[], filters?: Tabl
         return {
             provider: benchmark.provider,
             providerCanonical: benchmark.providerCanonical,
+            transportProvider: benchmark.transportProvider || 'direct',
             providerSlug: benchmark.providerSlug,
             model_name: benchmark.model_name,
             modelCanonical: benchmark.modelCanonical,

@@ -2,6 +2,7 @@ export interface CloudBenchmark {
     _id?: string;  // Optional MongoDB ID
     provider: string;  // Provider label presented to users (display-only)
     providerCanonical: string;  // Provider identifier used for routing and data lookups
+    transportProvider?: string; // direct or openrouter; legacy rows normalize to direct
     providerSlug: string;  // Slug derived from the canonical provider identifier
     model_name: string;  // Human-friendly model label after mapping
     modelCanonical: string;  // Canonical model identifier used for routing/lookups

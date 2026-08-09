@@ -23,6 +23,8 @@ export interface RawData {
     tokens_per_second: number;
     generated_tokens_per_second?: number | null;
     visible_tokens_per_second?: number | null;
+    transport_provider?: string;
+    route_model_id?: string;
     provider: string;
     streaming: boolean;
     time_to_first_token: number | null;
@@ -32,6 +34,7 @@ interface AggregatedData {
     _id: string;
     provider: string;
     providerCanonical: string;
+    transportProvider: string;
     model_name: string;
     modelCanonical: string;
     display_name?: string;
@@ -53,6 +56,7 @@ export interface ProcessedData {
     _id: string;
     provider: string;
     providerCanonical: string;
+    transportProvider: string;
     model_name: string;
     modelCanonical: string;
     display_name?: string;
@@ -123,13 +127,18 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             : benchmark.tokens_per_second;
         const hasVisibleThroughput = visibleTps !== null;
         
-        const key = `${benchmark.model_name}-${benchmark.provider}`;
+        // Historical rows have no transport field and are direct samples. Keep
+        // direct and routed samples in separate aggregates once routed rows
+        // arrive, otherwise the dashboard silently averages two transports.
+        const transportProvider = benchmark.transport_provider || 'direct';
+        const key = JSON.stringify([benchmark.model_name, benchmark.provider, transportProvider]);
         
         if (!benchmarkMap.has(key)) {
             benchmarkMap.set(key, {
                 _id: benchmark._id,
                 provider: benchmark.provider,
                 providerCanonical: benchmark.provider,
+                transportProvider,
                 model_name: benchmark.model_name,
                 modelCanonical: benchmark.model_name,
                 display_name: benchmark.display_name,
@@ -196,6 +205,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             _id: benchmark._id,
             provider: benchmark.provider,
             providerCanonical: benchmark.providerCanonical,
+            transportProvider: benchmark.transportProvider,
             model_name: benchmark.model_name,
             modelCanonical: benchmark.modelCanonical,
             display_name: benchmark.display_name,

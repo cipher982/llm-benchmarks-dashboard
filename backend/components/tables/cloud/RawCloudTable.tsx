@@ -361,7 +361,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
             size: 72,
             enableSorting: false,
             cell: ({ row }) => {
-                const key = `${row.original.providerCanonical}/${row.original.model_name}`;
+                const key = `${row.original.providerCanonical}/${row.original.transportProvider || 'direct'}/${row.original.model_name}`;
                 const values = trends?.get(key);
                 if (!values) return <span style={dim}>—</span>;
                 return <Sparkline values={values} />;

@@ -19,6 +19,7 @@ export interface SpeedDistributionPoint {
 export interface TimeSeriesProvider {
     provider: string;
     providerCanonical: string;
+    transportProvider?: string;
     values: (number | null)[];
     deprecated?: boolean;
     deprecation_date?: string;
@@ -55,6 +56,7 @@ export interface TimeSeriesData {
 export interface TableRow {
     provider: string;               // Provider label shown in UI
     providerCanonical: string;      // Canonical provider identifier
+    transportProvider?: string;     // Transport series, direct or openrouter
     providerSlug: string;           // Slug for provider routes
     model_name: string;             // Model label shown in UI
     modelCanonical: string;         // Canonical model identifier
