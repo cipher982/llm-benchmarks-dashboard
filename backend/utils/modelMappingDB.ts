@@ -25,6 +25,7 @@ const Model = mongoose.models.ModelMapping || mongoose.model('ModelMapping', Mod
 const LifecycleStatusSchema = new mongoose.Schema({
   provider: { type: String, required: true },
   model_id: { type: String, required: true },
+  transport_provider: { type: String, default: 'direct' },
   status: { type: String },
   confidence: { type: String },
   reasons: { type: [String], default: [] },
@@ -70,6 +71,9 @@ interface ModelMetadata {
 }
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const metadataCacheKey = (provider: string, modelId: string, transportProvider = 'direct'): string =>
+  `${provider}:${modelId}:${transportProvider}`;
 
 const toIsoString = (value: unknown): string | undefined => {
   if (!value) {
@@ -128,7 +132,7 @@ async function getModelMappingCache(): Promise<{ [key: string]: ModelMetadata }>
 
     const newCache: { [key: string]: ModelMetadata } = {};
     models.forEach(model => {
-      const cacheKey = `${model.provider}:${model.model_id}`;
+      const cacheKey = metadataCacheKey(model.provider, model.model_id);
       newCache[cacheKey] = {
         display_name: model.display_name || model.model_id,
         enabled: model.enabled !== false,
@@ -142,6 +146,7 @@ async function getModelMappingCache(): Promise<{ [key: string]: ModelMetadata }>
     const lifecycleStatuses = await LifecycleStatusModel.find({}, {
       provider: 1,
       model_id: 1,
+      transport_provider: 1,
       status: 1,
       confidence: 1,
       reasons: 1,
@@ -151,8 +156,15 @@ async function getModelMappingCache(): Promise<{ [key: string]: ModelMetadata }>
       metrics: 1
     }).lean();
 
+    // Mongo rows written before transport-aware lifecycle status implicitly
+    // belong to the direct lane. Keep explicit values last so a legacy row
+    // cannot nondeterministically overwrite an explicit direct record while
+    // the one-time index migration is being rolled through environments.
+    lifecycleStatuses.sort((left: any, right: any) =>
+      Number(Boolean(left.transport_provider)) - Number(Boolean(right.transport_provider))
+    );
     lifecycleStatuses.forEach((status: any) => {
-      const cacheKey = `${status.provider}:${status.model_id}`;
+      const cacheKey = metadataCacheKey(status.provider, status.model_id, status.transport_provider || 'direct');
       const existing = newCache[cacheKey] || { display_name: status.model_id };
 
       newCache[cacheKey] = {
@@ -173,19 +185,28 @@ async function getModelMappingCache(): Promise<{ [key: string]: ModelMetadata }>
   });
 }
 
-function getModelMetadataSync(
+export function getModelMetadataSync(
   provider: string,
   modelId: string,
+  transportProvider: string,
   cache: { [key: string]: ModelMetadata }
 ): ModelMetadata {
-  return cache[`${provider}:${modelId}`] || { display_name: modelId };
+  const exact = cache[metadataCacheKey(provider, modelId, transportProvider)];
+  if (exact) return exact;
+  // Routed series must not inherit direct lifecycle status. Reuse only the
+  // display/deprecation metadata from the direct model record.
+  if (transportProvider !== 'direct') {
+    const direct = cache[metadataCacheKey(provider, modelId)];
+    if (direct) return { ...direct, lifecycle: undefined };
+  }
+  return { display_name: modelId };
 }
 
 /**
  * Where a display name comes from. The only thing that ever differed between
  * the database mapper and the hardcoded table it replaced.
  */
-export type MetadataLookup = (providerCanonical: string, modelCanonical: string) => ModelMetadata;
+export type MetadataLookup = (providerCanonical: string, modelCanonical: string, transportProvider?: string) => ModelMetadata;
 
 /**
  * Group benchmark rows into published lines and merge each group's samples.
@@ -208,7 +229,7 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
     const providerCanonical = item.providerCanonical;
     const modelCanonical = item.modelCanonical;
     const transportProvider = item.transportProvider || 'direct';
-    const metadata = lookup(providerCanonical, modelCanonical);
+    const metadata = lookup(providerCanonical, modelCanonical, transportProvider);
 
     const groupKey = JSON.stringify({
       providerCanonical,
@@ -271,7 +292,9 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
  */
 export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBenchmark[]> => {
   const modelMappingCache = await getModelMappingCache();
-  return groupAndMerge(data, (provider, modelId) => getModelMetadataSync(provider, modelId, modelMappingCache));
+  return groupAndMerge(data, (provider, modelId, transportProvider) =>
+    getModelMetadataSync(provider, modelId, transportProvider || 'direct', modelMappingCache)
+  );
 };
 
 export const mapModelNames = mapModelNamesDB;
@@ -289,7 +312,7 @@ export const clearModelMappingCache = (): void => {
  */
 export const getSuccessorModel = async (providerCanonical: string, modelCanonical: string): Promise<string | undefined> => {
   const cache = await getModelMappingCache();
-  const entry = cache[`${providerCanonical}:${modelCanonical}`];
+  const entry = cache[metadataCacheKey(providerCanonical, modelCanonical)];
   return entry?.successor_model || undefined;
 };
 

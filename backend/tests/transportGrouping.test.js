@@ -1,5 +1,5 @@
 const { cleanTransformCloud } = require('../utils/processCloud');
-const { groupAndMerge } = require('../utils/modelMappingDB');
+const { groupAndMerge, getModelMetadataSync } = require('../utils/modelMappingDB');
 const { processRawTableData } = require('../utils/dataProcessing');
 
 const raw = (transport_provider, value) => ({
@@ -41,5 +41,24 @@ describe('transport publication grouping', () => {
 
     expect(table).toHaveLength(1);
     expect(table[0].transportProvider).toBe('direct');
+  });
+
+  test('lifecycle metadata is isolated by transport', () => {
+    const cache = {
+      'deepinfra:Qwen/Qwen3-32B:direct': {
+        display_name: 'qwen-3-32b',
+        lifecycle: { status: 'active' },
+      },
+      'deepinfra:Qwen/Qwen3-32B:openrouter': {
+        display_name: 'qwen-3-32b',
+        lifecycle: { status: 'stale' },
+      },
+    };
+
+    expect(getModelMetadataSync('deepinfra', 'Qwen/Qwen3-32B', 'direct', cache).lifecycle.status).toBe('active');
+    expect(getModelMetadataSync('deepinfra', 'Qwen/Qwen3-32B', 'openrouter', cache).lifecycle.status).toBe('stale');
+    expect(getModelMetadataSync('deepinfra', 'Qwen/Qwen3-32B', 'openrouter', {
+      'deepinfra:Qwen/Qwen3-32B:direct': cache['deepinfra:Qwen/Qwen3-32B:direct'],
+    }).lifecycle).toBeUndefined();
   });
 });
