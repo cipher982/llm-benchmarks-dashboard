@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable strict mode for external URLs
-  images: {
-    domains: ['*'],
-  },
   // Trust the proxy headers
   poweredByHeader: false,
   // Required for working behind a reverse proxy
