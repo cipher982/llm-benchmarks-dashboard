@@ -300,6 +300,17 @@ export const mapModelNamesDB = async (data: ProcessedData[]): Promise<CloudBench
 export const mapModelNames = mapModelNamesDB;
 
 /**
+ * The DB-backed metadata lookup on its own, for pipelines that group
+ * differently than `groupAndMerge` (e.g. the steady-state estimator) but must
+ * source display names from the same `models` collection.
+ */
+export const getMetadataLookup = async (): Promise<MetadataLookup> => {
+  const modelMappingCache = await getModelMappingCache();
+  return (provider, modelId, transportProvider) =>
+    getModelMetadataSync(provider, modelId, transportProvider || 'direct', modelMappingCache);
+};
+
+/**
  * Utility function to clear the cache (useful for testing)
  */
 export const clearModelMappingCache = (): void => {

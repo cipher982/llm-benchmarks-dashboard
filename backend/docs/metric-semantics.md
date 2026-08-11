@@ -29,6 +29,19 @@ The dashboard consumes schema-v2 cloud benchmark rows from `metrics_cloud_v2`. T
 - The two charts therefore answer different questions and are labelled accordingly. A reasoning model legitimately shows ~2 tok/s in the distribution and the table, and ~55 in the time series.
 - First-token latency is the first visible text token. Reasoning-only or thinking-only runs with no visible token are omitted from TTFT averages instead of being counted as immediate output.
 
+## Steady-State Throughput and Floor Latency
+
+Every run obeys `total_time ≈ a + tokens / r`. The runner interleaves 512-output-token runs (`benchmark_profile_id: "cloud-long-v1"`) alongside the published 64-token runs (`cloud-default-v1`); fitting that line across both gives a transport-invariant metric pair:
+
+- **Generation speed** (`generationSpeed`, tok/s): `1 / slope` — the steady-state token generation rate, with the per-request floor factored out.
+- **Floor latency** (`floorLatencySeconds`): the intercept — seconds of per-request overhead independent of output length.
+
+The estimator (`utils/steadyState.ts`, served by `/api/steady-state?days=N&provider=X`) is a Theil-Sen fit of `generate_time` on generated tokens: the slope is the median of pairwise slopes over pairs with token spread >= 128, and the intercept is the median of `time - slope * tokens` over all samples. The median-of-pairs slope makes one stalled run a minority vote rather than a lever arm. The 95% CI on generation speed comes from 500 bootstrap resamples of the sample set (seedable RNG, so tests are exact).
+
+The chart pipeline is unchanged: `cleanTransformCloud` still drops every non-`cloud-default-v1` row. Only this endpoint reads `cloud-long-v1` rows, via its own grouping in `utils/steadyStateProcessing.ts` (same canonical/display/slug contract, same direct-vs-routed transport separation). Each row also carries `legacyTps`, the median `tokens_per_second` of the 64-token rows, for comparison against the published number.
+
+**Publication gate:** an estimate is `status: "ok"` only when there are >= 4 long-run samples, >= 12 samples total, and both bootstrap CI bounds sit within ±15% of the point estimate. Otherwise the row reports `insufficient-data` (not enough runs yet — the expected state until `cloud-long-v1` rows accumulate) or `unstable` (enough runs, too noisy to publish), with a `reason` field distinguishing the exact failure. Pinned by `tests/steadyState.test.js` and `tests/steadyStateProcessing.test.js`.
+
 ## API Compatibility
 
 No API migration is required for schema-v2 metrics. Existing clients can continue reading `tokens_per_second`; clients that need user-visible output speed should prefer table rows with `throughput_basis` or raw rows that include `visible_tokens_per_second`.
