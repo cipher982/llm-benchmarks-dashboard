@@ -17,7 +17,9 @@ async function connectToMongoDB() {
         }
 
         logger.info('Creating new MongoDB connection');
-        await mongoose.connect(getMongoDBUri());
+        // Fail fast instead of the driver's 30s default: a down Mongo should
+        // surface as a quick 5xx and an empty state, not a 30s spinner hang.
+        await mongoose.connect(getMongoDBUri(), { serverSelectionTimeoutMS: 5000 });
         logger.info('MongoDB connected successfully');
     } catch (error) {
         logger.error('Error connecting to MongoDB:', error);
