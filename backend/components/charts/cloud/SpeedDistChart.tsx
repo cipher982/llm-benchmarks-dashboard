@@ -13,7 +13,7 @@
  * which is what made the old direct labels illegible once models overlapped.
  */
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Link from 'next/link';
@@ -233,7 +233,15 @@ interface RidgeRow {
 
 const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slugs }) => {
     const theme = useTheme();
-    const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
+    const isNarrow = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true });
+    // The ridgeline and the mobile list are different layouts; server HTML can
+    // only render the desktop form (no viewport), so on a phone the desktop
+    // ridgeline would paint and then snap to the list after hydration. Render
+    // nothing until the first client frame, so the breakpoint is already known.
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const { rows, xMax, hidden, beyond } = useMemo(() => {
         const usable = (data ?? []).filter(
@@ -260,6 +268,10 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
 
         return { rows: built, xMax: domainMax, hidden: sorted.length - shown.length, beyond };
     }, [data, maxRows]);
+
+    if (!mounted) {
+        return null;
+    }
 
     if (!rows.length) {
         return null;
