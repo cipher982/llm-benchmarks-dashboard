@@ -275,7 +275,6 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
     const modelCanonical = item.modelCanonical;
     const transportProvider = item.transportProvider || 'direct';
     const metadata = lookup(providerCanonical, modelCanonical, transportProvider);
-
     const groupKey = JSON.stringify({
       providerCanonical,
       modelCanonical,

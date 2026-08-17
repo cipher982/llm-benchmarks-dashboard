@@ -56,9 +56,8 @@ export const mergeProcessedModelGroup = ({
 
     const mergedItem: CloudBenchmark = {
         _id: items[0]._id,
-        provider: transportProvider === 'openrouter'
-            ? `${getProviderDisplayName(providerCanonical)} via OpenRouter`
-            : getProviderDisplayName(providerCanonical),
+        // No "via OpenRouter" — the transport is provisioning detail.
+        provider: getProviderDisplayName(providerCanonical),
         providerCanonical,
         transportProvider: transportProvider || 'direct',
         providerSlug: createSlug(providerCanonical),

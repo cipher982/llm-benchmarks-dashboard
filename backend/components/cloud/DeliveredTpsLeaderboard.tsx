@@ -17,7 +17,7 @@ import { colors, typography, spacing } from '../design-system';
 import { fmt } from '../../utils/chartMath';
 
 export interface DeliveredTpsLeaderboardRow {
-    provider: string;         // display label, includes "via OpenRouter" for routed lanes
+    provider: string;         // display label for whoever served the request
     providerCanonical: string;
     providerSlug: string;
     model: string;
@@ -97,11 +97,16 @@ const Value = styled('span')<{ $fraction: number }>(({ $fraction }) => ({
     },
 }));
 
+// A leaderboard is a ranking, not a catalogue. Uncapped this rendered all 236
+// measured models and pushed every other section of the page below the fold.
+const TOP_N = 15;
+
 const DeliveredTpsLeaderboard: React.FC<DeliveredTpsLeaderboardProps> = ({ rows }) => {
     const ranked = useMemo(() => {
         const withValue = rows
             .filter(r => typeof r.deliveredTps === 'number' && r.deliveredTps > 0)
-            .sort((a, b) => (b.deliveredTps as number) - (a.deliveredTps as number));
+            .sort((a, b) => (b.deliveredTps as number) - (a.deliveredTps as number))
+            .slice(0, TOP_N);
         const max = withValue.length > 0 ? (withValue[0].deliveredTps as number) : 0;
         return withValue.map((row, i) => ({
             row,

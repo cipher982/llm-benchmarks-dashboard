@@ -1,3 +1,4 @@
+import { resolveServingProvider } from './providerMetadata';
 import { calculateMean, calculateMin, calculateMax, calculateQuartiles, bytesToGB, shuffleArray } from './dataUtils';
 import logger from './logger'; // Assuming logger is imported from a separate file
 
@@ -131,13 +132,20 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         // direct and routed samples in separate aggregates once routed rows
         // arrive, otherwise the dashboard silently averages two transports.
         const transportProvider = benchmark.transport_provider || 'direct';
-        const key = JSON.stringify([benchmark.model_name, benchmark.provider, transportProvider]);
-        
+        // Who served this, not how it was billed. A row reading
+        // provider: "openrouter" with observed_provider: "DeepInfra" is a
+        // DeepInfra measurement and belongs on DeepInfra's line — the same
+        // place the measurement would land if we called DeepInfra directly.
+        // OpenRouter is provisioning and consolidated billing; it is not a
+        // provider and has no place in what the site shows.
+        const servingProvider = resolveServingProvider(benchmark);
+        const key = JSON.stringify([benchmark.model_name, servingProvider, transportProvider]);
+
         if (!benchmarkMap.has(key)) {
             benchmarkMap.set(key, {
                 _id: benchmark._id,
-                provider: benchmark.provider,
-                providerCanonical: benchmark.provider,
+                provider: servingProvider,
+                providerCanonical: servingProvider,
                 transportProvider,
                 model_name: benchmark.model_name,
                 modelCanonical: benchmark.model_name,

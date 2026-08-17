@@ -170,7 +170,12 @@ describe('processSteadyState', () => {
 
     expect(rows).toHaveLength(2);
     expect(rows.map(r => r.transportProvider).sort()).toEqual(['direct', 'openrouter']);
-    expect(rows.map(r => r.provider).sort()).toEqual(['deepinfra', 'deepinfra via OpenRouter']);
+    // Both credit DeepInfra, because DeepInfra served both. How the request was
+    // provisioned is billing plumbing and is never shown; what must not happen
+    // is the two being averaged into one fit, which the transport split above
+    // is what prevents.
+    expect(rows.map(r => r.provider)).toEqual(['deepinfra', 'deepinfra']);
+    expect(rows.some(r => /openrouter/i.test(r.provider))).toBe(false);
     rows.forEach(r => expect(r.sampleCount).toBe(18));
   });
 

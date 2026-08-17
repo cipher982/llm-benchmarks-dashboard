@@ -50,6 +50,7 @@ const deliveredTpsHandler = async (req: NextApiRequest, res: NextApiResponse) =>
         const metrics = await CloudMetrics.find(query)
             .select(
                 'model_name provider transport_provider benchmark_profile_id ' +
+                'observed_provider observed_provider_slug ' +
                 'time_to_64_visible_tokens_seconds tokens_per_second run_ts'
             )
             .batchSize(50000)

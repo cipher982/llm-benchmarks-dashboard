@@ -133,9 +133,9 @@ export const processSteadyState = (
         const metadata = lookup(providerCanonical, modelCanonical, transportProvider);
         const estimate = estimateSteadyState(group.samples, options);
 
-        const providerDisplay = transportProvider === 'openrouter'
-            ? `${getProviderDisplayName(providerCanonical)} via OpenRouter`
-            : getProviderDisplayName(providerCanonical);
+        // No "via OpenRouter". The transport is provisioning detail; the
+        // provider shown is whoever served the request.
+        const providerDisplay = getProviderDisplayName(providerCanonical);
 
         return {
             provider: providerDisplay,

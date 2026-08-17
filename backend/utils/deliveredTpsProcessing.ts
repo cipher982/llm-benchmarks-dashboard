@@ -15,7 +15,7 @@
 
 import type { MetadataLookup } from './modelMappingDB';
 import { PUBLISHED_PROFILE_ID } from './processCloud';
-import { getProviderDisplayName } from './providerMetadata';
+import { getProviderDisplayName, resolveServingProvider } from './providerMetadata';
 import { createSlug } from './seoUtils';
 import { median } from './steadyState';
 
@@ -29,6 +29,8 @@ export interface DeliveredTpsRawRow {
     run_ts?: string | Date;
     model_name: string;
     provider: string;
+    observed_provider?: string | null;
+    observed_provider_slug?: string | null;
     transport_provider?: string;
     time_to_64_visible_tokens_seconds?: number | null;
     tokens_per_second?: number;
@@ -71,12 +73,14 @@ export const processDeliveredTps = (
         if (typeof timeTo64 !== 'number' || !Number.isFinite(timeTo64) || timeTo64 <= 0) continue;
 
         const transportProvider = row.transport_provider || 'direct';
-        const key = JSON.stringify([row.provider, row.model_name, transportProvider]);
+        // Credit whoever served it, not how it was billed.
+        const servingProvider = resolveServingProvider(row);
+        const key = JSON.stringify([servingProvider, row.model_name, transportProvider]);
 
         let group = groups.get(key);
         if (!group) {
             group = {
-                providerCanonical: row.provider,
+                providerCanonical: servingProvider,
                 modelCanonical: row.model_name,
                 transportProvider,
                 deliveredTpsSamples: [],
@@ -99,10 +103,9 @@ export const processDeliveredTps = (
     const result: DeliveredTpsRow[] = Array.from(groups.values()).map(group => {
         const { providerCanonical, modelCanonical, transportProvider } = group;
         const metadata = lookup(providerCanonical, modelCanonical, transportProvider);
-
-        const providerDisplay = transportProvider === 'openrouter'
-            ? `${getProviderDisplayName(providerCanonical)} via OpenRouter`
-            : getProviderDisplayName(providerCanonical);
+        // No "via OpenRouter". The transport is provisioning detail; the
+        // provider shown is whoever served the request.
+        const providerDisplay = getProviderDisplayName(providerCanonical);
 
         return {
             provider: providerDisplay,
