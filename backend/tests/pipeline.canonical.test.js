@@ -387,10 +387,19 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
 
         const result = mapModelNames(processedData);
 
-        // Both should map to "gpt-4" display name and be merged
-        expect(result).toHaveLength(1);
-        expect(result[0].model_name).toBe('gpt-4');
-        expect(result[0].tokens_per_second).toEqual([40, 60]);
+        // Two endpoints, two lanes. This asserted one merged lane, because the
+        // lane key was the display name and both checkpoints render as "gpt-4".
+        // Averaging two distinct deployments into one series is a false merge:
+        // it is the same coupling that, in the other direction, split
+        // claude-haiku-4.5 from claude-haiku-4-5 into two lines for one model.
+        //
+        // A lane is now (providerCanonical, modelCanonical, transportProvider),
+        // and unification across providers happens above on identityKey. The
+        // catalogue prevents the duplicate-alias case upstream anyway — one
+        // enabled alias per display model, no regional or dated twins.
+        expect(result).toHaveLength(2);
+        expect(result.map(r => r.modelCanonical).sort()).toEqual(['gpt-4-0314', 'gpt-4-0613']);
+        expect(result.every(r => r.model_name === 'gpt-4')).toBe(true);
       });
 
       test('recomputes grouped means from merged samples instead of averaging model means', () => {
@@ -422,8 +431,8 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
             _id: 'test-2',
             provider: 'openai',
             providerCanonical: 'openai',
-            model_name: 'gpt-4-0314',
-            modelCanonical: 'gpt-4-0314',
+            model_name: 'gpt-4-0613',
+            modelCanonical: 'gpt-4-0613',
             tokens_per_second: [30, 50, 70],
             tokens_per_second_timestamps: [
               new Date('2025-01-15T12:00:00Z'),
@@ -458,6 +467,11 @@ describe('Pipeline Integration Tests - Canonical Architecture', () => {
 
         const result = mapModelNames(processedData);
 
+        // One endpoint, two batches of samples. This used to use two
+        // different canonical ids and rely on a shared display name to
+        // merge them; the point of the test is that a merged lane
+        // recomputes its mean from the pooled samples rather than
+        // averaging per-model means, and that holds either way.
         expect(result).toHaveLength(1);
         expect(result[0].tokens_per_second).toEqual([10, 30, 50, 70]);
         expect(result[0].visible_tokens_per_second).toEqual([10, 30, 50, 70]);

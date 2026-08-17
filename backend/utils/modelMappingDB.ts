@@ -38,6 +38,17 @@ const LifecycleStatusSchema = new mongoose.Schema({
 const LifecycleStatusModel = mongoose.models.ModelLifecycleStatus ||
   mongoose.model('ModelLifecycleStatus', LifecycleStatusSchema, 'model_status');
 
+// Derived cross-provider identity, maintained continuously by the reconciler.
+const IdentitySchema = new mongoose.Schema({
+  provider: { type: String, required: true },
+  model_id: { type: String, required: true },
+  canonical_key: { type: String },
+  effective_from: { type: Date }
+});
+
+const IdentityModel = mongoose.models.ModelIdentity ||
+  mongoose.model('ModelIdentity', IdentitySchema, 'bench_model_identity');
+
 // Cache types
 interface LifecycleMetrics {
   last_success?: string;
@@ -62,6 +73,17 @@ interface LifecycleMetadata {
 
 interface ModelMetadata {
   display_name: string;
+  /**
+   * Cross-provider chart identity, from `bench_model_identity.canonical_key`.
+   *
+   * Deliberately separate from `display_name`. Names are presentation and now
+   * come from a third party that can rename at will; identity must not move
+   * when they do. Grouping charts on the name is what split
+   * `claude-haiku-4.5` from `claude-haiku-4-5` into two lines for one model.
+   * Undefined when the resolver has not placed the endpoint yet, in which case
+   * it stays its own model rather than being guessed into someone else's.
+   */
+  identityKey?: string;
   enabled?: boolean;
   deprecated?: boolean;
   deprecation_date?: string;
@@ -130,10 +152,26 @@ async function getModelMappingCache(): Promise<{ [key: string]: ModelMetadata }>
       deprecation_reason: 1
     }).lean();
 
+    // Newest relation per endpoint, which is what grouping must read. The
+    // collection is append-only and keeps history, so an older row for the same
+    // endpoint is a superseded opinion rather than a second model.
+    const identityRows = await IdentityModel.find({}, {
+      provider: 1,
+      model_id: 1,
+      canonical_key: 1,
+      effective_from: 1
+    }).sort({ effective_from: 1 }).lean();
+    const identityByEndpoint = new Map<string, string>();
+    identityRows.forEach(row => {
+      if (!row.provider || !row.model_id || !row.canonical_key) return;
+      identityByEndpoint.set(`${row.provider}:${row.model_id}`, String(row.canonical_key));
+    });
+
     const newCache: { [key: string]: ModelMetadata } = {};
     models.forEach(model => {
       const cacheKey = metadataCacheKey(model.provider, model.model_id);
       newCache[cacheKey] = {
+        identityKey: identityByEndpoint.get(`${model.provider}:${model.model_id}`),
         display_name: model.display_name || model.model_id,
         enabled: model.enabled !== false,
         deprecated: model.deprecated,
@@ -211,10 +249,17 @@ export type MetadataLookup = (providerCanonical: string, modelCanonical: string,
 /**
  * Group benchmark rows into published lines and merge each group's samples.
  *
- * Grouping is by `(providerCanonical, display_name, transportProvider)` — an exact string match,
- * which is why two spellings of one model publish as two lines. Nothing here
- * decides what a name should be; that judgment lives in the identity resolver
- * and reaches this function through the `models` collection.
+ * A lane is `(providerCanonical, modelCanonical, transportProvider)` — one
+ * endpoint, on one transport. It used to be keyed on `display_name`, which made
+ * a presentation string load-bearing in two directions at once: two spellings
+ * of one model published as two lines, and two genuinely different endpoints
+ * that happened to share a label were averaged into one series. Names now come
+ * from a third-party catalogue that can rename at will, so keying identity on
+ * them is a standing invitation to both faults.
+ *
+ * Cross-provider unification happens above this, on `identityKey`, so that one
+ * model served by three providers is one chart line with three providers rather
+ * than three lines.
  */
 export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): CloudBenchmark[] => {
   const modelGroups = new Map<string, ProcessedData[]>();
@@ -233,7 +278,7 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
 
     const groupKey = JSON.stringify({
       providerCanonical,
-      modelDisplay: metadata.display_name,
+      modelCanonical,
       transportProvider,
     });
 
@@ -249,12 +294,13 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
   }
 
   return Array.from(modelGroups.entries()).map(([groupKey, items]) => {
-    const { providerCanonical, modelDisplay, transportProvider } = JSON.parse(groupKey) as {
+    const { providerCanonical, modelCanonical, transportProvider } = JSON.parse(groupKey) as {
       providerCanonical: string;
-      modelDisplay: string;
+      modelCanonical: string;
       transportProvider: string;
     };
-    const metadata = metadataMap.get(groupKey) || { display_name: modelDisplay };
+    const metadata = metadataMap.get(groupKey) || { display_name: modelCanonical };
+    const modelDisplay = metadata.display_name;
 
     return mergeProcessedModelGroup({
       items,

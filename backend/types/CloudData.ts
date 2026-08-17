@@ -6,6 +6,7 @@ export interface CloudBenchmark {
     providerSlug: string;  // Slug derived from the canonical provider identifier
     model_name: string;  // Human-friendly model label after mapping
     modelCanonical: string;  // Canonical model identifier used for routing/lookups
+    identityKey?: string;  // Cross-provider chart identity; absent when unresolved, and then never guessed
     modelSlug: string;  // Slug derived from the canonical model identifier
     tokens_per_second: number[];
     tokens_per_second_timestamps: Date[];  // Parallel array to tokens_per_second

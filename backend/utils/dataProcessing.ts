@@ -201,18 +201,37 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
     // Fetch deprecation snapshots
     const snapshots = await fetchDeprecationSnapshots();
 
-    // Group by mapped model name
+    // Group by cross-provider identity, falling back to the label only when the
+    // resolver has not placed an endpoint yet.
+    //
+    // This grouped on `model_name` — the display label — so one model reached
+    // one chart line only while every provider spelled it identically. That is
+    // how `claude-haiku-4.5` and `claude-haiku-4-5` became two lines for one
+    // model at three providers. Now that labels come from a third-party
+    // catalogue that can rename at will, keying identity on them would make
+    // every chart line hostage to someone else's copy edit.
+    //
+    // An unresolved endpoint falls back to its label, which is exactly the old
+    // behaviour. Keying it on its own canonical id instead would be safer in
+    // principle and worse in practice: two providers serving one unresolved
+    // model would stop sharing a line, so tightening identity would visibly
+    // regress the chart for the models we know least about. Identity where we
+    // have it, the previous rule where we do not — never worse than today.
     const modelGroups = mappedData.reduce((groups, benchmark) => {
-        const { model_name } = benchmark;
-        if (!groups[model_name]) {
-            groups[model_name] = [];
+        const groupKey = benchmark.identityKey || `named:${benchmark.model_name}`;
+        if (!groups[groupKey]) {
+            groups[groupKey] = [];
         }
-        groups[model_name].push(benchmark);
+        groups[groupKey].push(benchmark);
         return groups;
     }, {} as { [key: string]: CloudBenchmark[] });
 
     // Process each model group
-    const processedModels = Object.entries(modelGroups).map(([model_name, benchmarks]) => {
+    const processedModels = Object.entries(modelGroups).map(([groupKey, benchmarks]) => {
+        // The key is an identity now, not a label. The label is whatever the
+        // group's members are called — they agree, because naming resolves an
+        // identity group to one label — with the key as a last resort.
+        const model_name = benchmarks[0]?.model_name || groupKey;
         const providers = benchmarks.map(benchmark => {
             // Deliberately generated throughput, not visible — pinned by
             // "plots generated throughput for visible-capable reasoning models"
