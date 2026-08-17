@@ -24,7 +24,7 @@
     "test:contract": "jest tests/api.canonical-contract.test.js --testTimeout=30000",
     "test:canonical": "jest tests/pipeline.canonical.test.js tests/api.canonical-contract.test.js --testTimeout=30000",
     "test:timeseries": "jest tests/timeseries.test.js --testTimeout=30000",
-    "test:pure": "jest tests/buildMode.test.js tests/designFixtures.test.js tests/fixtureGateCallSites.test.js tests/virtualTable.test.js tests/speedDistBasis.test.js tests/mongoose-buffering.test.js tests/pipeline.canonical.test.js tests/timeseries.test.js tests/lifecycle-summary.test.js tests/timeSeriesChart.test.js tests/modelService.naming.test.js tests/watchdog.test.js tests/steadyState.test.js tests/steadyStateProcessing.test.js tests/deliveredTpsProcessing.test.js tests/identityGrouping.test.js tests/openrouterIsInvisible.test.js --testTimeout=30000",
+    "test:pure": "jest tests/buildMode.test.js tests/designFixtures.test.js tests/fixtureGateCallSites.test.js tests/virtualTable.test.js tests/speedDistBasis.test.js tests/mongoose-buffering.test.js tests/pipeline.canonical.test.js tests/timeseries.test.js tests/lifecycle-summary.test.js tests/timeSeriesChart.test.js tests/modelService.naming.test.js tests/watchdog.test.js tests/steadyState.test.js tests/steadyStateProcessing.test.js tests/deliveredTpsProcessing.test.js tests/identityGrouping.test.js tests/openrouterIsInvisible.test.js --testTimeout=30000 tests/endpointIdentity.test.js",
     "test:integration": "jest tests/api.baseline.test.js tests/api.canonical-contract.test.js tests/data.snapshot.test.js tests/performance.test.js --testTimeout=30000",
     "test:a11y": "playwright test tests/accessibility.test.ts",
     "test:a11y:ui": "playwright test tests/accessibility.test.ts --ui",

@@ -32,6 +32,8 @@ export interface DeliveredTpsRawRow {
     observed_provider?: string | null;
     observed_provider_slug?: string | null;
     transport_provider?: string;
+    route_endpoint_tag?: string | null;
+    quantization?: string | null;
     time_to_64_visible_tokens_seconds?: number | null;
     tokens_per_second?: number;
 }
@@ -45,6 +47,12 @@ export interface DeliveredTpsRow {
     modelSlug: string;           // slug from modelCanonical
     displayName: string;         // display label from the models collection
     transportProvider: string;
+    /** The exact endpoint measured; null on unpinned pre-cutover rows. */
+    endpointTag: string | null;
+    /** Weight quantization of that endpoint. fp4 and bf16 do not share an axis. */
+    quantization: string;
+    /** False for rows from OpenRouter's price-selected default routing. */
+    pinned: boolean;
     /** Median of 64 / time_to_64_visible_tokens_seconds over all reaching rows. */
     deliveredTps: number | null;
     sampleCount: number;
@@ -58,6 +66,9 @@ interface DeliveredTpsGroup {
     catalogueProvider: string;
     modelCanonical: string;
     transportProvider: string;
+    endpointTag: string | null;
+    quantization: string;
+    pinned: boolean;
     deliveredTpsSamples: number[];
     legacyTpsSamples: number[];
 }
@@ -77,7 +88,21 @@ export const processDeliveredTps = (
         const transportProvider = row.transport_provider || 'direct';
         // Credit whoever served it, not how it was billed.
         const servingProvider = resolveServingProvider(row);
-        const key = JSON.stringify([servingProvider, row.model_name, transportProvider]);
+        // An endpoint is (model, exact tag). Two deployments from one provider
+        // — deepinfra/bf16 and deepinfra/turbo — serve at different speeds and
+        // cannot share a row.
+        const endpointTag = row.route_endpoint_tag || null;
+        // Quantization is identity: gpt-oss-120b is served at fp4 and at bf16,
+        // and fp4 is faster because it is a smaller artifact, not because the
+        // provider is quicker. `unknown` never merges with a known value.
+        const quantization = row.quantization || 'unknown';
+        const key = JSON.stringify([
+            servingProvider,
+            row.model_name,
+            transportProvider,
+            endpointTag,
+            quantization,
+        ]);
 
         let group = groups.get(key);
         if (!group) {
@@ -86,6 +111,14 @@ export const processDeliveredTps = (
                 catalogueProvider: row.provider,
                 modelCanonical: row.model_name,
                 transportProvider,
+                endpointTag,
+                quantization,
+                // Rows produced before endpoint pinning came from OpenRouter's
+                // default routing, which selects on price. They measured
+                // whichever deployment happened to be cheapest that minute, so
+                // they are retained and labelled but never ranked against a
+                // pinned measurement of a named endpoint.
+                pinned: Boolean(endpointTag),
                 deliveredTpsSamples: [],
                 legacyTpsSamples: [],
             };
@@ -105,6 +138,7 @@ export const processDeliveredTps = (
 
     const result: DeliveredTpsRow[] = Array.from(groups.values()).map(group => {
         const { providerCanonical, catalogueProvider, modelCanonical, transportProvider } = group;
+        const { endpointTag, quantization, pinned } = group;
         // Names are keyed on the scheduling lane, not the serving upstream.
         const metadata = lookup(catalogueProvider || providerCanonical, modelCanonical, transportProvider);
         // No "via OpenRouter". The transport is provisioning detail; the
@@ -120,6 +154,9 @@ export const processDeliveredTps = (
             modelSlug: createSlug(modelCanonical),
             displayName: metadata.display_name,
             transportProvider,
+            endpointTag,
+            quantization,
+            pinned,
             deliveredTps: group.deliveredTpsSamples.length > 0 ? median(group.deliveredTpsSamples) : null,
             sampleCount: group.deliveredTpsSamples.length,
             legacyTps: group.legacyTpsSamples.length > 0 ? median(group.legacyTpsSamples) : null,
@@ -129,6 +166,8 @@ export const processDeliveredTps = (
     result.sort((a, b) =>
         a.providerCanonical.localeCompare(b.providerCanonical) ||
         a.modelCanonical.localeCompare(b.modelCanonical) ||
+        (a.endpointTag || '').localeCompare(b.endpointTag || '') ||
+        a.quantization.localeCompare(b.quantization) ||
         a.transportProvider.localeCompare(b.transportProvider)
     );
 

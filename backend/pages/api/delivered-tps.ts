@@ -51,6 +51,10 @@ const deliveredTpsHandler = async (req: NextApiRequest, res: NextApiResponse) =>
             .select(
                 'model_name provider transport_provider benchmark_profile_id ' +
                 'observed_provider observed_provider_slug ' +
+                // Endpoint identity. A field the query does not select is a
+                // field the grouping cannot see, which is how the serving
+                // provider went unpublished for as long as it did.
+                'route_endpoint_tag quantization ' +
                 'time_to_64_visible_tokens_seconds tokens_per_second run_ts'
             )
             .batchSize(50000)

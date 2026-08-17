@@ -11,6 +11,8 @@ export const PUBLISHED_PROFILE_ID = 'cloud-default-v1';
  * Raw data from the cloud benchmarks
  */
 export interface RawData {
+    route_endpoint_tag?: string | null;
+    quantization?: string | null;
     _id: string;
     benchmark_profile_id?: string;
     run_ts: string;
@@ -32,6 +34,9 @@ export interface RawData {
 }
 
 interface AggregatedData {
+    endpointTag: string | null;
+    quantization: string;
+    pinned: boolean;
     _id: string;
     provider: string;
     providerCanonical: string;
@@ -55,6 +60,9 @@ interface AggregatedData {
  * Processed data after cleaning and transforming the cloud benchmarks
  */
 export interface ProcessedData {
+    endpointTag: string | null;
+    quantization: string;
+    pinned: boolean;
     _id: string;
     provider: string;
     providerCanonical: string;
@@ -148,7 +156,25 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         // OpenRouter is provisioning and consolidated billing; it is not a
         // provider and has no place in what the site shows.
         const servingProvider = resolveServingProvider(benchmark);
-        const key = JSON.stringify([benchmark.model_name, servingProvider, transportProvider]);
+        // The endpoint is the thing measured. `deepinfra/bf16` and
+        // `deepinfra/turbo` are separate deployments from one company serving
+        // one model at different speeds, so they cannot share a series.
+        // Rows predating endpoint identity have no tag and group as before.
+        const endpointTag = benchmark.route_endpoint_tag || null;
+        // Quantization is part of identity, not a footnote. gpt-oss-120b is
+        // served at fp4 by five endpoints and bf16 by three; fp4 is markedly
+        // faster and materially worse, so ranking them on one axis would
+        // publish a speed difference as if it were the same artifact.
+        // `unknown` is a real value Groq reports and never merges with a known
+        // one.
+        const quantization = benchmark.quantization || 'unknown';
+        const key = JSON.stringify([
+            benchmark.model_name,
+            servingProvider,
+            transportProvider,
+            endpointTag,
+            quantization,
+        ]);
 
         if (!benchmarkMap.has(key)) {
             benchmarkMap.set(key, {
@@ -157,6 +183,12 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 providerCanonical: servingProvider,
                 catalogueProvider: benchmark.provider,
                 transportProvider,
+                endpointTag,
+                quantization,
+                // Pre-cutover rows were produced by unpinned routing against an
+                // endpoint we cannot name. They stay queryable and labelled,
+                // but they do not rank against pinned measurements.
+                pinned: Boolean(endpointTag),
                 model_name: benchmark.model_name,
                 modelCanonical: benchmark.model_name,
                 display_name: benchmark.display_name,
@@ -221,6 +253,9 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         // Return processed data with calculated statistics
         return {
             _id: benchmark._id,
+            endpointTag: benchmark.endpointTag,
+            quantization: benchmark.quantization,
+            pinned: benchmark.pinned,
             provider: benchmark.provider,
             providerCanonical: benchmark.providerCanonical,
             catalogueProvider: benchmark.catalogueProvider,

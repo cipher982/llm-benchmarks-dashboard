@@ -22,6 +22,18 @@ const CloudSchema = new mongoose.Schema({
   route_provider_slug: String,
   observed_provider: String,
   observed_provider_slug: String,
+  // The exact endpoint a pinned run was routed to. Absent on rows produced
+  // before endpoint identity, which is precisely what marks them unpinned.
+  route_endpoint_tag: String,
+  // Weight quantization of that endpoint. gpt-oss-120b is served at fp4 and at
+  // bf16; those are different artifacts and do not share a ranking axis.
+  quantization: String,
+  // Whether the stream's deltas were fine-grained enough to time generation at
+  // all. Cerebras returned 256 tokens in 13 chunks, which yields a throughput
+  // number describing the socket rather than the model.
+  stream_resolution: String,
+  visible_stream_chunks: Number,
+  max_tokens_per_chunk: Number,
   openrouter_response_id: String,
   route_policy: String,
   route_snapshot_at: String,
