@@ -274,7 +274,9 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
     const providerCanonical = item.providerCanonical;
     const modelCanonical = item.modelCanonical;
     const transportProvider = item.transportProvider || 'direct';
-    const metadata = lookup(providerCanonical, modelCanonical, transportProvider);
+    // Names are keyed on the lane that scheduled the work, not the upstream
+    // that served it.
+    const metadata = lookup(item.catalogueProvider || providerCanonical, modelCanonical, transportProvider);
     const groupKey = JSON.stringify({
       providerCanonical,
       modelCanonical,

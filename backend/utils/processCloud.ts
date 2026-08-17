@@ -35,6 +35,7 @@ interface AggregatedData {
     _id: string;
     provider: string;
     providerCanonical: string;
+    catalogueProvider: string;
     transportProvider: string;
     model_name: string;
     modelCanonical: string;
@@ -57,6 +58,14 @@ export interface ProcessedData {
     _id: string;
     provider: string;
     providerCanonical: string;
+    /**
+     * The provider the *catalogue* is keyed on, which is not who served the
+     * request. Display names live in `models` under the lane that scheduled the
+     * work — `openrouter` for an or-served row — while `providerCanonical` is
+     * the upstream that actually answered. Looking names up by the upstream
+     * misses every one of them and falls back to raw model ids.
+     */
+    catalogueProvider: string;
     transportProvider: string;
     model_name: string;
     modelCanonical: string;
@@ -146,6 +155,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 _id: benchmark._id,
                 provider: servingProvider,
                 providerCanonical: servingProvider,
+                catalogueProvider: benchmark.provider,
                 transportProvider,
                 model_name: benchmark.model_name,
                 modelCanonical: benchmark.model_name,
@@ -213,6 +223,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             _id: benchmark._id,
             provider: benchmark.provider,
             providerCanonical: benchmark.providerCanonical,
+            catalogueProvider: benchmark.catalogueProvider,
             transportProvider: benchmark.transportProvider,
             model_name: benchmark.model_name,
             modelCanonical: benchmark.modelCanonical,

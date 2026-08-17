@@ -54,6 +54,8 @@ export interface DeliveredTpsRow {
 
 interface DeliveredTpsGroup {
     providerCanonical: string;
+    /** The lane the catalogue keys names on, not the upstream that served it. */
+    catalogueProvider: string;
     modelCanonical: string;
     transportProvider: string;
     deliveredTpsSamples: number[];
@@ -81,6 +83,7 @@ export const processDeliveredTps = (
         if (!group) {
             group = {
                 providerCanonical: servingProvider,
+                catalogueProvider: row.provider,
                 modelCanonical: row.model_name,
                 transportProvider,
                 deliveredTpsSamples: [],
@@ -101,8 +104,9 @@ export const processDeliveredTps = (
     }
 
     const result: DeliveredTpsRow[] = Array.from(groups.values()).map(group => {
-        const { providerCanonical, modelCanonical, transportProvider } = group;
-        const metadata = lookup(providerCanonical, modelCanonical, transportProvider);
+        const { providerCanonical, catalogueProvider, modelCanonical, transportProvider } = group;
+        // Names are keyed on the scheduling lane, not the serving upstream.
+        const metadata = lookup(catalogueProvider || providerCanonical, modelCanonical, transportProvider);
         // No "via OpenRouter". The transport is provisioning detail; the
         // provider shown is whoever served the request.
         const providerDisplay = getProviderDisplayName(providerCanonical);
