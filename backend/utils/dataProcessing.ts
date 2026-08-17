@@ -211,14 +211,41 @@ export const processTimeSeriesData = async (data: CloudBenchmark[], days: number
     // catalogue that can rename at will, keying identity on them would make
     // every chart line hostage to someone else's copy edit.
     //
-    // An unresolved endpoint falls back to its label, which is exactly the old
-    // behaviour. Keying it on its own canonical id instead would be safer in
-    // principle and worse in practice: two providers serving one unresolved
-    // model would stop sharing a line, so tightening identity would visibly
-    // regress the chart for the models we know least about. Identity where we
-    // have it, the previous rule where we do not — never worse than today.
+    // Two rules, both from the runner's stated policy (ops/identity.py): only
+    // unify across providers, and let an unmatched endpoint stand alone.
+    //
+    // An unresolved endpoint keys on itself, not on its label. Falling back to
+    // the label keeps two providers on one line more often, which reads like an
+    // improvement and is not: "a false merge is worse than a missed merge — a
+    // wrong merge silently reports one provider as faster than another when the
+    // rows are not comparable; a missed merge shows two lines, which is visible
+    // and self-correcting."
+    //
+    // An identity shared by two endpoints of the SAME provider is not a merge
+    // either. The resolver can place two of one provider's endpoints in one
+    // group, and averaging them would pool two distinct deployments; the whole
+    // group falls back to endpoint keys rather than merging some of it.
+    const endpointKey = (b: CloudBenchmark) =>
+        `endpoint:${b.providerCanonical}:${b.modelCanonical}:${b.transportProvider || 'direct'}`;
+
+    const laneCountsPerProvider = new Map<string, Map<string, number>>();
+    for (const benchmark of mappedData) {
+        if (!benchmark.identityKey) continue;
+        const perProvider = laneCountsPerProvider.get(benchmark.identityKey) ?? new Map<string, number>();
+        const lane = `${benchmark.providerCanonical}:${benchmark.transportProvider || 'direct'}`;
+        perProvider.set(lane, (perProvider.get(lane) ?? 0) + 1);
+        laneCountsPerProvider.set(benchmark.identityKey, perProvider);
+    }
+    const unsafeIdentities = new Set(
+        Array.from(laneCountsPerProvider.entries())
+            .filter(([, perProvider]) => Array.from(perProvider.values()).some(count => count > 1))
+            .map(([identityKey]) => identityKey)
+    );
+
     const modelGroups = mappedData.reduce((groups, benchmark) => {
-        const groupKey = benchmark.identityKey || `named:${benchmark.model_name}`;
+        const groupKey = benchmark.identityKey && !unsafeIdentities.has(benchmark.identityKey)
+            ? benchmark.identityKey
+            : endpointKey(benchmark);
         if (!groups[groupKey]) {
             groups[groupKey] = [];
         }

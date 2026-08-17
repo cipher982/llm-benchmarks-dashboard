@@ -73,17 +73,91 @@ describe('cross-provider chart identity', () => {
     expect(second.models[0].providers).toHaveLength(2);
   });
 
-  test('unresolved endpoints keep the previous name-based behaviour', async () => {
-    // Tightening identity must not regress the models we know least about:
-    // without an identityKey, two providers serving one name still share a line.
+  test('an unresolved endpoint stands alone rather than merging on its label', async () => {
+    // The label fallback looks like an improvement and is not. The runner's
+    // policy (ops/identity.py): "a false merge is worse than a missed merge —
+    // a wrong merge silently reports one provider as faster than another when
+    // the rows are not comparable; a missed merge shows two lines, which is
+    // visible and self-correcting."
     const data = [
-      base({ providerCanonical: 'provider-1', model_name: 'Model A' }),
-      base({ providerCanonical: 'provider-2', model_name: 'Model A' }),
+      base({ providerCanonical: 'provider-1', modelCanonical: 'model-a', model_name: 'Model A' }),
+      base({ providerCanonical: 'provider-2', modelCanonical: 'model-a-v2', model_name: 'Model A' }),
     ];
 
     const result = await processTimeSeriesData(data, 3);
 
-    expect(result.models).toHaveLength(1);
-    expect(result.models[0].providers).toHaveLength(2);
+    expect(result.models).toHaveLength(2);
+  });
+
+  test('two endpoints of ONE provider sharing an identity do not merge', async () => {
+    // The resolver can place two of a provider's own endpoints in one group.
+    // Pooling them would average two distinct deployments, so the whole group
+    // falls back to endpoint keys rather than merging part of it.
+    const data = [
+      base({ providerCanonical: 'openrouter', modelCanonical: 'a/model', identityKey: 'shared' }),
+      base({ providerCanonical: 'openrouter', modelCanonical: 'b/model', identityKey: 'shared' }),
+    ];
+
+    const result = await processTimeSeriesData(data, 3);
+
+    expect(result.models).toHaveLength(2);
+    result.models.forEach(model => expect(model.providers).toHaveLength(1));
+  });
+
+  test('a same-provider collision does not drag its cross-provider siblings apart badly', async () => {
+    // Conservative on purpose: the whole identity falls back to endpoints, so
+    // nothing in the group is merged on an identity we cannot trust.
+    const data = [
+      base({ providerCanonical: 'openrouter', modelCanonical: 'a/model', identityKey: 'shared' }),
+      base({ providerCanonical: 'openrouter', modelCanonical: 'b/model', identityKey: 'shared' }),
+      base({ providerCanonical: 'bedrock', modelCanonical: 'c/model', identityKey: 'shared' }),
+    ];
+
+    const result = await processTimeSeriesData(data, 3);
+
+    expect(result.models).toHaveLength(3);
+  });
+});
+
+describe('identity survives the mapping layer', () => {
+  // The tests above inject identityKey onto benchmarks directly, so they cannot
+  // see the defect that actually shipped: the key was loaded into the metadata
+  // cache and then dropped one call short of the output, leaving charts on the
+  // display-name fallback while looking exactly as though identity grouping
+  // worked. This drives the real mapping path.
+  const { groupAndMerge } = require('../utils/modelMappingDB');
+
+  const processed = (over = {}) => ({
+    _id: 'x',
+    provider: 'openrouter',
+    providerCanonical: 'openrouter',
+    modelCanonical: 'z-ai/glm-4.7',
+    model_name: 'z-ai/glm-4.7',
+    transportProvider: 'direct',
+    tokens_per_second: [50],
+    tokens_per_second_timestamps: [new Date('2026-08-17T12:00:00Z')],
+    tokens_per_second_mean: 50,
+    tokens_per_second_min: 50,
+    tokens_per_second_max: 50,
+    time_to_first_token: [0.1],
+    time_to_first_token_timestamps: [new Date('2026-08-17T12:00:00Z')],
+    time_to_first_token_mean: 0.1,
+    ...over,
+  });
+
+  test('identityKey reaches the emitted benchmark', () => {
+    const lookup = () => ({ display_name: 'GLM 4.7', identityKey: 'glm-4.7' });
+
+    const [row] = groupAndMerge([processed()], lookup);
+
+    expect(row.identityKey).toBe('glm-4.7');
+  });
+
+  test('an endpoint the resolver has not placed carries no identity', () => {
+    const lookup = () => ({ display_name: 'GLM 4.7' });
+
+    const [row] = groupAndMerge([processed()], lookup);
+
+    expect(row.identityKey).toBeUndefined();
   });
 });

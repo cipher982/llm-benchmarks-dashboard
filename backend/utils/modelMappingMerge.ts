@@ -10,6 +10,7 @@ const meanOrZero = (values: number[]): number => {
 
 type MergeMetadata = Partial<Pick<
     CloudBenchmark,
+    | 'identityKey'
     | 'enabled'
     | 'deprecated'
     | 'deprecation_date'

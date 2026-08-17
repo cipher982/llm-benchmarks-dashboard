@@ -309,6 +309,10 @@ export const groupAndMerge = (data: ProcessedData[], lookup: MetadataLookup): Cl
       modelDisplay,
       modelCanonical: items[0].modelCanonical,
       metadata: {
+        // Without this the identity is loaded, cached, and then dropped one
+        // call short of the output — charts fall back to the display name and
+        // look exactly as though identity grouping were working.
+        identityKey: metadata.identityKey,
         enabled: metadata.enabled,
         deprecated: metadata.deprecated,
         deprecation_date: metadata.deprecation_date,

@@ -233,19 +233,24 @@ describe('Time Series Processing', () => {
 
   describe('Model Grouping', () => {
 
-    test('groups benchmarks by model name', async () => {
+    test('groups benchmarks by resolved identity', async () => {
+      // This asserted grouping by display name. Two providers reached one line
+      // only while they spelled the model identically, which is how
+      // claude-haiku-4.5 and claude-haiku-4-5 became two lines for one model —
+      // and, in the other direction, how two unrelated models sharing a label
+      // would have been averaged together.
       const data = [
-        createMockBenchmark({ model_name: 'model-a', providerCanonical: 'provider-1' }),
-        createMockBenchmark({ model_name: 'model-a', providerCanonical: 'provider-2' }),
-        createMockBenchmark({ model_name: 'model-b', providerCanonical: 'provider-1' }),
+        createMockBenchmark({ model_name: 'model-a', providerCanonical: 'provider-1', identityKey: 'model-a' }),
+        createMockBenchmark({ model_name: 'Model A', providerCanonical: 'provider-2', identityKey: 'model-a' }),
+        createMockBenchmark({ model_name: 'model-b', providerCanonical: 'provider-1', identityKey: 'model-b' }),
       ];
 
       const result = await processTimeSeriesData(data, 3);
 
       expect(result.models).toHaveLength(2);
 
-      const modelA = result.models.find(m => m.model_name === 'model-a');
-      expect(modelA.providers).toHaveLength(2);
+      const modelA = result.models.find(m => m.providers.length === 2);
+      expect(modelA).toBeDefined();
 
       const modelB = result.models.find(m => m.model_name === 'model-b');
       expect(modelB.providers).toHaveLength(1);
