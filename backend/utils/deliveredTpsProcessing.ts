@@ -169,11 +169,27 @@ export const processDeliveredTps = (
         const metadata = lookup(catalogueProvider || providerCanonical, modelCanonical, transportProvider);
         // The gate, not a raw median: an endpoint measured 348 times inside one
         // three-hour window has one window's worth of evidence, not 348.
-        const verdict = evaluatePublication(
-            group.t64Samples,
-            `${providerCanonical}|${modelCanonical}|${endpointTag ?? ''}|${quantization}`,
-            now
-        );
+        // An unpinned group is disqualified by kind, not by sample count: it
+        // measured whatever OpenRouter's price-selected routing picked that
+        // minute, so no amount of it describes a named endpoint. Running it
+        // through the gate would let a long pre-cutover history publish as
+        // though an endpoint had been measured -- 190 rows reached
+        // `preliminary` that way.
+        const verdict = pinned
+            ? evaluatePublication(
+                  group.t64Samples,
+                  `${providerCanonical}|${modelCanonical}|${endpointTag ?? ''}|${quantization}`,
+                  now
+              )
+            : {
+                  state: 'unpinned' as const,
+                  deliveredTps: null,
+                  interval: null,
+                  sampleCount: group.t64Samples.length,
+                  distinctDates: 0,
+                  distinctBlocks: 0,
+                  spanHours: 0,
+              };
         // No "via OpenRouter". The transport is provisioning detail; the
         // provider shown is whoever served the request.
         const providerDisplay = getProviderDisplayName(providerCanonical);

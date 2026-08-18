@@ -48,7 +48,15 @@ export const OFFICIAL = {
 
 export const BOOTSTRAP_REPLICATES = 10_000;
 
-export type PublicationState = 'insufficient' | 'preliminary' | 'official';
+/**
+ * `unpinned` is not a quantity of evidence, it is the wrong kind. A
+ * pre-cutover row came from OpenRouter's price-selected default routing, so it
+ * measured whichever deployment was cheapest that minute rather than any named
+ * endpoint. Such a series can be years long and still never become a
+ * measurement of a specific endpoint, so it can never earn publication -- it
+ * is retained and labelled, never ranked.
+ */
+export type PublicationState = 'unpinned' | 'insufficient' | 'preliminary' | 'official';
 
 export interface T64Sample {
     /** Seconds from request start to the 64th visible answer token. */

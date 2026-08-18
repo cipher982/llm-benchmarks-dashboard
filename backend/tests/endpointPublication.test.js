@@ -171,3 +171,36 @@ describe('rankEndpoints', () => {
         expect(new Set(ranked.map(r => r.tier)).size).toBe(1);
     });
 });
+
+describe('unpinned pre-cutover series', () => {
+    // Caught live: 190 rows reached `preliminary` on the strength of a long
+    // pre-cutover history. Those runs went wherever OpenRouter's price-selected
+    // routing sent them, so they measured no named endpoint at all -- a
+    // disqualification of kind, which no amount of samples can cure.
+    const { processDeliveredTps } = require('../utils/deliveredTpsProcessing');
+    const lookup = () => ({ display_name: 'Model' });
+
+    const unpinnedRows = () =>
+        spread(40, 5, 2).map(s => ({
+            model_name: 'aion-labs/aion-2.0',
+            provider: 'openrouter',
+            transport_provider: 'openrouter',
+            observed_provider: 'AionLabs',
+            route_endpoint_tag: null,
+            time_to_64_visible_tokens_seconds: s.seconds,
+            run_ts: s.at,
+        }));
+
+    test('never earns a publication state however long its history', () => {
+        const [row] = processDeliveredTps(unpinnedRows(), lookup, NOW);
+        expect(row.pinned).toBe(false);
+        expect(row.publicationState).toBe('unpinned');
+        expect(row.deliveredTps).toBeNull();
+        expect(row.interval).toBeNull();
+    });
+
+    test('but its measurement is retained for history', () => {
+        const [row] = processDeliveredTps(unpinnedRows(), lookup, NOW);
+        expect(row.measuredDeliveredTps).toBeGreaterThan(0);
+    });
+});
