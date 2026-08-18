@@ -43,7 +43,7 @@ The chart pipeline is unchanged: `cleanTransformCloud` still drops every non-`cl
 
 **Publication gate:** an estimate is `status: "ok"` only when there are >= 4 long-run samples, >= 12 samples total, and both bootstrap CI bounds sit within ±15% of the point estimate. Otherwise the row reports `insufficient-data` (not enough runs yet — the expected state until `cloud-long-v1` rows accumulate) or `unstable` (enough runs, too noisy to publish), with a `reason` field distinguishing the exact failure. Pinned by `tests/steadyState.test.js` and `tests/steadyStateProcessing.test.js`.
 
-## Delivered TPS (the headline)
+## Delivered TPS
 
 Delivered TPS is `64 visible answer tokens / time_to_64_visible_tokens_seconds` —
 one scalar per model that folds thinking delay into the time side instead of
@@ -52,11 +52,12 @@ every streaming row that reached 64 visible tokens (see the field table above);
 the dashboard groups those rows in `utils/deliveredTpsProcessing.ts` and serves
 the median per (model, provider, transport) from `/api/delivered-tps?days=N`.
 
-The headline leaderboard renders above the charts on the `/cloud` page
-(`components/cloud/DeliveredTpsLeaderboard.tsx`). The 64-token
-`tokens_per_second` series remains as the detail-page "burst" number, exposed
-per row as `legacyTps`. Delivered TPS is profile-independent: it reads any
-published row that carries the field, so chat (512-budget) and reasoning
+The metric is available from `/api/delivered-tps?days=N` for consumers that
+need an end-to-end ranking. The `/cloud` page keeps the throughput distribution
+as its primary visual comparison and does not render a full ranked list. The
+64-token `tokens_per_second` series remains as the detail-page "burst" number,
+exposed per row as `legacyTps`. Delivered TPS is profile-independent: it reads
+any published row that carries the field, so chat (512-budget) and reasoning
 (2048-budget) models share one measurement.
 
 ## API Compatibility

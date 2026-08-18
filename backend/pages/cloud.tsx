@@ -42,7 +42,6 @@ import { LifecycleSelector } from "../components/LifecycleSelector";
 import GlobalMeters from "../components/cloud/GlobalMeters";
 import { LEGACY_LABEL, LEGACY_DISCLOSURE } from "../utils/legacyMetric";
 import ProviderAggregates from "../components/cloud/ProviderAggregates";
-import DeliveredTpsLeaderboard, { DeliveredTpsLeaderboardRow } from "../components/cloud/DeliveredTpsLeaderboard";
 import { buildStaticPageSeoMetadata } from "../utils/seoUtils";
 import { trackUmamiEvent } from "../utils/analytics";
 import { spreadPercent, slugKey, type SlugLookup } from "../utils/chartMath";
@@ -117,11 +116,6 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const [tableData, setTableData] = useState<TableRow[]>(initialTableData);
     const [tableMeta, setTableMeta] = useState<TableMetaSummary | null>(initialTableMeta);
     const [lifecycleSummary, setLifecycleSummary] = useState<LifecycleSummaryResponse | null>(null);
-    const [deliveredTpsRows, setDeliveredTpsRows] = useState<DeliveredTpsLeaderboardRow[]>([]);
-    const [deliveredTpsLoading, setDeliveredTpsLoading] = useState<boolean>(false);
-    const [deliveredTpsCounts, setDeliveredTpsCounts] = useState<
-        { official: number; preliminary: number; insufficient: number } | undefined
-    >(undefined);
 
     // Three independent time selectors. Each section holds its own state and
     // fetches on its own, which is what stops one change refetching the page.
@@ -250,44 +244,11 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         }
     }, []);
 
-    const fetchDeliveredTps = useCallback(async () => {
-        try {
-            setDeliveredTpsLoading(true);
-                        // No days override: the API defaults to the publication window,
-            // and asking for less makes an official ranking unreachable.
-            const res = await fetch('/api/delivered-tps', {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' }
-            });
-
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-
-            const data = await res.json();
-            if (!data || !Array.isArray(data.rows)) {
-                throw new Error('Invalid Delivered TPS data received');
-            }
-            setDeliveredTpsRows(data.rows);
-            setDeliveredTpsCounts(data.counts);
-        } catch (err) {
-            console.error('Error fetching Delivered TPS:', err);
-            setDeliveredTpsRows([]);
-            setDeliveredTpsCounts(undefined);
-        } finally {
-            setDeliveredTpsLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
         fetchLifecycleSummaryData();
         fetchTimeSeries(timeSeriesDays);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    useEffect(() => {
-        fetchDeliveredTps();
-    }, [fetchDeliveredTps]);
 
     useEffect(() => {
         if (hasTrackedCloudView.current) {
@@ -430,22 +391,6 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 <h1 className="sr-only">Cloud LLM benchmarks</h1>
 
                 <GlobalMeters rows={tableData} />
-                <StyledChartContainer isMobile={isMobile}>
-                    <SectionHeaderRow>
-                        <SectionHeader>Delivered TPS · 64-token, end-to-end</SectionHeader>
-                        <RailNote>64 visible tokens ÷ time to the 64th, measured per endpoint</RailNote>
-                    </SectionHeaderRow>
-                    {deliveredTpsLoading ? (
-                        <ChartLoadingContainer>
-                            <StyledCircularProgress size={28} aria-label="Loading Delivered TPS leaderboard" />
-                        </ChartLoadingContainer>
-                    ) : (
-                        // The component renders its own explanation when nothing
-                        // has earned a rank, which is a real state for days after
-                        // an endpoint first appears -- not an error.
-                        <DeliveredTpsLeaderboard rows={deliveredTpsRows} counts={deliveredTpsCounts} />
-                    )}
-                </StyledChartContainer>
 
                 <SplitRow asideWidth={420}>
                     <section>

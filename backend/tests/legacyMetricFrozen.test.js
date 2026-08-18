@@ -37,14 +37,6 @@ describe('no surface orders providers by the legacy series', () => {
         expect(source).not.toMatch(/\.sort\(\s*\(a,\s*b\)\s*=>\s*b\.median\s*-\s*a\.median\s*\)/);
         expect(source).toMatch(/a\.name\.localeCompare\(b\.name\)/);
     });
-
-    test('the leaderboard orders by server-assigned tier, never by value', () => {
-        const source = read('components/cloud/DeliveredTpsLeaderboard.tsx');
-        // Sorting by deliveredTps would reimpose an ordering between endpoints
-        // whose intervals overlap.
-        expect(source).not.toMatch(/b\.deliveredTps as number\)\s*-\s*\(a\.deliveredTps as number\)/);
-        expect(source).toMatch(/a\.tier as number\)\s*-\s*\(b\.tier as number/s);
-    });
 });
 
 describe('legacy sections are disclosed where they are still shown', () => {
@@ -57,8 +49,10 @@ describe('legacy sections are disclosed where they are still shown', () => {
         expect(occurrences.length).toBeGreaterThanOrEqual(4);
     });
 
-    test('the headline names the metric and its workload', () => {
-        expect(read('pages/cloud.tsx')).toMatch(/Delivered TPS · 64-token, end-to-end/);
+    test('the cloud page keeps the distribution chart as its primary speed surface', () => {
+        const source = read('pages/cloud.tsx');
+        expect(source).toMatch(/Throughput distribution · tok\/s/);
+        expect(source).not.toMatch(/DeliveredTpsLeaderboard|api\/delivered-tps/);
     });
 });
 
