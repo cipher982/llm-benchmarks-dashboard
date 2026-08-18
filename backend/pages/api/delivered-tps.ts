@@ -4,9 +4,13 @@ import connectToMongoDB from '../../utils/connectToMongoDB';
 import { corsMiddleware } from '../../utils/apiMiddleware';
 import { getMetadataLookup } from '../../utils/modelMappingDB';
 import { processDeliveredTps, DeliveredTpsRawRow } from '../../utils/deliveredTpsProcessing';
+import { rankEndpoints, WINDOW_DAYS } from '../../utils/endpointPublication';
 import logger from '../../utils/logger';
 
-const DEFAULT_DAYS = 2;
+// The publication window itself. Pulling less than this makes `official`
+// unreachable by construction -- it requires a 96h span across 5 UTC dates --
+// so a shorter default would silently cap every endpoint at preliminary.
+const DEFAULT_DAYS = WINDOW_DAYS;
 const MAX_DAYS = 30;
 
 const parseDays = (param: string | string[] | undefined): number => {
@@ -64,6 +68,35 @@ const deliveredTpsHandler = async (req: NextApiRequest, res: NextApiResponse) =>
         const lookup = await getMetadataLookup();
         const rows = processDeliveredTps((metrics ?? []) as unknown as DeliveredTpsRawRow[], lookup);
 
+        // Ranking is computed here, not in the component: only official rows
+        // are rankable, and the tiers come from interval overlap rather than
+        // from sorting a column. A renderer that sorts by value would quietly
+        // reintroduce ordering between endpoints the measurement cannot
+        // separate.
+        const rankKey = (row: (typeof rows)[number]) =>
+            `${row.providerCanonical}|${row.modelCanonical}|${row.endpointTag ?? ''}|${row.quantization}`;
+        const tiers = new Map(
+            rankEndpoints(
+                rows
+                    .filter(row => row.publicationState === 'official' && row.deliveredTps != null)
+                    .map(row => ({
+                        key: rankKey(row),
+                        quantization: row.quantization,
+                        deliveredTps: row.deliveredTps as number,
+                        interval: row.interval,
+                    }))
+            ).map(ranked => [ranked.key, ranked])
+        );
+        const ranked = rows.map(row => {
+            const tier = tiers.get(rankKey(row));
+            return {
+                ...row,
+                tier: tier ? tier.tier : null,
+                orderUnresolved: tier ? tier.orderUnresolved : false,
+                rankEligible: Boolean(tier),
+            };
+        });
+
         res.setHeader('Cache-Control', 'public, s-maxage=300'); // 5 minute cache
         res.setHeader('Content-Type', 'application/json');
 
@@ -73,8 +106,14 @@ const deliveredTpsHandler = async (req: NextApiRequest, res: NextApiResponse) =>
             generatedAt: new Date().toISOString(),
             days,
             ...(provider ? { provider } : {}),
-            rowCount: rows.length,
-            rows,
+            rowCount: ranked.length,
+            publicationWindowDays: WINDOW_DAYS,
+            counts: {
+                official: ranked.filter(r => r.publicationState === 'official').length,
+                preliminary: ranked.filter(r => r.publicationState === 'preliminary').length,
+                insufficient: ranked.filter(r => r.publicationState === 'insufficient').length,
+            },
+            rows: ranked,
         });
     } catch (error) {
         logger.error(`Error computing Delivered TPS: ${error}`);

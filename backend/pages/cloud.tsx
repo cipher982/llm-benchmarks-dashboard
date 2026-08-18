@@ -40,6 +40,7 @@ import {
 import { TimeRangeSelector } from "../components/TimeRangeSelector";
 import { LifecycleSelector } from "../components/LifecycleSelector";
 import GlobalMeters from "../components/cloud/GlobalMeters";
+import { LEGACY_LABEL, LEGACY_DISCLOSURE } from "../utils/legacyMetric";
 import ProviderAggregates from "../components/cloud/ProviderAggregates";
 import DeliveredTpsLeaderboard, { DeliveredTpsLeaderboardRow } from "../components/cloud/DeliveredTpsLeaderboard";
 import { buildStaticPageSeoMetadata } from "../utils/seoUtils";
@@ -118,6 +119,9 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const [lifecycleSummary, setLifecycleSummary] = useState<LifecycleSummaryResponse | null>(null);
     const [deliveredTpsRows, setDeliveredTpsRows] = useState<DeliveredTpsLeaderboardRow[]>([]);
     const [deliveredTpsLoading, setDeliveredTpsLoading] = useState<boolean>(false);
+    const [deliveredTpsCounts, setDeliveredTpsCounts] = useState<
+        { official: number; preliminary: number; insufficient: number } | undefined
+    >(undefined);
 
     // Three independent time selectors. Each section holds its own state and
     // fetches on its own, which is what stops one change refetching the page.
@@ -249,7 +253,9 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const fetchDeliveredTps = useCallback(async () => {
         try {
             setDeliveredTpsLoading(true);
-            const res = await fetch('/api/delivered-tps?days=2', {
+                        // No days override: the API defaults to the publication window,
+            // and asking for less makes an official ranking unreachable.
+            const res = await fetch('/api/delivered-tps', {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' }
             });
@@ -263,9 +269,11 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 throw new Error('Invalid Delivered TPS data received');
             }
             setDeliveredTpsRows(data.rows);
+            setDeliveredTpsCounts(data.counts);
         } catch (err) {
             console.error('Error fetching Delivered TPS:', err);
             setDeliveredTpsRows([]);
+            setDeliveredTpsCounts(undefined);
         } finally {
             setDeliveredTpsLoading(false);
         }
@@ -424,17 +432,18 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 <GlobalMeters rows={tableData} />
                 <StyledChartContainer isMobile={isMobile}>
                     <SectionHeaderRow>
-                        <SectionHeader>Delivered throughput · tok/s</SectionHeader>
-                        <RailNote>64 visible tokens ÷ time to the 64th</RailNote>
+                        <SectionHeader>Delivered TPS · 64-token, end-to-end</SectionHeader>
+                        <RailNote>64 visible tokens ÷ time to the 64th, measured per endpoint</RailNote>
                     </SectionHeaderRow>
                     {deliveredTpsLoading ? (
                         <ChartLoadingContainer>
                             <StyledCircularProgress size={28} aria-label="Loading Delivered TPS leaderboard" />
                         </ChartLoadingContainer>
-                    ) : deliveredTpsRows.length > 0 ? (
-                        <DeliveredTpsLeaderboard rows={deliveredTpsRows} />
                     ) : (
-                        <EmptyState>No Delivered TPS data yet</EmptyState>
+                        // The component renders its own explanation when nothing
+                        // has earned a rank, which is a real state for days after
+                        // an endpoint first appears -- not an error.
+                        <DeliveredTpsLeaderboard rows={deliveredTpsRows} counts={deliveredTpsCounts} />
                     )}
                 </StyledChartContainer>
 
@@ -442,6 +451,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                     <section>
                         <SectionHeaderRow>
                             <SectionHeader>Throughput distribution · tok/s</SectionHeader>
+                            <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
                             <RailControls>
                                 <TimeRangeSelector selectedDays={distDays} onChange={handleDistTimeRangeChange} />
                             </RailControls>
@@ -461,6 +471,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                         <section>
                             <SectionHeaderRow>
                                 <SectionHeader>By provider</SectionHeader>
+                                <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
                                 {flaggedTotal != null && (
                                     <RailControls>
                                         <RailNote>
@@ -488,6 +499,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 <StyledTableContainer id="full-results-section" isMobile={isMobile}>
                     <SectionHeaderRow>
                         <SectionHeader>Full results</SectionHeader>
+                        <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
                         <RailNote>
                             <b>{filteredRows}</b> of <b>{totalRows}</b> models
                         </RailNote>
@@ -529,6 +541,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 <StyledChartContainer isMobile={isMobile}>
                     <SectionHeaderRow>
                         <SectionHeader>Throughput over time · shared scale</SectionHeader>
+                        <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
                         <RailControls>
                             <TimeRangeSelector selectedDays={timeSeriesDays} onChange={handleTimeSeriesTimeRangeChange} />
                         </RailControls>

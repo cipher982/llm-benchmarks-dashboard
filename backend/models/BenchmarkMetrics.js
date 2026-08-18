@@ -86,8 +86,30 @@ const BenchModelHealthSchema = new mongoose.Schema({
   staleness_seconds: Number,
   freshness_status: String,
   updated_at: Date,
+  // Endpoint identity. A model-level doc has no tag; an endpoint's doc names
+  // the exact deployment, and the two must never satisfy one lookup.
+  endpoint_tag: String,
 }, { collection: "bench_model_health" });
 const BenchModelHealth = mongoose.models.bench_model_health ||
   mongoose.model("bench_model_health", BenchModelHealthSchema, "bench_model_health");
 
-module.exports = { LocalMetrics, CloudMetrics, BenchModelHealth };
+// The endpoint catalogue, written by discovery. `or_*` fields are OpenRouter's
+// own telemetry over their real traffic: an aggregate of uncontrolled
+// workloads, not our controlled measurement. They are readable for availability
+// and cross-checking and must never enter a ranking, a prior, or a fallback.
+const BenchEndpointSchema = new mongoose.Schema({
+  model_id: String,
+  endpoint_tag: String,
+  provider_canonical: String,
+  provider_name: String,
+  quantization: String,
+  enabled: Boolean,
+  or_status: Number,
+  or_uptime_1d: Number,
+  or_throughput_p50: Number,
+  last_seen_at: Date,
+}, { collection: "bench_endpoints" });
+const BenchEndpoints = mongoose.models.bench_endpoints ||
+  mongoose.model("bench_endpoints", BenchEndpointSchema, "bench_endpoints");
+
+module.exports = { LocalMetrics, CloudMetrics, BenchModelHealth, BenchEndpoints };

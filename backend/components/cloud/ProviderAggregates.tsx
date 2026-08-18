@@ -68,10 +68,9 @@ const ProviderCell = styled('td')({
 });
 
 /**
- * Median throughput with a bar behind it, scaled to the fastest provider in the
- * table. The bar is the only place a value is encoded twice, and it earns that
- * because a ranked column of nine numbers is much harder to scan than nine
- * lengths.
+ * Median throughput with a bar behind it, scaled to the largest value in the
+ * table. The bar encodes magnitude for scanning; it is not a rank, and the
+ * rows are not in speed order -- see the sort comment below.
  */
 const MedianCell = styled('td')<{ $fraction: number }>(({ $fraction }) => ({
     position: 'relative',
@@ -130,7 +129,13 @@ const ProviderAggregates: React.FC<ProviderAggregatesProps> = ({ rows }) => {
                     ttft: ttfts.length ? percentile(ttfts, 50) : null,
                 };
             })
-            .sort((a, b) => b.median - a.median);
+            // Alphabetical, deliberately. Ordering this table by median put
+            // providers in speed order on a series timed from batched SSE
+            // deltas, which cannot support the comparison for ~91% of the
+            // fleet. Speed ranking belongs to Delivered TPS alone; this table
+            // reports each provider's own history without ordering them
+            // against each other.
+            .sort((a, b) => a.name.localeCompare(b.name));
     }, [rows]);
 
     if (!aggregates.length) return null;
