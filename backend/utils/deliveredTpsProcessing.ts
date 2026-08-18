@@ -18,6 +18,7 @@ import { PUBLISHED_PROFILE_ID } from './processCloud';
 import { getProviderDisplayName, resolveServingProvider } from './providerMetadata';
 import { createSlug } from './seoUtils';
 import { median } from './steadyState';
+import { evaluatePublication, type PublicationState } from './endpointPublication';
 
 /** The numerator and crossing test agree with the runner (cloud/visible_tokens.py). */
 export const VISIBLE_TOKEN_MARK = 64;
@@ -53,9 +54,20 @@ export interface DeliveredTpsRow {
     quantization: string;
     /** False for rows from OpenRouter's price-selected default routing. */
     pinned: boolean;
-    /** Median of 64 / time_to_64_visible_tokens_seconds over all reaching rows. */
+    /** 64 / median(T64) over samples that pass the publication gate. Null until
+     *  the endpoint has earned publication -- this is the number the site shows. */
     deliveredTps: number | null;
+    /** The same statistic over every sample, ungated. Diagnostics and endpoint
+     *  detail only: it is what we measured, not what we are willing to publish. */
+    measuredDeliveredTps: number | null;
     sampleCount: number;
+    /** insufficient | preliminary | official. Only official rows may be ranked. */
+    publicationState: PublicationState;
+    /** 95% block-bootstrap interval. Official rows only. */
+    interval: { low: number; high: number } | null;
+    /** Samples surviving 30-minute deduplication inside the rolling window. */
+    qualifyingSamples: number;
+    distinctDates: number;
     /** Median tokens_per_second of the 64-token (default profile) rows, for comparison. */
     legacyTps: number | null;
 }
@@ -70,12 +82,19 @@ interface DeliveredTpsGroup {
     quantization: string;
     pinned: boolean;
     deliveredTpsSamples: number[];
+    /** Every T64 timing, whether or not the row carried a usable timestamp. */
+    t64Seconds: number[];
+    /** Timings that also carry a timestamp. Only these can evidence time
+     *  spread, so only these reach the publication gate; a row with no run_ts
+     *  is still a measurement, just not evidence about *when*. */
+    t64Samples: { seconds: number; at: Date }[];
     legacyTpsSamples: number[];
 }
 
 export const processDeliveredTps = (
     rows: DeliveredTpsRawRow[],
-    lookup: MetadataLookup
+    lookup: MetadataLookup,
+    now: Date = new Date()
 ): DeliveredTpsRow[] => {
     const groups = new Map<string, DeliveredTpsGroup>();
 
@@ -120,12 +139,19 @@ export const processDeliveredTps = (
                 // pinned measurement of a named endpoint.
                 pinned: Boolean(endpointTag),
                 deliveredTpsSamples: [],
+                t64Seconds: [],
+                t64Samples: [],
                 legacyTpsSamples: [],
             };
             groups.set(key, group);
         }
 
         group.deliveredTpsSamples.push(VISIBLE_TOKEN_MARK / timeTo64);
+        group.t64Seconds.push(timeTo64);
+        if (row.run_ts) {
+            const at = row.run_ts instanceof Date ? row.run_ts : new Date(row.run_ts);
+            if (!Number.isNaN(at.getTime())) group.t64Samples.push({ seconds: timeTo64, at });
+        }
 
         // The "burst / short answer" comparison number is the legacy 64-token
         // series; long-profile rows measure a different (512-token) quantity.
@@ -141,6 +167,13 @@ export const processDeliveredTps = (
         const { endpointTag, quantization, pinned } = group;
         // Names are keyed on the scheduling lane, not the serving upstream.
         const metadata = lookup(catalogueProvider || providerCanonical, modelCanonical, transportProvider);
+        // The gate, not a raw median: an endpoint measured 348 times inside one
+        // three-hour window has one window's worth of evidence, not 348.
+        const verdict = evaluatePublication(
+            group.t64Samples,
+            `${providerCanonical}|${modelCanonical}|${endpointTag ?? ''}|${quantization}`,
+            now
+        );
         // No "via OpenRouter". The transport is provisioning detail; the
         // provider shown is whoever served the request.
         const providerDisplay = getProviderDisplayName(providerCanonical);
@@ -157,8 +190,14 @@ export const processDeliveredTps = (
             endpointTag,
             quantization,
             pinned,
-            deliveredTps: group.deliveredTpsSamples.length > 0 ? median(group.deliveredTpsSamples) : null,
+            deliveredTps: verdict.deliveredTps,
+            measuredDeliveredTps:
+                group.t64Seconds.length > 0 ? VISIBLE_TOKEN_MARK / median(group.t64Seconds) : null,
             sampleCount: group.deliveredTpsSamples.length,
+            publicationState: verdict.state,
+            interval: verdict.interval,
+            qualifyingSamples: verdict.sampleCount,
+            distinctDates: verdict.distinctDates,
             legacyTps: group.legacyTpsSamples.length > 0 ? median(group.legacyTpsSamples) : null,
         };
     });

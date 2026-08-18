@@ -42,7 +42,10 @@ describe('processDeliveredTps', () => {
       makeRow({ time_to_64_visible_tokens_seconds: 6.0 }), // ~10.67
     ];
     const [row] = processDeliveredTps(rows, lookup);
-    expect(row.deliveredTps).toBeCloseTo(16, 10);
+    expect(row.measuredDeliveredTps).toBeCloseTo(16, 10);
+    // Three samples in one window do not earn publication.
+    expect(row.deliveredTps).toBeNull();
+    expect(row.publicationState).toBe("insufficient");
     expect(row.sampleCount).toBe(3);
   });
 
@@ -55,7 +58,7 @@ describe('processDeliveredTps', () => {
     ];
     const [row] = processDeliveredTps(rows, lookup);
     expect(row.sampleCount).toBe(1);
-    expect(row.deliveredTps).toBeCloseTo(32, 10);
+    expect(row.measuredDeliveredTps).toBeCloseTo(32, 10);
   });
 
   test('legacyTps uses only the default-profile 64-token series', () => {

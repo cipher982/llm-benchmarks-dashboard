@@ -36,7 +36,7 @@ describe('endpoint identity', () => {
         expect(rows).toHaveLength(2);
         expect(rows.map(r => r.endpointTag).sort()).toEqual(['deepinfra/bf16', 'deepinfra/turbo']);
         // Averaging them would report a speed neither deployment serves at.
-        expect(new Set(rows.map(r => r.deliveredTps)).size).toBe(2);
+        expect(new Set(rows.map(r => r.measuredDeliveredTps)).size).toBe(2);
     });
 
     it('never ranks fp4 against bf16 as the same artifact', () => {
