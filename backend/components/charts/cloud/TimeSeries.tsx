@@ -54,7 +54,12 @@ interface TimeSeriesChartProps {
 // not when the thing being measured changes. Sparse series now render with
 // visible breaks, which is honest — a gap in the line is what a gap in the data
 // looks like.
-const MIN_POINTS_TO_DRAW = 2;
+// One. A single measurement is data, and a series carrying one point was
+// being dropped entirely -- 241 of them after endpoint scheduling began, every
+// newly admitted model showing a legend entry and an empty cell. Two points is
+// the minimum for a *line*, which is a fact about lines, not about evidence:
+// a lone observation renders as a dot instead.
+const MIN_POINTS_TO_DRAW = 1;
 const MAX_FILL_GAP = 2; // Fill gaps of 1-2 nulls, keep gaps of 3+ as breaks (real outages)
 
 const CELL_WIDTH = 190;
@@ -317,6 +322,13 @@ const Spark = styled('svg')({
         strokeWidth: 1,
         vectorEffect: 'non-scaling-stroke',
     },
+    // A lone observation. The cell is scaled non-uniformly so this renders as a
+    // small ellipse rather than a true circle, which is fine -- it reads as a
+    // point, and a point is exactly the claim being made.
+    '& .sm-point': {
+        fill: colors.accent,
+        stroke: 'none',
+    },
     '& .sm-mean': {
         stroke: colors.rule,
         strokeDasharray: '2 3',
@@ -394,8 +406,10 @@ const SmallMultiple = memo(({ datum, yMax, slugs }: { datum: CellDatum; yMax: nu
 
     // The area fill only makes sense under a continuous run; with breaks it
     // would imply throughput the collector never observed.
+    // A single point has no area under it, and closing the path on itself
+    // would paint a sliver implying a run that was never observed.
     const areaPath =
-        segments.length === 1
+        segments.length === 1 && segments[0].length > 1
             ? `${toPath(segments[0])}L${segments[0][segments[0].length - 1][0].toFixed(1)} ${CELL_HEIGHT}L${segments[0][0][0].toFixed(1)} ${CELL_HEIGHT}Z`
             : null;
 
@@ -427,15 +441,29 @@ const SmallMultiple = memo(({ datum, yMax, slugs }: { datum: CellDatum; yMax: nu
             >
                 <line className="sm-mean" x1={0} y1={meanY.toFixed(1)} x2={CELL_WIDTH} y2={meanY.toFixed(1)} />
                 {areaPath && <path className="sm-area" d={areaPath} />}
-                {segments.map((segment, i) => (
-                    <path
-                        className="sm-line"
-                        key={i}
-                        d={toPath(segment)}
-                        strokeDasharray={staleTag ? style.dash ?? '4 3' : undefined}
-                        strokeOpacity={staleTag ? 0.55 : 1}
-                    />
-                ))}
+                {segments.map((segment, i) =>
+                    // A one-point segment has no length, so a path draws
+                    // nothing at all -- the cell looked broken rather than
+                    // sparse. Mark the observation instead.
+                    segment.length === 1 ? (
+                        <circle
+                            className="sm-point"
+                            key={i}
+                            cx={segment[0][0].toFixed(1)}
+                            cy={segment[0][1].toFixed(1)}
+                            r={1.6}
+                            fillOpacity={staleTag ? 0.55 : 1}
+                        />
+                    ) : (
+                        <path
+                            className="sm-line"
+                            key={i}
+                            d={toPath(segment)}
+                            strokeDasharray={staleTag ? style.dash ?? '4 3' : undefined}
+                            strokeOpacity={staleTag ? 0.55 : 1}
+                        />
+                    )
+                )}
             </Spark>
         </Cell>
     );

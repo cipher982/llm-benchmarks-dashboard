@@ -87,7 +87,16 @@ describe('Provider visibility', () => {
     ]);
   });
 
-  test('a single stray point is not drawn as a line', () => {
+  test('a single point is visible, as a point rather than a line', () => {
+    // Originally this asserted the lone point was dropped entirely. Endpoint
+    // scheduling made that untenable: 241 series arrived carrying one
+    // measurement each, every newly admitted model showing a legend entry over
+    // an empty cell, and the public contract check failed on exactly that
+    // ("have data but too few points to draw"). The original intent is kept --
+    // one observation must never be rendered as a line, because a line claims a
+    // trend between two measurements -- but it is now drawn as a dot instead of
+    // hidden. Two points remains the minimum for a line; that is a fact about
+    // lines, not about evidence.
     const visibility = buildModelVisibility(
       model('barely-measured', [
         provider('bedrock', sparse(144)),
@@ -95,7 +104,10 @@ describe('Provider visibility', () => {
       ])
     );
 
-    expect(visibility.visibleProviders.map(p => p.provider)).toEqual(['bedrock']);
+    expect(visibility.visibleProviders.map(p => p.provider).sort()).toEqual([
+      'bedrock',
+      'together',
+    ]);
   });
 
   test('visibility does not depend on the width of the window', () => {
