@@ -43,9 +43,10 @@ describe('processDeliveredTps', () => {
     ];
     const [row] = processDeliveredTps(rows, lookup);
     expect(row.measuredDeliveredTps).toBeCloseTo(16, 10);
-    // Three samples in one window do not earn publication.
+    // These fixture rows carry no endpoint tag, so they are unpinned and
+    // disqualified by kind rather than by sample count.
     expect(row.deliveredTps).toBeNull();
-    expect(row.publicationState).toBe("insufficient");
+    expect(row.publicationState).toBe("unpinned");
     expect(row.sampleCount).toBe(3);
   });
 
