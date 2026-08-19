@@ -75,6 +75,35 @@ describe('watchdog endpoint', () => {
     expect(res.statusCode).toBe(200);
   });
 
+  test('audit-only checks in audits array do not pollute failing list', async () => {
+    const CHECK_RUN_WITH_AUDITS = {
+      checked_at: new Date('2026-08-19T18:00:00.000Z'),
+      threshold_version: 4,
+      cadence_seconds: 1800,
+      results: [
+        { name: 'no_work_for_disabled_models', ok: true, evaluated: true, violation_count: 0 },
+        { name: 'endpoint_targets_are_being_measured', ok: true, evaluated: true, violation_count: 0 },
+      ],
+      audits: [
+        { name: 'models_measurable_by_the_published_profile', count: 97, subjects: ['openai/gpt-5-pro'] },
+      ],
+    };
+
+    connectMongo({
+      bench_check_runs: { find: () => cursor(CHECK_RUN_WITH_AUDITS) },
+      metrics_cloud_v2: { find: () => cursor({ run_ts: new Date() }), countDocuments: async () => 42 },
+      models: { countDocuments: async () => 318, distinct: async () => ['openai', 'vertex', 'bedrock', 'openrouter'] },
+    });
+
+    const res = makeRes();
+    await handler({}, res);
+
+    expect(res.body.invariants.reachable).toBe(true);
+    expect(res.body.invariants.failing).toEqual([]);
+    expect(res.body.invariants.unevaluable).toEqual([]);
+    expect(res.statusCode).toBe(200);
+  });
+
   test('an unreadable database reports unknown, never zero', async () => {
     Object.defineProperty(mongoose.connection, 'readyState', { value: 0, configurable: true });
     Object.defineProperty(mongoose.connection, 'db', { value: undefined, configurable: true });
