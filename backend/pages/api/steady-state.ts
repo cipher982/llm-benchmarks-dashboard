@@ -50,7 +50,7 @@ const steadyStateHandler = async (req: NextApiRequest, res: NextApiResponse) => 
     // processSteadyState, which drops any other experiment's rows.
     const metrics = await CloudMetrics.find(query)
       .select(
-        'model_name provider transport_provider benchmark_profile_id ' +
+        'model_name provider transport_provider benchmark_profile_id observed_provider observed_provider_slug ' +
         'output_tokens generated_output_tokens generate_time tokens_per_second run_ts'
       )
       .batchSize(50000)

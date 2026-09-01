@@ -147,4 +147,64 @@ describe('modelService naming groups', () => {
     expect(data.modelSlug).toBe(oldSlug);
     expect(data.tableRows).toHaveLength(1);
   });
+
+  test('routes OpenRouter inventory and model pages through the observed upstream', async () => {
+    const modelId = 'google/gemini-3.1-flash-lite-image';
+    const modelSlug = 'googlegemini31flashliteimage';
+    const displayName = 'Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)';
+    aggregateMock.mockResolvedValue([{
+      provider: 'openrouter',
+      observedProvider: 'Google',
+      model: modelId,
+      catalogDisplayName: displayName,
+      firstRunAt: new Date('2026-08-16T00:00:00Z'),
+      latestRunAt: new Date('2026-09-01T00:00:00Z'),
+    }]);
+    execMock.mockResolvedValue([{
+      provider: 'openrouter',
+      observed_provider: 'Google',
+      model_name: modelId,
+      run_ts: new Date('2026-09-01T00:00:00Z'),
+    }]);
+    processAllMetricsMock.mockResolvedValue({
+      table: [{
+        provider: 'google',
+        providerCanonical: 'google',
+        providerSlug: 'google',
+        model_name: displayName,
+        modelCanonical: modelId,
+        modelSlug,
+        tokens_per_second_mean: 61.5,
+        tokens_per_second_min: 3.02,
+        tokens_per_second_max: 102,
+        time_to_first_token_mean: 2.12,
+      }],
+      speedDistribution: [],
+      timeSeries: { timestamps: [], models: [] },
+    });
+
+    const inventory = await modelService.getProviderModelInventory();
+    expect(inventory).toEqual([
+      expect.objectContaining({
+        provider: 'google',
+        providerCanonical: 'google',
+        providerSlug: 'google',
+        modelCanonical: modelId,
+      }),
+    ]);
+    expect(inventory[0]).not.toHaveProperty('metricSources');
+
+    const data = await modelService.getModelPageData('google', modelSlug);
+    expect(data).toEqual(expect.objectContaining({
+      provider: 'google',
+      providerCanonical: 'google',
+      providerSlug: 'google',
+      modelCanonical: modelId,
+    }));
+    expect(findMock).toHaveBeenCalledWith(expect.objectContaining({
+      provider: 'openrouter',
+      model_name: { $in: [modelId] },
+    }));
+    expect(selectMock.mock.calls.at(-1)[0]).toContain('observed_provider');
+  });
 });

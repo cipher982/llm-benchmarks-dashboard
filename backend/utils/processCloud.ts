@@ -1,4 +1,4 @@
-import { resolveServingProvider } from './providerMetadata';
+import { resolveServingProvider, resolveTransportProvider } from './providerMetadata';
 import { calculateMean, calculateMin, calculateMax, calculateQuartiles, bytesToGB, shuffleArray } from './dataUtils';
 import logger from './logger'; // Assuming logger is imported from a separate file
 
@@ -28,6 +28,8 @@ export interface RawData {
     visible_tokens_per_second?: number | null;
     transport_provider?: string;
     route_model_id?: string;
+    observed_provider?: string | null;
+    observed_provider_slug?: string | null;
     provider: string;
     streaming: boolean;
     time_to_first_token: number | null;
@@ -148,7 +150,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         // Historical rows have no transport field and are direct samples. Keep
         // direct and routed samples in separate aggregates once routed rows
         // arrive, otherwise the dashboard silently averages two transports.
-        const transportProvider = benchmark.transport_provider || 'direct';
+        const transportProvider = resolveTransportProvider(benchmark);
         // Who served this, not how it was billed. A row reading
         // provider: "openrouter" with observed_provider: "DeepInfra" is a
         // DeepInfra measurement and belongs on DeepInfra's line — the same
@@ -156,6 +158,9 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         // OpenRouter is provisioning and consolidated billing; it is not a
         // provider and has no place in what the site shows.
         const servingProvider = resolveServingProvider(benchmark);
+        // A routed row without upstream provenance cannot support a provider
+        // comparison. Fail closed rather than publishing the billing gateway.
+        if (!servingProvider) continue;
         // The endpoint is the thing measured. `deepinfra/bf16` and
         // `deepinfra/turbo` are separate deployments from one company serving
         // one model at different speeds, so they cannot share a series.

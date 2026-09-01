@@ -16,7 +16,7 @@
 
 import type { MetadataLookup } from './modelMappingDB';
 import { PUBLISHED_PROFILE_ID } from './processCloud';
-import { getProviderDisplayName } from './providerMetadata';
+import { getProviderDisplayName, resolveServingProvider, resolveTransportProvider } from './providerMetadata';
 import { createSlug } from './seoUtils';
 import {
     estimateSteadyState,
@@ -38,6 +38,8 @@ export interface SteadyStateRawRow {
     model_name: string;
     provider: string;
     transport_provider?: string;
+    observed_provider?: string | null;
+    observed_provider_slug?: string | null;
     output_tokens?: number;
     generated_output_tokens?: number | null;
     generate_time?: number;
@@ -66,6 +68,7 @@ export interface SteadyStateRow {
 
 interface SteadyStateGroup {
     providerCanonical: string;
+    catalogueProvider: string;
     modelCanonical: string;
     transportProvider: string;
     samples: SteadyStateSample[];
@@ -91,14 +94,18 @@ export const processSteadyState = (
         if (!isDefaultProfile && !isLongProfile) continue;
 
         // Same transport separation as the published pipeline: direct and
-        // routed samples must never share a fit.
-        const transportProvider = row.transport_provider || 'direct';
-        const key = JSON.stringify([row.provider, row.model_name, transportProvider]);
+        // routed samples must never share a fit. OpenRouter is billing
+        // plumbing; credit the upstream that actually served the request.
+        const transportProvider = resolveTransportProvider(row);
+        const servingProvider = resolveServingProvider(row);
+        if (!servingProvider) continue;
+        const key = JSON.stringify([servingProvider, row.model_name, transportProvider]);
 
         let group = groups.get(key);
         if (!group) {
             group = {
-                providerCanonical: row.provider,
+                providerCanonical: servingProvider,
+                catalogueProvider: row.provider,
                 modelCanonical: row.model_name,
                 transportProvider,
                 samples: [],
@@ -129,8 +136,8 @@ export const processSteadyState = (
     }
 
     const result: SteadyStateRow[] = Array.from(groups.values()).map(group => {
-        const { providerCanonical, modelCanonical, transportProvider } = group;
-        const metadata = lookup(providerCanonical, modelCanonical, transportProvider);
+        const { providerCanonical, catalogueProvider, modelCanonical, transportProvider } = group;
+        const metadata = lookup(catalogueProvider, modelCanonical, transportProvider);
         const estimate = estimateSteadyState(group.samples, options);
 
         // No "via OpenRouter". The transport is provisioning detail; the

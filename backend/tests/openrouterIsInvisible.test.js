@@ -1,3 +1,5 @@
+jest.mock('../utils/connectToMongoDB', () => jest.fn().mockResolvedValue(true));
+
 /**
  * OpenRouter is provisioning, not a provider.
  *
@@ -11,8 +13,9 @@
  * the entire point of a comparison site.
  */
 
-const { resolveServingProvider } = require('../utils/providerMetadata');
+const { resolveServingProvider, resolveTransportProvider } = require('../utils/providerMetadata');
 const { cleanTransformCloud } = require('../utils/processCloud');
+const { fetchAndProcessMetrics } = require('../utils/apiMiddleware');
 
 describe('resolveServingProvider', () => {
     test('credits the upstream that served the request', () => {
@@ -38,9 +41,53 @@ describe('resolveServingProvider', () => {
         expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'AionLabs' })).toBe('aionlabs');
     });
 
-    test('falls back to the row provider when no upstream was reported', () => {
+    test('falls back to a direct row provider when no upstream was reported', () => {
         expect(resolveServingProvider({ provider: 'groq' })).toBe('groq');
         expect(resolveServingProvider({ provider: 'groq', observed_provider: null })).toBe('groq');
+    });
+
+    test('fails closed when a routed row has no upstream attribution', () => {
+        expect(resolveServingProvider({ provider: 'openrouter' })).toBe('');
+    });
+});
+
+describe('resolveTransportProvider', () => {
+    test('preserves the recorded transport on historical rows', () => {
+        expect(resolveTransportProvider({
+            provider: 'openrouter',
+            transport_provider: 'direct',
+        })).toBe('direct');
+    });
+
+    test('preserves direct providers and explicit routed transports', () => {
+        expect(resolveTransportProvider({ provider: 'groq' })).toBe('direct');
+        expect(resolveTransportProvider({
+            provider: 'deepinfra',
+            transport_provider: 'openrouter',
+        })).toBe('openrouter');
+    });
+});
+
+describe('metric query projection', () => {
+    test('loads the upstream provenance consumed by publication', async () => {
+        const select = jest.fn();
+        const exec = jest.fn().mockResolvedValue([]);
+        select.mockReturnValue({
+            batchSize: () => ({
+                lean: () => ({ exec }),
+            }),
+        });
+        const model = {
+            find: jest.fn(() => ({ select })),
+        };
+
+        await fetchAndProcessMetrics(model, 14, rows => rows);
+
+        const projection = select.mock.calls[0][0];
+        expect(projection).toContain('observed_provider');
+        expect(projection).toContain('observed_provider_slug');
+        expect(projection).toContain('route_endpoint_tag');
+        expect(projection).toContain('quantization');
     });
 });
 
@@ -56,6 +103,9 @@ describe('published rows', () => {
         ...over,
     });
 
+    test('drops unattributed routed rows instead of publishing OpenRouter', () => {
+        expect(cleanTransformCloud([row()])).toEqual([]);
+    });
     test('an or-served row is credited to its upstream, not to OpenRouter', () => {
         const [out] = cleanTransformCloud([row({ observed_provider: 'DeepInfra' })]);
 

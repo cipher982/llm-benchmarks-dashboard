@@ -3,7 +3,7 @@ import { createSlug } from "./seoUtils";
 import { processAllMetrics } from "../pages/api/processed";
 import type { ModelPageData, ProviderModelEntry, ProviderPageData, SummaryMetrics } from "../types/ModelPages";
 import type { ProcessedData as ProcessedDataBundle, TableRow } from "../types/ProcessedData";
-import { getProviderDisplayName } from "./providerMetadata";
+import { getProviderDisplayName, resolveServingProvider } from "./providerMetadata";
 import { FLAGGED_STATUSES } from "./lifecycleSummary";
 import { getSuccessorModel } from "./modelMappingDB";
 import {
@@ -27,12 +27,37 @@ interface ProcessedModelBundle {
     latestRunAt?: string;
 }
 
+interface MetricSource {
+    provider: string;
+    model: string;
+}
+
+interface InventoryEntry extends ProviderModelEntry {
+    metricSources: MetricSource[];
+}
+
+interface ProviderInventory {
+    aliases: InventoryEntry[];
+    representatives: InventoryEntry[];
+}
+
+interface InventoryAggregateRow {
+    provider: string;
+    model: string;
+    observedProvider?: string | null;
+    observedProviderSlug?: string | null;
+    catalogDisplayName?: string | null;
+    latestRunAt?: Date | string | null;
+    firstRunAt?: Date | string | null;
+    lifecycleStatus?: string | null;
+}
+
 const INVENTORY_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const DEFAULT_MODEL_DAYS = 30;
 const DEFAULT_PROVIDER_DAYS = 30;
 const MAX_STATIC_PATHS = 20;
 
-let inventoryCache: { aliases: ProviderModelEntry[]; representatives: ProviderModelEntry[] } | null = null;
+let inventoryCache: ProviderInventory | null = null;
 let inventoryCacheFetchedAt = 0;
 
 function isInventoryCacheStale(): boolean {
@@ -123,8 +148,8 @@ function groupLifecycleStatus(entries: ProviderModelEntry[]): string | undefined
     return latestEntry?.lifecycleStatus;
 }
 
-function buildInventoryGroups(entries: ProviderModelEntry[]): { aliases: ProviderModelEntry[]; representatives: ProviderModelEntry[] } {
-    const groups = new Map<string, ProviderModelEntry[]>();
+function buildInventoryGroups(entries: InventoryEntry[]): ProviderInventory {
+    const groups = new Map<string, InventoryEntry[]>();
     entries.forEach((entry) => {
         const key = entry.displayGroupKey ?? displayGroupKey(entry.providerCanonical, entry.displayName);
         const group = groups.get(key) ?? [];
@@ -132,8 +157,8 @@ function buildInventoryGroups(entries: ProviderModelEntry[]): { aliases: Provide
         groups.set(key, group);
     });
 
-    const aliases: ProviderModelEntry[] = [];
-    const representatives: ProviderModelEntry[] = [];
+    const aliases: InventoryEntry[] = [];
+    const representatives: InventoryEntry[] = [];
 
     Array.from(groups.entries())
         .sort(([a], [b]) => a.localeCompare(b))
@@ -143,6 +168,12 @@ function buildInventoryGroups(entries: ProviderModelEntry[]): { aliases: Provide
             const canonicalGroup = [...new Set(sortedGroup.map((entry) => entry.modelCanonical))].sort();
             const latestRunAt = latestIsoDate(sortedGroup.map((entry) => entry.latestRunAt));
             const firstRunAt = earliestIsoDate(sortedGroup.map((entry) => entry.firstRunAt));
+            const sourcesByKey = new Map<string, MetricSource>();
+            for (const entry of sortedGroup) {
+                for (const source of entry.metricSources) {
+                    sourcesByKey.set(`${source.provider}\0${source.model}`, source);
+                }
+            }
             const common = {
                 displayGroupKey: key,
                 canonicalGroup,
@@ -152,9 +183,10 @@ function buildInventoryGroups(entries: ProviderModelEntry[]): { aliases: Provide
                 firstRunAt,
                 dataSpanDays: dataSpanDays(firstRunAt, latestRunAt),
                 lifecycleStatus: groupLifecycleStatus(sortedGroup),
+                metricSources: Array.from(sourcesByKey.values()),
             };
 
-            const representativeEntry: ProviderModelEntry = {
+            const representativeEntry: InventoryEntry = {
                 ...representative,
                 ...common,
             };
@@ -171,6 +203,11 @@ function buildInventoryGroups(entries: ProviderModelEntry[]): { aliases: Provide
         });
 
     return { aliases, representatives };
+}
+
+function publicInventoryEntry(entry: InventoryEntry): ProviderModelEntry {
+    const { metricSources: _metricSources, ...publicEntry } = entry;
+    return publicEntry;
 }
 
 function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, runCount: number, latestRunAt?: string): SummaryMetrics {
@@ -235,16 +272,21 @@ function extractModelTimeSeries(data: ProcessedDataBundle["timeSeries"], model: 
     };
 }
 
-async function fetchInventory(forceRefresh = false): Promise<{ aliases: ProviderModelEntry[]; representatives: ProviderModelEntry[] }> {
+async function fetchInventory(forceRefresh = false): Promise<ProviderInventory> {
     if (!forceRefresh && !isInventoryCacheStale()) {
-        return inventoryCache as { aliases: ProviderModelEntry[]; representatives: ProviderModelEntry[] };
+        return inventoryCache as ProviderInventory;
     }
 
     await connectToMongoDB();
     const results = await CloudMetrics.aggregate([
         {
             $group: {
-                _id: { provider: "$provider", model_name: "$model_name" },
+                _id: {
+                    provider: "$provider",
+                    model_name: "$model_name",
+                    observed_provider: "$observed_provider",
+                    observed_provider_slug: "$observed_provider_slug",
+                },
                 latestRunAt: { $max: "$run_ts" },
                 firstRunAt: { $min: "$run_ts" },
                 displayName: { $last: "$display_name" },
@@ -300,6 +342,8 @@ async function fetchInventory(forceRefresh = false): Promise<{ aliases: Provider
                 _id: 0,
                 provider: "$_id.provider",
                 model: "$_id.model_name",
+                observedProvider: "$_id.observed_provider",
+                observedProviderSlug: "$_id.observed_provider_slug",
                 displayName: "$displayName",
                 catalogDisplayName: { $arrayElemAt: ["$catalog.display_name", 0] },
                 latestRunAt: "$latestRunAt",
@@ -312,8 +356,14 @@ async function fetchInventory(forceRefresh = false): Promise<{ aliases: Provider
         },
     ]);
 
-    const entries = results.map((entry: any) => {
-        const providerCanonical = entry.provider;
+    const entries: InventoryEntry[] = results.flatMap((entry: InventoryAggregateRow): InventoryEntry[] => {
+        const providerCanonical = resolveServingProvider({
+            provider: entry.provider,
+            observed_provider: entry.observedProvider,
+            observed_provider_slug: entry.observedProviderSlug,
+        });
+        if (!providerCanonical) return [];
+
         const providerDisplay = getProviderDisplayName(providerCanonical);
         const providerSlug = createSlug(providerCanonical);
         const modelCanonical = entry.model;
@@ -322,7 +372,7 @@ async function fetchInventory(forceRefresh = false): Promise<{ aliases: Provider
         const latestRunAt = toIsoDate(entry.latestRunAt);
         const firstRunAt = toIsoDate(entry.firstRunAt);
 
-        return {
+        return [{
             provider: providerDisplay,
             providerCanonical,
             providerSlug,
@@ -338,7 +388,8 @@ async function fetchInventory(forceRefresh = false): Promise<{ aliases: Provider
             firstRunAt,
             dataSpanDays: dataSpanDays(firstRunAt, latestRunAt),
             lifecycleStatus: entry.lifecycleStatus || undefined,
-        };
+            metricSources: [{ provider: entry.provider, model: modelCanonical }],
+        }];
     });
 
     inventoryCache = buildInventoryGroups(entries);
@@ -353,7 +404,7 @@ export async function getProviderModelInventory(): Promise<ProviderModelEntry[]>
         return entries.flatMap((entry) => entry?.models ?? []);
     }
     const inventory = await fetchInventory(false);
-    return inventory.representatives;
+    return inventory.representatives.map(publicInventoryEntry);
 }
 
 export async function getFeaturedStaticPaths(limit = MAX_STATIC_PATHS): Promise<Array<{ params: { provider: string; model: string } }>> {
@@ -373,12 +424,19 @@ export async function getFeaturedStaticPaths(limit = MAX_STATIC_PATHS): Promise<
     }));
 }
 
-async function resolveBySlug(providerSlug: string, modelSlug: string): Promise<ProviderModelEntry | undefined> {
+async function resolveBySlug(providerSlug: string, modelSlug: string): Promise<InventoryEntry | undefined> {
     const { aliases: inventory } = await fetchInventory(false);
     return inventory.find((entry) => entry.providerSlug === providerSlug && entry.modelSlug === modelSlug);
 }
 
-async function resolveProviderBySlug(providerSlug: string): Promise<{ provider: string; providerCanonical: string; providerSlug: string; latestRunAt?: string; displayName: string } | undefined> {
+async function resolveProviderBySlug(providerSlug: string): Promise<{
+    provider: string;
+    providerCanonical: string;
+    providerSlug: string;
+    latestRunAt?: string;
+    displayName: string;
+    metricSources: MetricSource[];
+} | undefined> {
     const { representatives: inventory } = await fetchInventory(false);
     const matches = inventory.filter((entry) => entry.providerSlug === providerSlug);
     if (!matches.length) return undefined;
@@ -388,6 +446,12 @@ async function resolveProviderBySlug(providerSlug: string): Promise<{ provider: 
         if (!latest) return entry.latestRunAt;
         return Date.parse(entry.latestRunAt) > Date.parse(latest) ? entry.latestRunAt : latest;
     }, undefined);
+    const sourcesByKey = new Map<string, MetricSource>();
+    for (const match of matches) {
+        for (const source of match.metricSources) {
+            sourcesByKey.set(`${source.provider}\0${source.model}`, source);
+        }
+    }
 
     return {
         provider: matches[0].provider,
@@ -395,26 +459,37 @@ async function resolveProviderBySlug(providerSlug: string): Promise<{ provider: 
         providerSlug,
         displayName: matches[0].provider,
         latestRunAt,
+        metricSources: Array.from(sourcesByKey.values()),
     };
 }
 
-async function fetchProcessedBundle(provider: string, model: string | string[] | null, days: number): Promise<ProcessedModelBundle | null> {
+async function fetchProcessedBundle(metricSources: MetricSource[], days: number): Promise<ProcessedModelBundle | null> {
+    if (!metricSources.length) return null;
+
     await connectToMongoDB();
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const query: Record<string, unknown> = {
-        provider,
-        run_ts: { $gte: since },
-    };
-    if (model) {
-        query.model_name = Array.isArray(model) ? { $in: model } : model;
+    const modelsByProvider = new Map<string, Set<string>>();
+    for (const source of metricSources) {
+        const models = modelsByProvider.get(source.provider) ?? new Set<string>();
+        models.add(source.model);
+        modelsByProvider.set(source.provider, models);
     }
+    const sourceClauses = Array.from(modelsByProvider, ([provider, models]) => ({
+        provider,
+        model_name: { $in: Array.from(models) },
+    }));
+    const query: Record<string, unknown> = {
+        run_ts: { $gte: since },
+        ...(sourceClauses.length === 1 ? sourceClauses[0] : { $or: sourceClauses }),
+    };
 
     const rawMetrics = await CloudMetrics.find(query)
         .select(
-            "provider model_name display_name tokens_per_second generated_tokens_per_second " +
-            "visible_tokens_per_second time_to_first_token run_ts"
+            "model_name provider tokens_per_second generated_tokens_per_second visible_tokens_per_second " +
+            "benchmark_profile_id transport_provider route_model_id route_endpoint_tag quantization " +
+            "observed_provider observed_provider_slug time_to_first_token run_ts display_name"
         )
         .lean()
         .exec();
@@ -454,7 +529,7 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
 
     const canonicalGroup = resolved.canonicalGroup?.length ? resolved.canonicalGroup : [resolved.modelCanonical];
     const canonicalGroupSet = new Set(canonicalGroup);
-    const processedBundle = await fetchProcessedBundle(resolved.providerCanonical, canonicalGroup, days);
+    const processedBundle = await fetchProcessedBundle(resolved.metricSources, days);
     if (!processedBundle) {
         return null;
     }
@@ -485,11 +560,12 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
     const summary = buildSummaryFromTable(matchingTableRows, rawSampleCount, runCount, latestRunAt);
     const speedDistribution = extractModelSpeedDistribution(filtered.speedDistribution ?? [], resolved.provider, modelDisplay);
     const timeSeries = extractModelTimeSeries(filtered.timeSeries, modelDisplay, resolved.displayName);
-
     const { representatives: inventory } = await fetchInventory(false);
+
     const relatedModels = inventory
         .filter((entry) => entry.providerCanonical === resolved.providerCanonical && entry.displayGroupKey !== resolved.displayGroupKey)
-        .slice(0, 6);
+        .slice(0, 6)
+        .map(publicInventoryEntry);
 
     const alternatives = inventory
         .filter((entry) => entry.providerCanonical !== resolved.providerCanonical)
@@ -498,7 +574,8 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
             const bTime = b.latestRunAt ? Date.parse(b.latestRunAt) : 0;
             return bTime - aTime;
         })
-        .slice(0, 6);
+        .slice(0, 6)
+        .map(publicInventoryEntry);
 
     // Determine if page should be noindexed (thin content or problematic lifecycle status)
     // Note: deprecated is in FLAGGED_STATUSES but we treat it specially (allow indexing with enough data)
@@ -543,7 +620,7 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
         return null;
     }
 
-    const processedBundle = await fetchProcessedBundle(resolvedProvider.providerCanonical, null, days);
+    const processedBundle = await fetchProcessedBundle(resolvedProvider.metricSources, days);
     if (!processedBundle) {
         return {
             provider: resolvedProvider.provider,

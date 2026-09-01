@@ -179,6 +179,21 @@ describe('processSteadyState', () => {
     rows.forEach(r => expect(r.sampleCount).toBe(18));
   });
 
+  test('credits the observed upstream for OpenRouter scheduling lanes', () => {
+    const rows = processSteadyState(
+      makeFullGroup('openrouter', 'google/gemini-3.1-flash-lite-image', {
+        transport_provider: 'direct',
+        observed_provider: 'Google AI Studio',
+      }),
+      lookup
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].provider).toBe('google');
+    expect(rows[0].providerCanonical).toBe('google');
+    expect(rows[0].transportProvider).toBe('direct');
+  });
+
   test('empty input returns an empty row list, not an error', () => {
     expect(processSteadyState([], lookup)).toEqual([]);
   });

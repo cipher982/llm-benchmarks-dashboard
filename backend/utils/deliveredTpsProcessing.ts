@@ -15,7 +15,7 @@
 
 import type { MetadataLookup } from './modelMappingDB';
 import { PUBLISHED_PROFILE_ID } from './processCloud';
-import { getProviderDisplayName, resolveServingProvider } from './providerMetadata';
+import { getProviderDisplayName, resolveServingProvider, resolveTransportProvider } from './providerMetadata';
 import { createSlug } from './seoUtils';
 import { median } from './steadyState';
 import { evaluatePublication, type PublicationState } from './endpointPublication';
@@ -104,9 +104,10 @@ export const processDeliveredTps = (
         const timeTo64 = row.time_to_64_visible_tokens_seconds;
         if (typeof timeTo64 !== 'number' || !Number.isFinite(timeTo64) || timeTo64 <= 0) continue;
 
-        const transportProvider = row.transport_provider || 'direct';
+        const transportProvider = resolveTransportProvider(row);
         // Credit whoever served it, not how it was billed.
         const servingProvider = resolveServingProvider(row);
+        if (!servingProvider) continue;
         // An endpoint is (model, exact tag). Two deployments from one provider
         // — deepinfra/bf16 and deepinfra/turbo — serve at different speeds and
         // cannot share a row.

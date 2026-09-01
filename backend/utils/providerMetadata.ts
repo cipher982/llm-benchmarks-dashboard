@@ -76,5 +76,15 @@ export const resolveServingProvider = (row: {
     if (observed) {
         return OBSERVED_PROVIDER_ALIASES[observed] ?? observed;
     }
-    return row.provider || "";
+    const provider = (row.provider || "").trim().toLowerCase();
+    return provider === "openrouter" ? "" : provider;
 };
+
+/**
+ * Billing transport is independent from the serving provider. Preserve the
+ * recorded lane; rows from before transport provenance existed remain direct
+ * rather than acquiring a transport that was not recorded.
+ */
+export const resolveTransportProvider = (row: {
+    transport_provider?: string | null;
+}): string => row.transport_provider || "direct";
