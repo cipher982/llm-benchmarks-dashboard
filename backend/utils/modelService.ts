@@ -291,8 +291,16 @@ function extractModelTimeSeries(
     primaryTransport?: string,
 ) {
     if (!data?.timestamps?.length) return undefined;
-    const entry = data.models.find((modelEntry) => modelEntry.model_name === model);
-    if (!entry) return undefined;
+    // Every entry carrying this display name, not the first. The bundle can
+    // hold the same name more than once — one per catalogue id — and taking
+    // the first put DeepInfra's single point on Groq's page while Groq's own
+    // lanes sat in the second entry.
+    const entries = data.models.filter(
+        (modelEntry) => modelEntry.model_name === model || modelEntry.display_name === model,
+    );
+    if (!entries.length) return undefined;
+    const entry = entries[0];
+    const allProviders = entries.flatMap((modelEntry) => modelEntry.providers ?? []);
 
     // This page is one model at one provider. The series payload carries the
     // model at every provider, and the cell picks whichever lane has the most
@@ -302,12 +310,12 @@ function extractModelTimeSeries(
     // provider's lanes only when the current one has nothing to draw.
     const hasPoints = (p: { values?: Array<number | null> }) => (p.values ?? []).some((v) => v != null);
     const here = providerCanonical
-        ? entry.providers.filter((p) => (p.providerCanonical || p.provider) === providerCanonical)
-        : entry.providers;
+        ? allProviders.filter((p) => (p.providerCanonical || p.provider) === providerCanonical)
+        : allProviders;
     const current = primaryTransport
         ? here.filter((p) => (p.transportProvider || 'direct') === primaryTransport)
         : [];
-    const providers = current.some(hasPoints) ? current : here.length ? here : entry.providers;
+    const providers = current.some(hasPoints) ? current : here.length ? here : allProviders;
 
     return {
         modelName: entry.model_name,
