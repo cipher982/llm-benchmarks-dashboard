@@ -28,6 +28,8 @@ export interface CloudBenchmark {
     decode_tokens_per_second_median?: number | null;  // Floor-free generation speed; see utils/decodeRate.ts
     decode_samples?: number;
     decode_resolution_share?: number;
+    decode_rates?: number[];
+    decode_runs?: number;
     display_name?: string;  // Optional alternate display label retained for legacy consumers
     run_ts?: Date;
 

@@ -2,6 +2,7 @@ import { CloudBenchmark } from '../types/CloudData';
 import type { ProcessedData } from './processCloud';
 import { getProviderDisplayName } from './providerMetadata';
 import { createSlug } from './seoUtils';
+import { summariseDecodeRates } from './decodeRate';
 
 const meanOrZero = (values: number[]): number => {
     if (values.length === 0) return 0;
@@ -88,7 +89,17 @@ export const mergeProcessedModelGroup = ({
         ...metadata,
     };
 
+    // Rebuilt from the field list above, so anything not named here is lost
+    // between the transform and the table. The decode rate shipped with its
+    // per-run rates for exactly this reason: two catalogue ids merging into
+    // one display row get one median over all their runs, not an average of
+    // two medians.
+    const decodeRates: number[] = [];
+    let decodeRuns = 0;
+
     items.forEach((item) => {
+        if (item.decode_rates?.length) decodeRates.push(...item.decode_rates);
+        decodeRuns += item.decode_runs ?? 0;
         mergedItem.tokens_per_second.push(...item.tokens_per_second);
         mergedItem.tokens_per_second_timestamps.push(...item.tokens_per_second_timestamps);
         if (item.generated_tokens_per_second) {
@@ -132,6 +143,13 @@ export const mergeProcessedModelGroup = ({
         : 0;
     mergedItem.generated_tokens_per_second_mean = meanOrZero(mergedItem.generated_tokens_per_second ?? []);
     mergedItem.time_to_first_token_mean = meanOrZero(mergedItem.time_to_first_token ?? []);
+
+    const decode = summariseDecodeRates(decodeRates, decodeRuns);
+    mergedItem.decode_tokens_per_second_median = decode.median;
+    mergedItem.decode_samples = decode.samples;
+    mergedItem.decode_resolution_share = decode.share;
+    mergedItem.decode_rates = decodeRates;
+    mergedItem.decode_runs = decodeRuns;
 
     return mergedItem;
 };

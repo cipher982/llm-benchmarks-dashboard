@@ -6,7 +6,7 @@ import type { ProcessedData as ProcessedDataBundle, TableRow } from "../types/Pr
 import { getProviderDisplayName, resolveServingProvider } from "./providerMetadata";
 import { median } from './decodeRate';
 import { FLAGGED_STATUSES } from "./lifecycleSummary";
-import { foldLanes, isFlagged, lifecycleOf, scopeRows } from "./laneView";
+import { foldLanes, isFlagged, laneKey, lifecycleOf, scopeRows } from "./laneView";
 import { getSuccessorModel } from "./modelMappingDB";
 import {
     designFixturesEnabled,
@@ -252,13 +252,21 @@ function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, ru
     };
 }
 
-function extractModelSpeedDistribution(data: ProcessedDataBundle["speedDistribution"], provider: string, model: string) {
+function extractModelSpeedDistribution(
+    data: ProcessedDataBundle["speedDistribution"],
+    provider: string,
+    model: string,
+    primaryLane: string | null = null,
+) {
     const compositeKey = `${provider}-${model}`;
-    const entry = data.find(
-        (item) =>
-            item.provider === provider &&
-            (item.model_name === compositeKey || item.model_name === model || item.display_name === model)
-    );
+    const sameModel = (item: ProcessedDataBundle["speedDistribution"][number]) =>
+        item.provider === provider &&
+        (item.model_name === compositeKey || item.model_name === model || item.display_name === model);
+    // Prefer the lane the page speaks for; older payloads without lane
+    // identity fall back to the first match, as before.
+    const entry =
+        (primaryLane && data.find((item) => sameModel(item) && item.modelCanonical && laneKey(item) === primaryLane)) ||
+        data.find(sameModel);
     if (!entry) return undefined;
 
     return {
@@ -272,16 +280,37 @@ function extractModelSpeedDistribution(data: ProcessedDataBundle["speedDistribut
     };
 }
 
-function extractModelTimeSeries(data: ProcessedDataBundle["timeSeries"], model: string, displayName?: string) {
+function extractModelTimeSeries(
+    data: ProcessedDataBundle["timeSeries"],
+    model: string,
+    displayName?: string,
+    providerCanonical?: string,
+    primaryTransport?: string,
+) {
     if (!data?.timestamps?.length) return undefined;
     const entry = data.models.find((modelEntry) => modelEntry.model_name === model);
     if (!entry) return undefined;
+
+    // This page is one model at one provider. The series payload carries the
+    // model at every provider, and the cell picks whichever lane has the most
+    // points — which put DeepInfra's line on Groq's page, and the retired
+    // direct lane above the live routed one. Keep this provider's lanes, the
+    // current transport first, and let the chart fall back to the rest of the
+    // provider's lanes only when the current one has nothing to draw.
+    const hasPoints = (p: { values?: Array<number | null> }) => (p.values ?? []).some((v) => v != null);
+    const here = providerCanonical
+        ? entry.providers.filter((p) => (p.providerCanonical || p.provider) === providerCanonical)
+        : entry.providers;
+    const current = primaryTransport
+        ? here.filter((p) => (p.transportProvider || 'direct') === primaryTransport)
+        : [];
+    const providers = current.some(hasPoints) ? current : here.length ? here : entry.providers;
 
     return {
         modelName: entry.model_name,
         displayName: entry.display_name ?? displayName ?? entry.model_name,
         timestamps: data.timestamps,
-        providers: entry.providers,
+        providers,
     };
 }
 
@@ -589,9 +618,35 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
             lastBenchmarkDate: row.last_benchmark_date,
         }));
 
-    const summary = buildSummaryFromTable(matchingTableRows, rawSampleCount, runCount, latestRunAt);
-    const speedDistribution = extractModelSpeedDistribution(filtered.speedDistribution ?? [], resolved.provider, modelDisplay);
-    const timeSeries = extractModelTimeSeries(filtered.timeSeries, modelDisplay, resolved.displayName);
+    // The lane that speaks for this page: live, most recently measured. The
+    // headline, the distribution and the series all follow it. Averaging the
+    // retired direct lane (384 runs at 203 tok/s) with the current routed one
+    // (4 runs at 110) printed "156.50 over 460 runs" — a speed nobody serves.
+    // The lane table below still lists every lane.
+    const liveRows = scopeRows(matchingTableRows, 'hideFlagged');
+    const primaryRows = foldLanes(liveRows.length ? liveRows : matchingTableRows).rows;
+    const primaryLane = primaryRows[0] ? laneKey(primaryRows[0]) : null;
+    const primaryRuns = primaryRows.reduce((total, row) => total + (row.samples ?? 0), 0);
+
+    const summary = buildSummaryFromTable(
+        primaryRows,
+        primaryRuns || rawSampleCount,
+        primaryRuns || runCount,
+        primaryRows[0]?.last_benchmark_date ?? latestRunAt,
+    );
+    const speedDistribution = extractModelSpeedDistribution(
+        filtered.speedDistribution ?? [],
+        resolved.provider,
+        modelDisplay,
+        primaryLane,
+    );
+    const timeSeries = extractModelTimeSeries(
+        filtered.timeSeries,
+        modelDisplay,
+        resolved.displayName,
+        resolved.providerCanonical,
+        primaryRows[0]?.transportProvider,
+    );
     const { representatives: inventory } = await fetchInventory(false);
 
     const relatedModels = inventory

@@ -18,6 +18,7 @@ const {
 } = require('../utils/decodeRate');
 const { cleanTransformCloud } = require('../utils/processCloud');
 const { processRawTableData } = require('../utils/dataProcessing');
+const { mergeProcessedModelGroup } = require('../utils/modelMappingMerge');
 
 const steady = (n, gap) => new Array(n).fill(gap);
 
@@ -132,5 +133,48 @@ describe('decode rate through the pipeline', () => {
             { ...rows[0], providerSlug: 'openai', modelSlug: 'gpt5nano', time_to_first_token_mean: 0.3 },
         ]);
         expect(tableRow.decode_tokens_per_second).toBeUndefined();
+    });
+});
+
+describe('decode rate survives the name-mapping merge', () => {
+    // The first deploy of the column shipped em dashes on every row: the
+    // transform computed the rate, the table read it, and the merge in
+    // between rebuilt each row from an explicit field list that did not
+    // name it. Production is the only place the merge runs on real rows.
+    const gaps = Array.from({ length: 63 }, (_, i) => 0.002 + (i % 4) * 0.0005);
+    const raw = (overrides = {}) => ({
+        _id: 'x', provider: 'openrouter', observed_provider: 'Groq', observed_provider_slug: 'groq',
+        transport_provider: 'openrouter', model_name: 'meta-llama/llama-3.3-70b-instruct',
+        display_name: 'Llama 3.3 70B Instruct', run_ts: new Date().toISOString(),
+        tokens_per_second: 90, generate_time: 0.7, time_to_first_token: 0.5,
+        times_between_tokens: gaps, visible_output_tokens: 64, generated_output_tokens: 64,
+        stream_resolution: 'resolved', benchmark_profile_id: 'cloud-default-v1',
+        visible_tokens_per_second: 90, generated_tokens_per_second: 90,
+        ...overrides,
+    });
+
+    it('carries the rate through mergeProcessedModelGroup', () => {
+        const items = cleanTransformCloud([raw(), raw({ _id: 'y' })]);
+        const merged = mergeProcessedModelGroup({
+            items, providerCanonical: 'groq', transportProvider: 'openrouter',
+            modelDisplay: 'Llama 3.3 70B Instruct', modelCanonical: 'meta-llama/llama-3.3-70b-instruct',
+        });
+        expect(merged.decode_tokens_per_second_median).toBeGreaterThan(0);
+        expect(merged.decode_samples).toBe(2);
+        expect(merged.decode_resolution_share).toBe(1);
+    });
+
+    it('recomputes one median over every run when two catalogue ids merge', () => {
+        const fast = cleanTransformCloud([raw({ times_between_tokens: gaps.map((g) => g / 2) })]);
+        const slow = cleanTransformCloud([raw({ model_name: 'llama-3.3-70b-versatile', times_between_tokens: gaps.map((g) => g * 2) })]);
+        const merged = mergeProcessedModelGroup({
+            items: [...fast, ...slow], providerCanonical: 'groq', transportProvider: 'openrouter',
+            modelDisplay: 'Llama 3.3 70B Instruct', modelCanonical: 'meta-llama/llama-3.3-70b-instruct',
+        });
+        const rates = merged.decode_rates;
+        expect(rates).toHaveLength(2);
+        // Median of two values is their midpoint, not either item's own median.
+        expect(merged.decode_tokens_per_second_median).toBeCloseTo((rates[0] + rates[1]) / 2, 6);
+        expect(merged.decode_runs).toBe(2);
     });
 });

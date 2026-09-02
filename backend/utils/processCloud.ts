@@ -116,6 +116,10 @@ export interface ProcessedData {
     decode_tokens_per_second_median?: number | null;
     decode_samples?: number;
     decode_resolution_share?: number;
+    /** The per-run rates behind the median, so a later merge of two catalogue
+     *  ids into one display row can recompute instead of averaging medians. */
+    decode_rates?: number[];
+    decode_runs?: number;
     last_run_ts?: Date;
     freshness_status?: string;
     staleness_seconds?: number;
@@ -319,6 +323,8 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             decode_tokens_per_second_median: decode.median,
             decode_samples: decode.samples,
             decode_resolution_share: decode.share,
+            decode_rates: benchmark.decode_rates,
+            decode_runs: benchmark.decode_runs,
             last_run_ts: lastRunTs
         };
     });

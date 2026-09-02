@@ -76,7 +76,10 @@ const transformTimeSeries = (data: ModelPageData): TimeSeriesData | null => {
             providers: data.timeSeries.providers.map(p => ({
                 provider: p.provider,
                 providerCanonical: p.providerCanonical || p.provider,
-                values: p.values.map(v => v ?? 0), // Convert null to 0
+                // Nulls stay nulls. Turning a missing sample into 0 drew a
+                // flat line at zero with one spike, and made the cell's
+                // mean 0 tok/s for any lane sampled sparsely.
+                values: p.values,
                 deprecated: p.deprecated,
                 deprecation_date: p.deprecation_date,
                 last_benchmark_date: p.last_benchmark_date,
