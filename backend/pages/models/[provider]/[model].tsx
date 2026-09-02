@@ -89,7 +89,7 @@ const transformTimeSeries = (data: ModelPageData): TimeSeriesData | null => {
 const buildFaq = (data: ModelPageData) => [
     {
         question: `How fast is ${data.displayName}?`,
-        answer: `The latest rolling average throughput is ${formatNumber(data.summary.tokensPerSecondMean)} tokens per second with an average time to first token of ${formatNumber((data.summary.timeToFirstTokenMean ?? 0) * 1000)} ms across ${data.summary.runCount} recent runs.`,
+        answer: `The latest rolling average throughput is ${formatNumber(data.summary.tokensPerSecondMean)} tokens per second with an average time to first token of ${formatNumber((data.summary.timeToFirstTokenMean ?? 0) * 1000)} ms across ${data.summary.runCount} recent runs.${data.summary.decodeTokensPerSecond != null ? ` Once tokens are flowing the decoder delivers about ${formatNumber(data.summary.decodeTokensPerSecond)} tokens per second, measured from the gaps between stream chunks with time to first token and reasoning excluded.` : ''}`,
     },
     {
         question: "How often are these benchmarks updated?",
@@ -121,6 +121,12 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
     const metrics = useMemo(
         () => [
             { label: "Avg Tokens / Second", value: formatNumber(data.summary.tokensPerSecondMean) },
+            // The decoder alone: time to first token and reasoning excluded.
+            // Only a stream fine-grained enough to time it carries a value.
+            {
+                label: "Decode Tokens / Second",
+                value: data.summary.decodeTokensPerSecond != null ? formatNumber(data.summary.decodeTokensPerSecond) : "—",
+            },
             { label: "Avg Time to First Token (ms)", value: formatNumber((data.summary.timeToFirstTokenMean ?? 0) * 1000) },
             { label: "Runs Analysed", value: `${data.summary.runCount}` },
             { label: "Last Updated", value: formatTimestamp(data.summary.latestRunAt) },

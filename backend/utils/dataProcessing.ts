@@ -555,6 +555,16 @@ export const processRawTableData = async (data: CloudBenchmark[], filters?: Tabl
                 : undefined,
             throughput_basis: benchmark.throughput_basis,
             time_to_first_token_mean: Number(benchmark.time_to_first_token_mean.toFixed(PRECISION)),
+            // Generation speed with the floor excluded, and the evidence
+            // behind it. Undefined, not zero, when no run's stream could
+            // support the estimate.
+            decode_tokens_per_second: benchmark.decode_tokens_per_second_median != null
+                ? Number(benchmark.decode_tokens_per_second_median.toFixed(PRECISION))
+                : undefined,
+            decode_samples: benchmark.decode_samples,
+            decode_resolution_share: benchmark.decode_resolution_share != null
+                ? Number(benchmark.decode_resolution_share.toFixed(3))
+                : undefined,
             enabled: benchmark.enabled,
             deprecated: benchmark.deprecated,
             deprecation_date: benchmark.deprecation_date,

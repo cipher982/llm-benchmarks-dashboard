@@ -25,6 +25,9 @@ export interface CloudBenchmark {
     time_to_first_token_min?: number;
     time_to_first_token_max?: number;
     time_to_first_token_quartiles?: number[];  // Added to match ProcessedData
+    decode_tokens_per_second_median?: number | null;  // Floor-free generation speed; see utils/decodeRate.ts
+    decode_samples?: number;
+    decode_resolution_share?: number;
     display_name?: string;  // Optional alternate display label retained for legacy consumers
     run_ts?: Date;
 

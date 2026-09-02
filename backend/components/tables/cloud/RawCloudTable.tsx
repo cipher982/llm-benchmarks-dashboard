@@ -313,6 +313,40 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
             },
         },
         {
+            // The floor-free number. Mean includes time to first token and, at
+            // 64 tokens, reports a third to three quarters of what the decoder
+            // does; this is the decoder alone. Only streams fine-grained enough
+            // to time it carry a value, and the figure dims when fewer than
+            // half the window's runs qualified.
+            accessorKey: 'decode_tokens_per_second',
+            header: 'Decode',
+            size: 74,
+            meta: { align: 'right' },
+            sortUndefined: 'last',
+            cell: ({ row, getValue }) => {
+                const value = getValue() as number | undefined;
+                if (value == null) {
+                    return (
+                        <Tooltip arrow title="No run in this window streamed finely enough to time the decoder: chunks carried more than a few tokens, or the response was released in one burst.">
+                            <span style={{ ...dim, cursor: 'help' }}>—</span>
+                        </Tooltip>
+                    );
+                }
+                const share = row.original.decode_resolution_share ?? 0;
+                const qualified = row.original.decode_samples ?? 0;
+                const total = row.original.samples;
+                const evidence = total != null ? `${qualified} of ${total}` : `${qualified}`;
+                return (
+                    <Tooltip
+                        arrow
+                        title={`Decode rate: visible tokens over the gaps between stream chunks after the first, so time to first token and reasoning are excluded. Measurable only on streams delivering at most 4 tokens per chunk; ${evidence} runs qualified.`}
+                    >
+                        <span style={{ cursor: 'help', ...(share < 0.5 ? dim : {}) }}>{fmt.int(value)}</span>
+                    </Tooltip>
+                );
+            },
+        },
+        {
             accessorKey: 'generated_tokens_per_second_mean',
             header: 'Gen',
             size: 70,

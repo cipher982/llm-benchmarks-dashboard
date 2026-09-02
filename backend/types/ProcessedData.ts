@@ -84,6 +84,11 @@ export interface TableRow {
     generated_tokens_per_second_mean?: number;
     throughput_basis?: 'visible' | 'legacy' | 'mixed';
     time_to_first_token_mean: number;
+    /** Generation speed once tokens are flowing, floor excluded; absent when no run qualified. */
+    decode_tokens_per_second?: number;
+    decode_samples?: number;
+    /** Share of the window's runs whose stream could support the decode estimate. */
+    decode_resolution_share?: number;
     deprecated?: boolean;
     deprecation_date?: string;
     last_benchmark_date?: string;

@@ -68,3 +68,30 @@ any published row that carries the field, so chat (512-budget) and reasoning
 ## API Compatibility
 
 No API migration is required for schema-v2 metrics. Existing clients can continue reading `tokens_per_second`; clients that need user-visible output speed should prefer table rows with `throughput_basis` or raw rows that include `visible_tokens_per_second`.
+
+## Decode rate
+
+`decode_tokens_per_second` on a table row (and `decodeTokensPerSecond` in a
+model page summary) is the generation speed once tokens are flowing: visible
+tokens after the first chunk divided by the sum of the gaps between
+consecutive visible chunks (`times_between_tokens`). Time to first token,
+prefill and any reasoning phase before the first visible token are not in it.
+It is the λ of `wall = a + tokens / λ` read from a single ordinary run, at no
+extra spend — the steady-state estimator's 512-token lane is not required.
+
+It is the median over the window's qualifying runs. A run qualifies only when
+it has at least 8 chunks, its stream is fine-grained (the runner's
+`stream_resolution` is `resolved`, i.e. no chunk carried more than 4 tokens;
+rows written before that label existed must average no more than 2 tokens a
+chunk), its median gap is at least 1ms (a smaller one is a buffered response
+released in one burst), and after dropping stalls — gaps beyond
+max(2s, 50× the median) — at least 8 gaps remain. `decode_samples` is how many
+runs qualified and `decode_resolution_share` is that as a share of the
+window's runs; the table dims the figure below 0.5 and prints an em dash at 0.
+
+Validated 2026-09-02 against the steady-state `generationSpeed` on the 22
+identities where it publishes: median ratio 1.05, interquartile 0.99–1.19,
+0.99 on OpenAI's direct lane. Estimator and guards: `utils/decodeRate.ts`,
+pinned by `tests/decodeRate.test.js`. Like every number on the site it is
+per transport: a routed run and a direct run of the same model are separate
+rows.
