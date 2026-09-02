@@ -10,12 +10,18 @@
  * provider aggregates by reprinting peak throughput, best TTFT and tightest
  * spread, all three of which the meter strip already carried. A different cut
  * of the same window earns the space; a restatement does not.
+ *
+ * The vertical ceiling is the 99th percentile of spread, not the maximum. One
+ * model at 600% would otherwise own the top two thirds of the plot and press
+ * the other 1,400 into a band at the bottom — the same failure the shared
+ * scale on the small multiples guards against. Anything above the ceiling is
+ * drawn at it, and the legend says how many.
  */
 
 import React, { useMemo } from 'react';
 import { styled } from '@mui/material/styles';
 import { colors, typography, spacing } from '../../design-system';
-import { niceTicks, stabilityOf } from '../../../utils/chartMath';
+import { niceTicks, percentile, stabilityOf, type StabilityState } from '../../../utils/chartMath';
 
 export interface ScatterPoint {
     model: string;
@@ -35,6 +41,8 @@ interface SpreadScatterProps {
 const Frame = styled('div')({
     padding: `${spacing.scale[3]}px ${spacing.scale[4]}px ${spacing.scale[3]}px`,
 
+    '& svg': { display: 'block' },
+
     '& .sc-grid': {
         stroke: colors.ruleSoft,
         strokeWidth: 1,
@@ -47,7 +55,7 @@ const Frame = styled('div')({
     '& .sc-dot[data-state="steady"]': { fill: colors.ok },
     '& .sc-dot[data-state="variable"]': { fill: colors.warn },
     '& .sc-dot[data-state="unstable"]': { fill: colors.bad },
-    '& .sc-dot': { fillOpacity: 0.8 },
+    '& .sc-dot': { fillOpacity: 0.75 },
     '& .sc-dot:hover': { fill: colors.text, fillOpacity: 1 },
 });
 
@@ -62,22 +70,69 @@ const AxisNote = styled('div')({
     color: colors.textMute,
 });
 
+/**
+ * What the three colours mean, with how many models fall in each. The
+ * thresholds are the ones the table's spread column uses, so a dot here and a
+ * coloured cell there agree.
+ */
+const Legend = styled('ul')({
+    listStyle: 'none',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px 14px',
+    margin: `${spacing.scale[3]}px 0 0`,
+    padding: 0,
+    fontFamily: typography.monoFamily,
+    fontSize: typography.sizes.micro,
+    letterSpacing: typography.tracking.tag,
+    textTransform: 'uppercase',
+    color: colors.textMute,
+
+    '& li': {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        whiteSpace: 'nowrap',
+    },
+    '& i': {
+        display: 'inline-block',
+        width: '6px',
+        height: '6px',
+    },
+    '& b': {
+        color: colors.textDim,
+        fontWeight: typography.weights.medium,
+        fontVariantNumeric: 'tabular-nums',
+    },
+});
+
 const PAD = 30;
 
-const SpreadScatter: React.FC<SpreadScatterProps> = ({ points, width = 368, height = 208 }) => {
+const STATES: Array<{ state: StabilityState; label: string; color: string }> = [
+    { state: 'steady', label: 'steady ≤110%', color: colors.ok },
+    { state: 'variable', label: 'variable 110–180%', color: colors.warn },
+    { state: 'unstable', label: 'unstable >180%', color: colors.bad },
+];
+
+const SpreadScatter: React.FC<SpreadScatterProps> = ({ points, width = 388, height = 340 }) => {
     const geometry = useMemo(() => {
         const usable = points.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y) && p.x > 0);
         if (!usable.length) return null;
 
         const xMax = Math.max(...usable.map((p) => p.x)) * 1.05;
-        const yMax = Math.max(...usable.map((p) => p.y)) * 1.05;
+        const yMax = Math.max(percentile(usable.map((p) => p.y), 99) * 1.05, 1);
+
+        const counts: Record<StabilityState, number> = { steady: 0, variable: 0, unstable: 0 };
+        for (const p of usable) counts[stabilityOf(p.y)] += 1;
 
         return {
             usable,
             xMax,
             yMax,
+            counts,
+            clipped: usable.filter((p) => p.y > yMax).length,
             px: (v: number) => PAD + (v / xMax) * (width - PAD - 8),
-            py: (v: number) => height - PAD - (v / yMax) * (height - PAD - 10),
+            py: (v: number) => height - PAD - (Math.min(v, yMax) / yMax) * (height - PAD - 10),
             xTicks: niceTicks(xMax, 4),
             yTicks: niceTicks(yMax, 3),
         };
@@ -85,7 +140,7 @@ const SpreadScatter: React.FC<SpreadScatterProps> = ({ points, width = 368, heig
 
     if (!geometry) return null;
 
-    const { usable, px, py, xTicks, yTicks } = geometry;
+    const { usable, px, py, xTicks, yTicks, counts, clipped, yMax } = geometry;
 
     return (
         <Frame>
@@ -128,6 +183,19 @@ const SpreadScatter: React.FC<SpreadScatterProps> = ({ points, width = 368, heig
                 <span>mean tok/s →</span>
                 <span>↑ spread %</span>
             </AxisNote>
+            <Legend aria-label="Spread bands">
+                {STATES.map(({ state, label, color }) => (
+                    <li key={state}>
+                        <i style={{ background: color }} aria-hidden="true" />
+                        {label} <b>{counts[state].toLocaleString()}</b>
+                    </li>
+                ))}
+                {clipped > 0 && (
+                    <li>
+                        <b>{clipped}</b> above {Math.round(yMax)}% drawn at the ceiling
+                    </li>
+                )}
+            </Legend>
         </Frame>
     );
 };

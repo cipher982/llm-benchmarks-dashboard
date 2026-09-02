@@ -296,9 +296,33 @@ function TanStackTable<T>({
     enabled: virtualized && rows.length > 100,
   });
 
+  // Width of the scroll container, so the columns can fill it. Column sizes
+  // are declared in pixels and summed to ~1,200px; on a 2,000px screen the
+  // table stopped at the 60% mark and truncated model names beside 800px of
+  // ground. Leftover width is shared among columns that declare
+  // `meta.grow` (a weight) up to their `meta.growMax`. Giving it all to the
+  // name column was tried first: names then sat a thousand pixels from their
+  // numbers, which is worse than the gap.
+  const [containerWidth, setContainerWidth] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const node = tableContainerRef.current;
+    if (!node) return;
+
+    const measure = () => {
+      const measured = Math.floor(node.clientWidth);
+      setContainerWidth((current) => (current === measured ? current : measured));
+    };
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [virtualized, rows.length > 0]);
+
   const headers = table.getFlatHeaders();
   const columnWidths = useMemo(() => {
-    return headers.map(header => {
+    const declared = headers.map(header => {
       const column = header.column.columnDef;
       if ('size' in column && typeof column.size === 'number') {
         return column.size;
@@ -308,7 +332,33 @@ function TanStackTable<T>({
       }
       return 150; // Default width
     });
-  }, [headers]);
+    let leftover = containerWidth - declared.reduce((total, w) => total + w, 0);
+    if (leftover > 0) {
+      const growers = headers
+        .map((header, index) => {
+          const meta = (header.column.columnDef.meta ?? {}) as { grow?: number; growMax?: number };
+          return { index, weight: meta.grow ?? 0, max: meta.growMax ?? Infinity };
+        })
+        .filter((g) => g.weight > 0);
+      // Capped columns fill first, then the remainder is split among the rest.
+      let pending = growers;
+      while (leftover > 0 && pending.length) {
+        const totalWeight = pending.reduce((total, g) => total + g.weight, 0);
+        const share = leftover / totalWeight;
+        const capped = pending.filter((g) => g.max <= share * g.weight);
+        if (!capped.length) {
+          for (const g of pending) declared[g.index] += share * g.weight;
+          break;
+        }
+        for (const g of capped) {
+          declared[g.index] += g.max;
+          leftover -= g.max;
+        }
+        pending = pending.filter((g) => !capped.includes(g));
+      }
+    }
+    return declared.map((w) => Math.floor(w));
+  }, [headers, containerWidth]);
 
   if (virtualized && rows.length > 100) {
     return (

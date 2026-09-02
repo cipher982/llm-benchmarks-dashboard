@@ -6,10 +6,17 @@
  * already carried. Rolling the same rows up by provider is a different cut of
  * the window rather than a restatement of it, and it answers a question the
  * per-model table cannot: whether a provider is fast in general or fast once.
+ *
+ * Eighty-odd providers do not fit beside a chart. As a 420px sidebar this
+ * table ran 2,700px down the page beside a ridgeline that ended after 500,
+ * leaving two thirds of the left column empty and clipping its own TTFT
+ * column. It is now a full-width block that flows into two or three columns,
+ * alphabetical down each, so the whole roll-up fits in one viewport.
  */
 
 import React, { useMemo } from 'react';
 import { styled } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import Link from 'next/link';
 import { TableRow } from '../../types/ProcessedData';
 import { colors, typography, spacing } from '../design-system';
@@ -18,6 +25,19 @@ import { percentile, spreadPercent, fmt } from '../../utils/chartMath';
 interface ProviderAggregatesProps {
     rows: TableRow[];
 }
+
+const Columns = styled('div')<{ $columns: number }>(({ $columns }) => ({
+    display: 'grid',
+    gridTemplateColumns: `repeat(${$columns}, minmax(0, 1fr))`,
+
+    '& > div': {
+        minWidth: 0,
+        borderRight: `1px solid ${colors.rule}`,
+    },
+    '& > div:last-of-type': {
+        borderRight: 0,
+    },
+}));
 
 const Table = styled('table')({
     width: '100%',
@@ -39,7 +59,7 @@ const Table = styled('table')({
     '& thead th.l': { textAlign: 'left' },
 
     '& tbody td': {
-        padding: `${spacing.scale[2]}px ${spacing.scale[3]}px`,
+        padding: `${spacing.scale[1] + 2}px ${spacing.scale[3]}px`,
         borderBottom: `1px solid ${colors.ruleSoft}`,
         textAlign: 'right',
         fontSize: typography.sizes.sm,
@@ -52,10 +72,14 @@ const Table = styled('table')({
     '& tbody td.dim': { color: colors.textMute },
     // The label column reads left; every measured column reads right so the
     // digits line up down the table.
-    '& tbody td:first-of-type': { textAlign: 'left' },
+    '& tbody td:first-of-type': { textAlign: 'left', width: '100%' },
 });
 
 const ProviderCell = styled('td')({
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: 0,
+
     '& a': {
         color: colors.textDim,
         textDecoration: 'none',
@@ -99,6 +123,13 @@ interface Aggregate {
 }
 
 const ProviderAggregates: React.FC<ProviderAggregatesProps> = ({ rows }) => {
+    // Column count follows the viewport, and the first client render agrees
+    // with the server's single column before widening — a mismatch here would
+    // be a hydration error on the landing page.
+    const wide = useMediaQuery('(min-width:1600px)');
+    const mid = useMediaQuery('(min-width:960px)');
+    const columns = wide ? 3 : mid ? 2 : 1;
+
     const aggregates = useMemo<Aggregate[]>(() => {
         const usable = rows.filter((r) => r.tokens_per_second_mean > 0);
         const byProvider = new Map<string, TableRow[]>();
@@ -141,42 +172,52 @@ const ProviderAggregates: React.FC<ProviderAggregatesProps> = ({ rows }) => {
     if (!aggregates.length) return null;
 
     const medianMax = Math.max(...aggregates.map((a) => a.median), 1);
+    const perColumn = Math.ceil(aggregates.length / columns);
+    const chunks = Array.from({ length: columns }, (_, c) =>
+        aggregates.slice(c * perColumn, (c + 1) * perColumn),
+    ).filter((chunk) => chunk.length);
 
     return (
-        <Table>
-            <thead>
-                <tr>
-                    <th className="l">Provider</th>
-                    <th>Models</th>
-                    <th>Median</th>
-                    <th>p90</th>
-                    <th>Best</th>
-                    <th>Spread</th>
-                    <th>TTFT</th>
-                </tr>
-            </thead>
-            <tbody>
-                {aggregates.map((provider) => (
-                    <tr key={provider.name}>
-                        <ProviderCell>
-                            {provider.slug ? (
-                                <Link href={`/providers/${provider.slug}`}>{provider.name}</Link>
-                            ) : (
-                                provider.name
-                            )}
-                        </ProviderCell>
-                        <td className="dim">{provider.models}</td>
-                        <MedianCell $fraction={provider.median / medianMax}>
-                            {fmt.int(provider.median)}
-                        </MedianCell>
-                        <td>{fmt.int(provider.p90)}</td>
-                        <td>{fmt.int(provider.best)}</td>
-                        <td className="dim">{fmt.pct(provider.spread)}</td>
-                        <td className="dim">{provider.ttft == null ? '—' : fmt.dec(provider.ttft, 2)}</td>
-                    </tr>
-                ))}
-            </tbody>
-        </Table>
+        <Columns $columns={chunks.length}>
+            {chunks.map((chunk) => (
+                <div key={chunk[0].name}>
+                    <Table>
+                        <thead>
+                            <tr>
+                                <th className="l">Provider</th>
+                                <th>Models</th>
+                                <th>Median</th>
+                                <th>p90</th>
+                                <th>Best</th>
+                                <th>Spread</th>
+                                <th>TTFT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {chunk.map((provider) => (
+                                <tr key={provider.name}>
+                                    <ProviderCell>
+                                        {provider.slug ? (
+                                            <Link href={`/providers/${provider.slug}`}>{provider.name}</Link>
+                                        ) : (
+                                            provider.name
+                                        )}
+                                    </ProviderCell>
+                                    <td className="dim">{provider.models}</td>
+                                    <MedianCell $fraction={provider.median / medianMax}>
+                                        {fmt.int(provider.median)}
+                                    </MedianCell>
+                                    <td>{fmt.int(provider.p90)}</td>
+                                    <td>{fmt.int(provider.best)}</td>
+                                    <td className="dim">{fmt.pct(provider.spread)}</td>
+                                    <td className="dim">{provider.ttft == null ? '—' : fmt.dec(provider.ttft, 2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                </div>
+            ))}
+        </Columns>
     );
 };
 

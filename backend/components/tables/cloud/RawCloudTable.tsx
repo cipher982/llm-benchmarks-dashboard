@@ -91,6 +91,7 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
             accessorKey: 'model_name',
             header: 'Model',
             size: 210,
+            meta: { grow: 1, growMax: 160 },
             cell: ({ row, getValue }) => {
                 const modelName = getValue() as string;
                 const label =
@@ -259,6 +260,9 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
             id: 'range',
             header: 'min·mean·max',
             size: 132,
+            // The shared-scale strip is the one column that turns width into
+            // resolution, so it takes most of what a wide screen offers.
+            meta: { grow: 3, growMax: 560 },
             enableSorting: false,
             cell: ({ row }) => (
                 <RangeStrip

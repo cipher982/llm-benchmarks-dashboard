@@ -2,10 +2,10 @@
  * Cloud benchmarks.
  *
  * Console layout: a meter strip of global aggregates, then the distribution
- * beside per-provider aggregates and a throughput-against-spread scatter, then
- * the full results table, then throughput over time as small multiples. Prose
- * appears once, at the bottom, and only says what the numbers cannot — how
- * sampling works and what the derived columns mean.
+ * beside a throughput-against-spread scatter, then per-provider aggregates as
+ * a full-width block, then the full results table, then throughput over time
+ * as small multiples. Prose appears once, at the bottom, and only says what
+ * the numbers cannot — how sampling works and what the derived columns mean.
  *
  * What used to be above the fold and is now gone: a three-paragraph
  * introduction, a "Pick A Path In 10 Seconds" module recommending one of three
@@ -412,34 +412,38 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                         ) : null}
                     </section>
 
-                    <div>
-                        <section>
-                            <SectionHeaderRow>
-                                <SectionHeader>By provider</SectionHeader>
-                                <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
-                                {flaggedTotal != null && (
-                                    <RailControls>
-                                        <RailNote>
-                                            <b>{flaggedTotal}</b> flagged
-                                        </RailNote>
-                                    </RailControls>
-                                )}
-                            </SectionHeaderRow>
-                            <ProviderAggregates rows={tableData} />
-                        </section>
-
-                        <section>
-                            <SectionHeaderRow>
-                                <SectionHeader>
-                                    Throughput × spread · {scatterPoints.length} models
-                                </SectionHeader>
-                            </SectionHeaderRow>
-                            <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
-                                <SpreadScatter points={scatterPoints} />
-                            </Suspense>
-                        </section>
-                    </div>
+                    {/* The scatter sits beside the ridgeline: both are the
+                        distribution of the same window, and at 420px wide the
+                        scatter gets the height a 1,400-point cloud needs. The
+                        provider roll-up that used to live here is the block
+                        below — 82 rows do not fit in a sidebar. */}
+                    <section>
+                        <SectionHeaderRow>
+                            <SectionHeader>
+                                Throughput × spread · {scatterPoints.length} models
+                            </SectionHeader>
+                            <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
+                        </SectionHeaderRow>
+                        <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
+                            <SpreadScatter points={scatterPoints} />
+                        </Suspense>
+                    </section>
                 </SplitRow>
+
+                <StyledChartContainer isMobile={isMobile}>
+                    <SectionHeaderRow>
+                        <SectionHeader>By provider</SectionHeader>
+                        <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
+                        {flaggedTotal != null && (
+                            <RailControls>
+                                <RailNote>
+                                    <b>{flaggedTotal}</b> flagged
+                                </RailNote>
+                            </RailControls>
+                        )}
+                    </SectionHeaderRow>
+                    <ProviderAggregates rows={tableData} />
+                </StyledChartContainer>
 
                 <StyledTableContainer id="full-results-section" isMobile={isMobile}>
                     <SectionHeaderRow>
