@@ -6,6 +6,7 @@ import type { ProcessedData as ProcessedDataBundle, TableRow } from "../types/Pr
 import { getProviderDisplayName, resolveServingProvider } from "./providerMetadata";
 import { median } from './decodeRate';
 import { FLAGGED_STATUSES } from "./lifecycleSummary";
+import { foldLanes, isFlagged, lifecycleOf, scopeRows } from "./laneView";
 import { getSuccessorModel } from "./modelMappingDB";
 import {
     designFixturesEnabled,
@@ -561,14 +562,32 @@ export async function getModelPageData(providerSlug: string, modelSlug: string, 
     const representativeModelCanonical = resolved.representativeModelCanonical ?? resolved.modelCanonical;
     const representativeModelSlug = resolved.representativeModelSlug ?? modelSlug;
 
-    const tableRows = matchingTableRows.map((row) => ({
-        provider: row.provider,
-        modelName: row.model_name,
-        tokensPerSecondMean: row.tokens_per_second_mean,
-        tokensPerSecondMin: row.tokens_per_second_min,
-        tokensPerSecondMax: row.tokens_per_second_max,
-        timeToFirstTokenMean: row.time_to_first_token_mean * 1000, // Convert seconds to ms
-    }));
+    // Every lane of this model at this provider, live ones first and the most
+    // recently measured at the top. Both transports of a migrated model are
+    // in the window, and a row that does not say which lane it is reads as
+    // the same provider measured twice with two different numbers.
+    const tableRows = [...matchingTableRows]
+        .sort((a, b) => {
+            const flagged = Number(isFlagged(a)) - Number(isFlagged(b));
+            if (flagged) return flagged;
+            const da = a.last_benchmark_date || '';
+            const db = b.last_benchmark_date || '';
+            if (da !== db) return da > db ? -1 : 1;
+            return (b.samples ?? 0) - (a.samples ?? 0);
+        })
+        .map((row) => ({
+            provider: row.provider,
+            modelName: row.model_name,
+            tokensPerSecondMean: row.tokens_per_second_mean,
+            tokensPerSecondMin: row.tokens_per_second_min,
+            tokensPerSecondMax: row.tokens_per_second_max,
+            timeToFirstTokenMean: row.time_to_first_token_mean * 1000, // Convert seconds to ms
+            modelCanonical: row.modelCanonical,
+            transportProvider: row.transportProvider || 'direct',
+            lifecycleStatus: lifecycleOf(row),
+            samples: row.samples,
+            lastBenchmarkDate: row.last_benchmark_date,
+        }));
 
     const summary = buildSummaryFromTable(matchingTableRows, rawSampleCount, runCount, latestRunAt);
     const speedDistribution = extractModelSpeedDistribution(filtered.speedDistribution ?? [], resolved.provider, modelDisplay);
@@ -657,8 +676,13 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
 
     const { filtered, rawSampleCount, runCount, latestRunAt } = processedBundle;
     const providerTable = (filtered.table ?? []) as TableRow[];
-    const providerModels = providerTable
-        .filter((row) => row.providerCanonical === resolvedProvider.providerCanonical)
+    // Same rule as the landing page: live lanes, one row per model. A
+    // provider's hub listed every lane in the window, so a migrated model
+    // appeared twice and a retired key sat between live ones.
+    const providerLanes = providerTable.filter((row) => row.providerCanonical === resolvedProvider.providerCanonical);
+    const liveLanes = scopeRows(providerLanes, 'hideFlagged');
+    const folded = foldLanes(liveLanes);
+    const providerModels = folded.rows
         .map((row) => ({
             provider: row.provider,
             providerCanonical: row.providerCanonical,
@@ -674,7 +698,7 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
             tokensPerSecondMax: row.tokens_per_second_max,
         }));
 
-    const summary = buildSummaryFromTable(providerTable, rawSampleCount, runCount, latestRunAt);
+    const summary = buildSummaryFromTable(folded.rows, rawSampleCount, runCount, latestRunAt);
 
     const fastestModels = [...providerModels]
         .sort((a, b) => {
@@ -692,6 +716,8 @@ export async function getProviderPageData(providerSlug: string, days = DEFAULT_P
         summary,
         models: providerModels,
         fastestModels,
+        retiredLanes: providerLanes.length - liveLanes.length,
+        foldedLanes: folded.folded,
         latestRunAt,
     };
 }

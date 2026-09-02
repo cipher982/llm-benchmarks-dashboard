@@ -18,8 +18,21 @@ interface ModelMetricTableProps {
         tokensPerSecondMin: number;
         tokensPerSecondMax: number;
         timeToFirstTokenMean: number;
+        modelCanonical?: string;
+        transportProvider?: string;
+        lifecycleStatus?: string;
+        samples?: number;
     }>;
 }
+
+const RETIRED = new Set(['disabled', 'deprecated', 'likely_deprecated', 'failing', 'stale', 'never_succeeded']);
+
+/** How the request reached the provider, and whether this lane is still collected. */
+const laneLabel = (row: ModelMetricTableProps['rows'][number]): string => {
+    const transport = row.transportProvider === 'openrouter' ? 'via OpenRouter' : 'direct';
+    const state = row.lifecycleStatus && RETIRED.has(row.lifecycleStatus) ? ` · ${row.lifecycleStatus.replace('_', ' ')}` : '';
+    return `${transport}${state}`;
+};
 
 const formatNumber = (value: number | null | undefined, digits = 2) => {
     if (value === null || value === undefined || Number.isNaN(value)) {
@@ -39,24 +52,32 @@ const ModelMetricTable: React.FC<ModelMetricTableProps> = ({ rows }) => {
                 <TableHead>
                     <TableRow>
                         <TableCell>Provider</TableCell>
-                        <TableCell>Model</TableCell>
+                        <TableCell>Lane</TableCell>
                         <TableCell align="right">Avg Toks/Sec</TableCell>
                         <TableCell align="right">Min</TableCell>
                         <TableCell align="right">Max</TableCell>
                         <TableCell align="right">Avg TTF (ms)</TableCell>
+                        <TableCell align="right">n</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {rows.map((row) => (
-                        <TableRow key={`${row.provider}-${row.modelName}`}>
-                            <TableCell>{row.provider}</TableCell>
-                            <TableCell>{row.modelName}</TableCell>
-                            <TableCell align="right">{formatNumber(row.tokensPerSecondMean)}</TableCell>
-                            <TableCell align="right">{formatNumber(row.tokensPerSecondMin)}</TableCell>
-                            <TableCell align="right">{formatNumber(row.tokensPerSecondMax)}</TableCell>
-                            <TableCell align="right">{formatNumber(row.timeToFirstTokenMean)}</TableCell>
-                        </TableRow>
-                    ))}
+                    {rows.map((row) => {
+                        const retired = Boolean(row.lifecycleStatus && RETIRED.has(row.lifecycleStatus));
+                        return (
+                            <TableRow
+                                key={`${row.provider}-${row.modelCanonical ?? row.modelName}-${row.transportProvider ?? 'direct'}`}
+                                sx={retired ? { '& td': { color: 'text.disabled' } } : undefined}
+                            >
+                                <TableCell>{row.provider}</TableCell>
+                                <TableCell title={row.modelCanonical}>{laneLabel(row)}</TableCell>
+                                <TableCell align="right">{formatNumber(row.tokensPerSecondMean)}</TableCell>
+                                <TableCell align="right">{formatNumber(row.tokensPerSecondMin)}</TableCell>
+                                <TableCell align="right">{formatNumber(row.tokensPerSecondMax)}</TableCell>
+                                <TableCell align="right">{formatNumber(row.timeToFirstTokenMean)}</TableCell>
+                                <TableCell align="right">{row.samples ?? '--'}</TableCell>
+                            </TableRow>
+                        );
+                    })}
                 </TableBody>
             </Table>
         </TableContainer>

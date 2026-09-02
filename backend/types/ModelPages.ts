@@ -83,6 +83,12 @@ export interface ModelPageData {
         tokensPerSecondMin: number;
         tokensPerSecondMax: number;
         timeToFirstTokenMean: number;
+        /** Lane identity: which catalogue id, over which transport, and whether it is still collected. */
+        modelCanonical?: string;
+        transportProvider?: string;
+        lifecycleStatus?: string;
+        samples?: number;
+        lastBenchmarkDate?: string;
     }>;
     relatedModels: ProviderModelEntry[];
     alternatives: ProviderModelEntry[];
@@ -100,7 +106,11 @@ export interface ProviderPageData {
     providerSlug: string;
     displayName: string;
     summary: SummaryMetrics;
+    /** Live lanes, one per model (utils/laneView.ts). */
     models: ProviderModelEntry[];
     fastestModels: ProviderModelEntry[];
+    /** Lanes in the window not listed: flagged (retired, failing, stale) or folded behind a current lane. */
+    retiredLanes?: number;
+    foldedLanes?: number;
     latestRunAt?: string;
 }

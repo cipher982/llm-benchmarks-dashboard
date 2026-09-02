@@ -602,7 +602,9 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                         speed. <b>TTFT</b> is seconds to the first visible token; runs that emit only reasoning tokens
                         are left out of that average. <b>Mean</b> counts visible output tokens where a provider reports
                         them and falls back to generated throughput where it does not, which is why <b>Gen</b> is higher
-                        for models that think before answering.
+                        for models that think before answering. <b>Decode</b> is the generation rate once tokens are
+                        flowing, with time to first token and reasoning excluded; only streams that deliver a few
+                        tokens per chunk can carry it, so a dash means the stream was too coarse to time.
                     </p>
                 </StyledDescriptionSection>
             </MainContainer>

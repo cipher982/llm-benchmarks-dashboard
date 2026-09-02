@@ -144,7 +144,11 @@ const ProviderPage: NextPage<ProviderPageProps> = ({ data, seo }) => {
                 </Section>
                 <Section
                     title={`All ${data.provider} models`}
-                    eyebrow={`${data.models.length} tracked · fastest first`}
+                    eyebrow={[
+                        `${data.models.length} live · one row per model · fastest first`,
+                        data.retiredLanes ? `${data.retiredLanes} retired lanes not listed` : null,
+                        data.foldedLanes ? `${data.foldedLanes} folded behind their current lane` : null,
+                    ].filter(Boolean).join(' · ')}
                     actions={providerWebsite && (
                         <Button
                             variant="outlined"

@@ -242,8 +242,8 @@ const ModelDetailPage: NextPage<ModelDetailPageProps> = ({ data, seo }) => {
                     </Section>
                 )}
                 <Section
-                    title="Every provider serving this model"
-                    eyebrow={`${data.tableRows.length} measured`}
+                    title="Every lane measuring this model"
+                    eyebrow={`${data.tableRows.length} measured · live first · a lane is a provider, a catalogue id and a transport`}
                 >
                     <ModelMetricTable rows={data.tableRows} />
                 </Section>
