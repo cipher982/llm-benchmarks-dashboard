@@ -25,6 +25,9 @@ export interface SummaryMetrics {
     tokensPerSecondMin: number | null;
     tokensPerSecondMax: number | null;
     timeToFirstTokenMean: number | null;
+    /** Floor-free generation speed (median over transports); null when no run qualified. */
+    decodeTokensPerSecond?: number | null;
+    decodeSamples?: number;
     sampleCount: number;
     runCount: number;
     latestRunAt?: string;

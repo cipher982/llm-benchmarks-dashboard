@@ -1,4 +1,5 @@
 import { resolveServingProvider, resolveTransportProvider } from './providerMetadata';
+import { estimateDecodeRate, summariseDecodeRates } from './decodeRate';
 import { calculateMean, calculateMin, calculateMax, calculateQuartiles, bytesToGB, shuffleArray } from './dataUtils';
 import logger from './logger'; // Assuming logger is imported from a separate file
 
@@ -33,6 +34,12 @@ export interface RawData {
     provider: string;
     streaming: boolean;
     time_to_first_token: number | null;
+    /** Seconds between consecutive visible stream chunks; the decode rate reads these. */
+    times_between_tokens?: number[] | null;
+    visible_output_tokens?: number | null;
+    generated_output_tokens?: number | null;
+    /** Runner's stream classification: resolved | batched | unmeasured. */
+    stream_resolution?: string | null;
 }
 
 interface AggregatedData {
@@ -56,6 +63,10 @@ interface AggregatedData {
     time_to_first_token: number[];
     run_timestamps: Date[];
     ttft_timestamps: Date[];
+    /** Per-run decode rates that passed the estimator's guards. */
+    decode_rates: number[];
+    /** Runs considered, so the share of usable ones can be reported. */
+    decode_runs: number;
 }
 
 /**
@@ -97,6 +108,14 @@ export interface ProcessedData {
     time_to_first_token_min: number;
     time_to_first_token_max: number;
     time_to_first_token_quartiles: number[];
+    /**
+     * Generation speed once tokens are flowing — visible tokens over the
+     * inter-chunk gaps, floor excluded — as a median over the runs whose
+     * stream could support it. Null when none could. See utils/decodeRate.ts.
+     */
+    decode_tokens_per_second_median?: number | null;
+    decode_samples?: number;
+    decode_resolution_share?: number;
     last_run_ts?: Date;
     freshness_status?: string;
     staleness_seconds?: number;
@@ -205,12 +224,22 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
                 legacy_throughput_samples: 0,
                 time_to_first_token: [],
                 run_timestamps: [],
-                ttft_timestamps: []
+                ttft_timestamps: [],
+                decode_rates: [],
+                decode_runs: 0,
             });
         }
 
         const entry = benchmarkMap.get(key)!;
         entry.tokens_per_second.push(benchmark.tokens_per_second);
+        entry.decode_runs += 1;
+        const decode = estimateDecodeRate({
+            gaps: benchmark.times_between_tokens,
+            visibleTokens: benchmark.visible_output_tokens,
+            generatedTokens: benchmark.generated_output_tokens,
+            resolution: benchmark.stream_resolution,
+        });
+        if (decode.rate != null) entry.decode_rates.push(decode.rate);
         entry.generated_tokens_per_second.push(generatedTps);
         if (hasVisibleThroughput) {
             entry.visible_tokens_per_second.push(visibleTps);
@@ -250,6 +279,8 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
         const ttft_max = hasTtft ? calculateMax(benchmark.time_to_first_token) : 0;
         const ttft_quartiles = hasTtft ? calculateQuartiles(benchmark.time_to_first_token) : [0, 0, 0];
 
+        const decode = summariseDecodeRates(benchmark.decode_rates, benchmark.decode_runs);
+
         // Compute last benchmark timestamp (undefined if no data exists)
         const lastRunTs = benchmark.run_timestamps.length > 0
             ? new Date(Math.max(...benchmark.run_timestamps.map(ts => ts.getTime())))
@@ -285,6 +316,9 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             time_to_first_token_min: ttft_min,
             time_to_first_token_max: ttft_max,
             time_to_first_token_quartiles: ttft_quartiles,
+            decode_tokens_per_second_median: decode.median,
+            decode_samples: decode.samples,
+            decode_resolution_share: decode.share,
             last_run_ts: lastRunTs
         };
     });

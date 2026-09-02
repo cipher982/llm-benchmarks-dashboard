@@ -4,6 +4,7 @@ import { processAllMetrics } from "../pages/api/processed";
 import type { ModelPageData, ProviderModelEntry, ProviderPageData, SummaryMetrics } from "../types/ModelPages";
 import type { ProcessedData as ProcessedDataBundle, TableRow } from "../types/ProcessedData";
 import { getProviderDisplayName, resolveServingProvider } from "./providerMetadata";
+import { median } from './decodeRate';
 import { FLAGGED_STATUSES } from "./lifecycleSummary";
 import { getSuccessorModel } from "./modelMappingDB";
 import {
@@ -217,6 +218,8 @@ function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, ru
             tokensPerSecondMin: null,
             tokensPerSecondMax: null,
             timeToFirstTokenMean: null,
+            decodeTokensPerSecond: null,
+            decodeSamples: 0,
             sampleCount: rawSampleCount,
             runCount,
             latestRunAt,
@@ -227,12 +230,21 @@ function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, ru
     const tokensPerSecondMin = computeMin(tableRows.map((row) => row.tokens_per_second_min));
     const tokensPerSecondMax = computeMax(tableRows.map((row) => row.tokens_per_second_max));
     const timeToFirstTokenMean = computeAverage(tableRows.map((row) => row.time_to_first_token_mean));
+    // Median across the transports that carry one, so a lane whose stream is
+    // batched (no value) neither drags the figure nor hides the other lane's.
+    const decodeRates = tableRows
+        .map((row) => row.decode_tokens_per_second)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+    const decodeTokensPerSecond = decodeRates.length ? median(decodeRates) : null;
+    const decodeSamples = tableRows.reduce((total, row) => total + (row.decode_samples ?? 0), 0);
 
     return {
         tokensPerSecondMean,
         tokensPerSecondMin,
         tokensPerSecondMax,
         timeToFirstTokenMean,
+        decodeTokensPerSecond,
+        decodeSamples,
         sampleCount: rawSampleCount,
         runCount,
         latestRunAt,
@@ -489,7 +501,8 @@ async function fetchProcessedBundle(metricSources: MetricSource[], days: number)
         .select(
             "model_name provider tokens_per_second generated_tokens_per_second visible_tokens_per_second " +
             "benchmark_profile_id transport_provider route_model_id route_endpoint_tag quantization " +
-            "observed_provider observed_provider_slug time_to_first_token run_ts display_name"
+            "observed_provider observed_provider_slug time_to_first_token run_ts display_name " +
+            "times_between_tokens visible_output_tokens generated_output_tokens stream_resolution"
         )
         .lean()
         .exec();
