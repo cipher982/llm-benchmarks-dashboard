@@ -44,13 +44,39 @@ Output lands in `.design/shots/<label>/` (gitignored). `review.mjs` writes a
 single scrollable HTML page — open it in a browser to scroll the whole site,
 or pass `--against` to pin a baseline next to every tile.
 
+## Real data without Mongo
+
+The committed extract behind `DESIGN_FIXTURES=1` is a 22-row slice of one
+window. It cannot show the things that go wrong on the real catalogue — a
+provider listed twice under two spellings, a chart whose top rows are retired
+lanes, an 82-row table beside a 500px chart. For those, render the local code
+against production's own API:
+
+```bash
+cp <production processed-30days.json> public/api/processed-30days.json   # SSR reads this
+MONGODB_URI= npx next dev -p 3111                                         # no fixtures flag
+npm run design:shoot -- --label after --routes cloud --viewports wide,desktop \
+  --apiProxy https://llm-benchmarks.com --now 2026-09-02T12:00:00Z
+```
+
+`--apiProxy` answers the page's same-origin `/api/*` requests from that
+origin and caches them under `.design/api-cache/` so two captures see the
+same rows (`--apiFresh` refetches). `--now` moves the frozen clock to the
+data's own date, otherwise every age on the page is negative.
+
+The `wide` viewport (2000×1150) exists because the ridgeline's label/curve
+misalignment was invisible at 1440px, where the plot column happened to be
+exactly the width the SVG was drawn for.
+
 ## Flags
 
 `--label` output directory · `--base` origin (default `http://localhost:3111`)
 · `--routes` comma-separated ids from `routes.json` · `--viewports`
-`desktop,mobile` · `--routesFile` alternate config (`refs.json` holds external
-reference sites) · `--settle` extra ms to wait for charts · `--scheme`
-`light|dark`.
+`wide,desktop,mobile` · `--routesFile` alternate config (`refs.json` holds
+external reference sites) · `--settle` extra ms to wait for charts · `--scheme`
+`light|dark` · `--apiProxy` origin to answer `/api/*` from · `--apiFresh`
+bypass the proxy cache · `--now` ISO instant for the frozen clock · `--hover`
+CSS selector to hover before capturing (for hover states).
 
 Routes whose `path` is an absolute URL ignore `--base`, which is how the
 reference board captures third-party sites through the same code path.

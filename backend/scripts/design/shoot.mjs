@@ -21,6 +21,7 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,7 +38,22 @@ const TILE_OVERLAP = 60;
 const SETTLE_MS = Number(args.settle ?? 1200);
 
 // Frozen so any "updated 3 hours ago" style copy renders identically run to run.
-const FROZEN_NOW = Date.parse('2026-01-15T12:00:00Z');
+// `--now` moves the instant, which matters when the page is rendering a real
+// production payload rather than the committed extract: freezing the clock
+// months before the data was collected makes every age negative.
+const FROZEN_NOW = Date.parse(typeof args.now === 'string' ? args.now : '2026-01-15T12:00:00Z');
+
+/**
+ * `--apiProxy https://llm-benchmarks.com` answers the page's own `/api/*`
+ * requests from another origin. The local dev server then renders the real
+ * catalogue — real names, real duplicates, real row counts — without a Mongo
+ * connection, which is the difference between reviewing the design and
+ * reviewing the fixture. Responses are cached on disk under `.design/api-cache`
+ * so two runs see the same data even though production regenerates every 30
+ * minutes; `--apiFresh` bypasses the cache.
+ */
+const API_PROXY = typeof args.apiProxy === 'string' ? args.apiProxy.replace(/\/$/, '') : null;
+const API_CACHE = path.resolve(REPO_ROOT, '.design/api-cache');
 
 const BLOCKED_HOSTS = ['analytics.drose.io', 'www.googletagmanager.com', 'google-analytics.com'];
 
@@ -76,7 +92,7 @@ async function main() {
   await fs.mkdir(OUT_ROOT, { recursive: true });
 
   const browser = await chromium.launch();
-  const manifest = { label: LABEL, base: BASE, capturedAt: new Date().toISOString(), shots: [] };
+  const manifest = { label: LABEL, base: BASE, apiProxy: API_PROXY, now: new Date(FROZEN_NOW).toISOString(), capturedAt: new Date().toISOString(), shots: [] };
 
   for (const [viewportName, viewport] of viewports) {
     for (const route of routes) {
@@ -114,11 +130,8 @@ async function captureRoute(browser, { route, viewportName, viewport }) {
     colorScheme: args.scheme ?? 'light',
   });
   await context.addInitScript(freezeClock, FROZEN_NOW);
-  await context.route('**/*', (r) => {
-    const host = new URL(r.request().url()).hostname;
-    return BLOCKED_HOSTS.some((h) => host.endsWith(h)) ? r.abort() : r.continue();
-  });
 
+  await installRoutes(context);
   const page = await context.newPage();
   const consoleErrors = [];
   page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text().slice(0, 200)));
@@ -129,6 +142,16 @@ async function captureRoute(browser, { route, viewportName, viewport }) {
   });
   await page.addStyleTag({ content: KILL_MOTION });
   await settle(page, SETTLE_MS);
+
+  // `--hover "<selector>"` moves the pointer onto an element before the
+  // capture, so a hover state — a highlighted ridge, a tooltip — can be
+  // reviewed like any static one. `page.hover` scrolls the element into
+  // view, so the page is scrolled back before the full-page pass.
+  if (typeof args.hover === 'string') {
+    await page.hover(args.hover, { timeout: 10_000 });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => window.scrollTo(0, 0));
+  }
 
   const outline = await page.evaluate(collectOutline);
   const pageHeight = await page.evaluate(
@@ -163,6 +186,7 @@ async function captureRoute(browser, { route, viewportName, viewport }) {
     colorScheme: args.scheme ?? 'light',
   });
   await smallCtx.addInitScript(freezeClock, FROZEN_NOW);
+  await installRoutes(smallCtx);
   const smallPage = await smallCtx.newPage();
   await smallPage.goto(urlFor(route.path), { waitUntil: 'networkidle', timeout: 60_000 });
   await smallPage.addStyleTag({ content: KILL_MOTION });
@@ -187,6 +211,46 @@ async function captureRoute(browser, { route, viewportName, viewport }) {
     outline,
     consoleErrors: consoleErrors.slice(0, 10),
   };
+}
+
+/** Block analytics; when proxying, answer same-origin `/api/*` from the proxy origin. */
+async function installRoutes(context) {
+  await context.route('**/*', async (r) => {
+    const url = new URL(r.request().url());
+    if (BLOCKED_HOSTS.some((h) => url.hostname.endsWith(h))) return r.abort();
+    if (API_PROXY && url.origin === new URL(BASE).origin && url.pathname.startsWith('/api/')) {
+      try {
+        const hit = await proxiedApi(url.pathname + url.search);
+        return r.fulfill({ status: hit.status, contentType: hit.contentType, body: hit.body });
+      } catch (err) {
+        console.log(`  proxy FAIL ${url.pathname}${url.search}  ${err.message}`);
+        return r.abort();
+      }
+    }
+    return r.continue();
+  });
+}
+
+async function proxiedApi(pathAndQuery) {
+  const key = crypto.createHash('sha1').update(API_PROXY + pathAndQuery).digest('hex').slice(0, 16);
+  const metaFile = path.join(API_CACHE, `${key}.json`);
+  const bodyFile = path.join(API_CACHE, `${key}.body`);
+  if (!args.apiFresh) {
+    try {
+      const meta = JSON.parse(await fs.readFile(metaFile, 'utf8'));
+      return { ...meta, body: await fs.readFile(bodyFile) };
+    } catch {
+      /* miss */
+    }
+  }
+  const res = await fetch(API_PROXY + pathAndQuery, { headers: { accept: 'application/json' } });
+  const body = Buffer.from(await res.arrayBuffer());
+  const meta = { status: res.status, contentType: res.headers.get('content-type') ?? 'application/json', from: pathAndQuery };
+  await fs.mkdir(API_CACHE, { recursive: true });
+  await fs.writeFile(metaFile, JSON.stringify(meta));
+  await fs.writeFile(bodyFile, body);
+  console.log(`  proxy ${res.status} ${pathAndQuery} (${(body.length / 1024).toFixed(0)}KB)`);
+  return { ...meta, body };
 }
 
 /** Wait for fonts, images and chart SVGs to stop changing. */
