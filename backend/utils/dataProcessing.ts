@@ -486,6 +486,14 @@ export const processSpeedDistData = async (data: CloudBenchmark[]) => {
             provider: benchmark.provider,
             model_name: benchmark.model_name,
             display_name: benchmark.display_name,
+            // Lane identity, so the page can show the same lane here that it
+            // shows in the table. Without it two lanes of one model are
+            // indistinguishable in this payload — identical label, identical
+            // provider — and the chart cannot follow the table's choice.
+            providerCanonical: benchmark.providerCanonical,
+            modelCanonical: benchmark.modelCanonical,
+            transportProvider: benchmark.transportProvider || 'direct',
+            samples: benchmark.tokens_per_second.length,
             mean_tokens_per_second: mean,
             min_tokens_per_second: min,
             max_tokens_per_second: max,

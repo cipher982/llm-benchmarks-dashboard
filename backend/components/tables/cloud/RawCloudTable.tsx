@@ -127,24 +127,41 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
             size: 110,
             cell: ({ row, getValue }) => {
                 const providerName = getValue() as string;
-                const { providerSlug } = row.original;
+                const { providerSlug, otherLanes, lanes } = row.original;
 
-                if (!providerSlug) return <span style={providerStyle}>{providerName}</span>;
+                // Other lanes of this identity folded behind the row (the
+                // retired direct key, a second catalogue id). Named in the
+                // tooltip so nothing is hidden, just not repeated.
+                const folded = otherLanes ? (
+                    <span
+                        style={{ ...dim, marginLeft: '6px', cursor: 'help' }}
+                        title={(lanes ?? [])
+                            .map((l) => `${l.transportProvider} · ${l.modelCanonical} · ${l.samples} samples · ${Math.round(l.tokensPerSecondMean)} tok/s`)
+                            .join('\n')}
+                    >
+                        +{otherLanes}
+                    </span>
+                ) : null;
+
+                if (!providerSlug) return <span style={providerStyle}>{providerName}{folded}</span>;
 
                 return (
-                    <Link
-                        href={`/providers/${providerSlug}`}
-                        style={{ ...providerStyle, ...linkRule }}
-                        onClick={() =>
-                            trackUmamiEvent('provider_click', {
-                                source: 'cloud_table',
-                                provider: row.original.providerCanonical,
-                                providerSlug,
-                            })
-                        }
-                    >
-                        {providerName}
-                    </Link>
+                    <>
+                        <Link
+                            href={`/providers/${providerSlug}`}
+                            style={{ ...providerStyle, ...linkRule }}
+                            onClick={() =>
+                                trackUmamiEvent('provider_click', {
+                                    source: 'cloud_table',
+                                    provider: row.original.providerCanonical,
+                                    providerSlug,
+                                })
+                            }
+                        >
+                            {providerName}
+                        </Link>
+                        {folded}
+                    </>
                 );
             },
         },

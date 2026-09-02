@@ -49,10 +49,21 @@ describe('legacy sections are disclosed where they are still shown', () => {
         expect(occurrences.length).toBeGreaterThanOrEqual(4);
     });
 
-    test('the cloud page keeps the distribution chart as its primary speed surface', () => {
+    test('the cloud page keeps the distribution chart, and its only ranking is Delivered TPS', () => {
         const source = read('pages/cloud.tsx');
         expect(source).toMatch(/Throughput distribution · tok\/s/);
-        expect(source).not.toMatch(/DeliveredTpsLeaderboard|api\/delivered-tps/);
+        // Reinstated 2026-09-02 (owner handed product ownership to the agent):
+        // the ranked list is back above the charts, gated by publication state.
+        expect(source).toMatch(/DeliveredTpsLeaderboard/);
+        expect(source).toMatch(/api\/delivered-tps/);
+    });
+
+    test('the leaderboard ranks by server-assigned tier, never by value', () => {
+        const source = read('components/cloud/DeliveredTpsLeaderboard.tsx');
+        expect(source).toMatch(/a\.tier as number\) - \(b\.tier as number\)/);
+        expect(source).not.toMatch(/b\.deliveredTps\s*-\s*a\.deliveredTps/);
+        // Preliminary figures are listed alphabetically, not by speed.
+        expect(source).toMatch(/publicationState === 'preliminary'[\s\S]*localeCompare/);
     });
 });
 

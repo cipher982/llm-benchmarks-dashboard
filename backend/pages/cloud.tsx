@@ -42,6 +42,11 @@ import { LifecycleSelector } from "../components/LifecycleSelector";
 import GlobalMeters from "../components/cloud/GlobalMeters";
 import { LEGACY_LABEL, LEGACY_DISCLOSURE } from "../utils/legacyMetric";
 import ProviderAggregates from "../components/cloud/ProviderAggregates";
+import DeliveredTpsLeaderboard, {
+    DeliveredTpsLeaderboardRow,
+    DeliveredTpsCounts,
+} from "../components/cloud/DeliveredTpsLeaderboard";
+import { scopeRows, foldLanes, laneKey, type LaneScope } from "../utils/laneView";
 import { buildStaticPageSeoMetadata } from "../utils/seoUtils";
 import { trackUmamiEvent } from "../utils/analytics";
 import { spreadPercent, slugKey, type SlugLookup } from "../utils/chartMath";
@@ -52,16 +57,7 @@ const RawCloudTable = lazy(() => import("../components/tables/cloud/RawCloudTabl
 const SpeedDistChart = lazy(() => import("../components/charts/cloud/SpeedDistChart"));
 const SpreadScatter = lazy(() => import("../components/charts/cloud/SpreadScatter"));
 
-type TableStatusFilter = 'all' | 'hideFlagged' | 'flaggedOnly';
-
-const FLAGGED_STATUSES = [
-    'likely_deprecated',
-    'deprecated',
-    'failing',
-    'stale',
-    'never_succeeded',
-    'disabled'
-];
+type TableStatusFilter = LaneScope;
 
 const cloudSeo = buildStaticPageSeoMetadata({
     path: "/cloud",
@@ -123,7 +119,13 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     const [tableDays, setTableDays] = useState<number>(30);
     const [timeSeriesDays, setTimeSeriesDays] = useState<number>(14);
 
-    const [tableStatusFilter, setTableStatusFilter] = useState<TableStatusFilter>('all');
+    // Page-wide scope. Live lanes by default; "all" reaches every lane ever
+    // measured in the window. See utils/laneView.ts for why.
+    const [tableStatusFilter, setTableStatusFilter] = useState<TableStatusFilter>('hideFlagged');
+
+    const [deliveredTpsRows, setDeliveredTpsRows] = useState<DeliveredTpsLeaderboardRow[]>([]);
+    const [deliveredTpsCounts, setDeliveredTpsCounts] = useState<DeliveredTpsCounts | undefined>(undefined);
+    const [deliveredTpsLoading, setDeliveredTpsLoading] = useState<boolean>(true);
 
     const [distLoading, setDistLoading] = useState<boolean>(false);
     const [tableLoading, setTableLoading] = useState<boolean>(false);
@@ -161,20 +163,16 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         }
     }, []);
 
-    const fetchTableData = useCallback(async (days: number, overrideFilter?: TableStatusFilter) => {
+    // Always the whole window. The lifecycle scope is applied on the client
+    // (utils/laneView.ts) so switching it never refetches, and so every block
+    // on the page — meters, charts, roll-up, table — scopes the same rows.
+    const fetchTableData = useCallback(async (days: number) => {
         try {
             setTableLoading(true);
-            const filterToUse = overrideFilter ?? tableStatusFilter;
             const params = new URLSearchParams({
                 days: String(days),
                 include: 'table'
             });
-
-            if (filterToUse === 'hideFlagged') {
-                params.set('hideFlagged', 'true');
-            } else if (filterToUse === 'flaggedOnly') {
-                params.set('status', FLAGGED_STATUSES.join(','));
-            }
 
             const res = await fetch(`/api/processed?${params.toString()}`, {
                 method: 'GET',
@@ -200,7 +198,34 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
         } finally {
             setTableLoading(false);
         }
-    }, [tableStatusFilter]);
+    }, []);
+
+    const fetchDeliveredTps = useCallback(async () => {
+        try {
+            setDeliveredTpsLoading(true);
+            // No days override: the API defaults to the publication window,
+            // and asking for less makes an official ranking unreachable.
+            const res = await fetch('/api/delivered-tps', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            const data = await res.json();
+            if (!data || !Array.isArray(data.rows)) {
+                throw new Error('Invalid Delivered TPS data received');
+            }
+            setDeliveredTpsRows(data.rows);
+            setDeliveredTpsCounts(data.counts);
+        } catch (err) {
+            console.error('Error fetching Delivered TPS:', err);
+            setDeliveredTpsRows([]);
+            setDeliveredTpsCounts(undefined);
+        } finally {
+            setDeliveredTpsLoading(false);
+        }
+    }, []);
 
     const fetchLifecycleSummaryData = useCallback(async () => {
         try {
@@ -247,6 +272,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     useEffect(() => {
         fetchLifecycleSummaryData();
         fetchTimeSeries(timeSeriesDays);
+        fetchDeliveredTps();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -281,8 +307,33 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
             filterType: 'time_range',
             value: days,
         });
-        await fetchTableData(days, tableStatusFilter);
-    }, [fetchTableData, tableStatusFilter]);
+        await fetchTableData(days);
+    }, [fetchTableData]);
+
+    /**
+     * The rows every block on the page reads. Scoped to the lifecycle filter
+     * and, in the default live scope, folded to one row per provider+model.
+     * The table's own payload is never mutated, so "all" is one click away.
+     */
+    const view = useMemo(() => {
+        const scoped = scopeRows(tableData, tableStatusFilter);
+        if (tableStatusFilter !== 'hideFlagged') {
+            return { rows: scoped, folded: 0, lanes: null as Set<string> | null };
+        }
+        return foldLanes(scoped);
+    }, [tableData, tableStatusFilter]);
+
+    /**
+     * The distribution follows the table's choice of lane. Payloads written
+     * before dist rows carried lane identity can only be scoped by lifecycle.
+     */
+    const distView = useMemo(() => {
+        const scoped = scopeRows(speedDistData, tableStatusFilter);
+        if (!view.lanes) return scoped;
+        const identifiable = scoped.some((d) => d.modelCanonical);
+        if (!identifiable) return scoped;
+        return scoped.filter((d) => !d.modelCanonical || view.lanes!.has(laneKey(d)));
+    }, [speedDistData, tableStatusFilter, view.lanes]);
 
     const handleTimeSeriesTimeRangeChange = useCallback(async (days: number) => {
         setTimeSeriesDays(days);
@@ -291,7 +342,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
 
     /** One point per model for the throughput-against-spread scatter. */
     const scatterPoints = useMemo(() =>
-        tableData
+        view.rows
             .map((row) => {
                 const spread = spreadPercent(
                     row.tokens_per_second_min,
@@ -307,7 +358,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                 };
             })
             .filter((p): p is NonNullable<typeof p> => p != null)
-    , [tableData]);
+    , [view.rows]);
 
     /**
      * Slugs keyed by `provider/model`, so a model or provider named anywhere on
@@ -382,7 +433,6 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
     }
 
     const totalRows = tableMeta?.totalRows ?? tableData.length;
-    const filteredRows = tableMeta?.filteredRows ?? tableData.length;
 
     return (
         <>
@@ -390,7 +440,21 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
             <MainContainer isMobile={isMobile}>
                 <h1 className="sr-only">Cloud LLM benchmarks</h1>
 
-                <GlobalMeters rows={tableData} />
+                <GlobalMeters rows={view.rows} />
+
+                {/* The one ranked list on the page. Everything below it is the
+                    legacy series, which is history and never a ranking. */}
+                <StyledChartContainer isMobile={isMobile}>
+                    <SectionHeaderRow>
+                        <SectionHeader>Delivered TPS · 64-token, end-to-end</SectionHeader>
+                        <RailNote>64 visible tokens ÷ time to the 64th, reasoning counted as time, per endpoint</RailNote>
+                    </SectionHeaderRow>
+                    {deliveredTpsLoading ? (
+                        <EmptyState>Loading Delivered TPS</EmptyState>
+                    ) : (
+                        <DeliveredTpsLeaderboard rows={deliveredTpsRows} counts={deliveredTpsCounts} />
+                    )}
+                </StyledChartContainer>
 
                 <SplitRow asideWidth={420}>
                     <section>
@@ -398,6 +462,21 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                             <SectionHeader>Throughput distribution · tok/s</SectionHeader>
                             <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
                             <RailControls>
+                                <LifecycleSelector
+                                    value={tableStatusFilter}
+                                    onChange={(value) => {
+                                        setTableStatusFilter(value);
+                                        trackUmamiEvent('table_status_filter_change', {
+                                            source: 'lifecycle_selector',
+                                            filter: value,
+                                        });
+                                        trackUmamiEvent('search_or_filter_used', {
+                                            source: 'lifecycle_selector',
+                                            filterType: 'lifecycle_status',
+                                            value,
+                                        });
+                                    }}
+                                />
                                 <TimeRangeSelector selectedDays={distDays} onChange={handleDistTimeRangeChange} />
                             </RailControls>
                         </SectionHeaderRow>
@@ -405,11 +484,13 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                             <ChartLoadingContainer>
                                 <StyledCircularProgress size={28} aria-label="Loading speed distribution chart" />
                             </ChartLoadingContainer>
-                        ) : speedDistData.length > 0 ? (
+                        ) : distView.length > 0 ? (
                             <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
-                                <SpeedDistChart data={speedDistData} slugs={slugs} />
+                                <SpeedDistChart data={distView} slugs={slugs} />
                             </Suspense>
-                        ) : null}
+                        ) : (
+                            <EmptyState>Nothing in this scope for the selected window</EmptyState>
+                        )}
                     </section>
 
                     {/* The scatter sits beside the ridgeline: both are the
@@ -442,7 +523,7 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                             </RailControls>
                         )}
                     </SectionHeaderRow>
-                    <ProviderAggregates rows={tableData} />
+                    <ProviderAggregates rows={view.rows} />
                 </StyledChartContainer>
 
                 <StyledTableContainer id="full-results-section" isMobile={isMobile}>
@@ -450,26 +531,12 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                         <SectionHeader>Full results</SectionHeader>
                         <RailNote title={LEGACY_DISCLOSURE}>{LEGACY_LABEL}</RailNote>
                         <RailNote>
-                            <b>{filteredRows}</b> of <b>{totalRows}</b> models
+                            <b>{view.rows.length.toLocaleString()}</b> {tableStatusFilter === 'hideFlagged' ? 'models' : 'lanes'} of{' '}
+                            <b>{totalRows.toLocaleString()}</b> lanes
+                            {view.folded > 0 && <> · <b>{view.folded.toLocaleString()}</b> folded behind their current lane</>}
                         </RailNote>
                         <RailControls>
                             <TimeRangeSelector selectedDays={tableDays} onChange={handleTableTimeRangeChange} />
-                            <LifecycleSelector
-                                value={tableStatusFilter}
-                                onChange={(value) => {
-                                    setTableStatusFilter(value);
-                                    trackUmamiEvent('table_status_filter_change', {
-                                        source: 'lifecycle_selector',
-                                        filter: value,
-                                    });
-                                    trackUmamiEvent('search_or_filter_used', {
-                                        source: 'lifecycle_selector',
-                                        filterType: 'lifecycle_status',
-                                        value,
-                                    });
-                                    fetchTableData(tableDays, value);
-                                }}
-                            />
                         </RailControls>
                     </SectionHeaderRow>
                     <TableContentContainer isMobile={isMobile}>
@@ -477,9 +544,9 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                             <ChartLoadingContainer>
                                 <StyledCircularProgress size={28} aria-label="Loading benchmark table" />
                             </ChartLoadingContainer>
-                        ) : tableData.length > 0 ? (
+                        ) : view.rows.length > 0 ? (
                             <Suspense fallback={<ChartLoadingContainer><StyledCircularProgress size={28} /></ChartLoadingContainer>}>
-                                <RawCloudTable data={tableData} trends={trends} />
+                                <RawCloudTable data={view.rows} trends={trends} />
                             </Suspense>
                         ) : (
                             <EmptyState>No table data available</EmptyState>
@@ -522,6 +589,13 @@ const CloudBenchmarks: React.FC<CloudPageProps> = ({
                         came back. Mean, min and max are over completed samples in the selected window, and <b>n</b> is
                         how many there were. A missing value means the endpoint returned an error or the model was not
                         yet in the catalogue.
+                    </p>
+                    <p>
+                        <b>Lanes.</b> A lane is one way of reaching a model: a provider, a catalogue id and a transport
+                        (a direct key, or served through OpenRouter). Since 2026-08-16 most measurement runs through
+                        OpenRouter; the direct lanes it replaced are retired, not deleted. By default the page shows
+                        live lanes and one row per model at each provider, spoken for by the lane measured most
+                        recently; <b>All</b> shows every lane in the window, retired ones tagged <b>off</b>.
                     </p>
                     <p>
                         <b>Spread</b> is (max − min) ÷ mean, so it measures run-to-run variation rather than absolute

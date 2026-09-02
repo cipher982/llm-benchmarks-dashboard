@@ -2,6 +2,11 @@ export interface SpeedDistributionPoint {
     provider: string;
     model_name: string;
     display_name: string;
+    /** Lane identity; absent on payloads written before it was carried. */
+    providerCanonical?: string;
+    modelCanonical?: string;
+    transportProvider?: string;
+    samples?: number;
     density_points: Array<{ x: number; y: number }>;
     mean_tokens_per_second: number;
     min_tokens_per_second: number;
@@ -67,6 +72,15 @@ export interface TableRow {
     /** Completed samples behind mean/min/max. Optional: rows generated before
      *  this field existed do not carry it. */
     samples?: number;
+    /** Set client-side by `foldLanes`: other lanes of this identity hidden behind this row. */
+    otherLanes?: number;
+    lanes?: Array<{
+        modelCanonical: string;
+        transportProvider: string;
+        samples: number;
+        tokensPerSecondMean: number;
+        lastBenchmarkDate?: string;
+    }>;
     generated_tokens_per_second_mean?: number;
     throughput_basis?: 'visible' | 'legacy' | 'mixed';
     time_to_first_token_mean: number;

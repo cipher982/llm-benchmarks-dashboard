@@ -53,8 +53,13 @@ the dashboard groups those rows in `utils/deliveredTpsProcessing.ts` and serves
 the median per (model, provider, transport) from `/api/delivered-tps?days=N`.
 
 The metric is available from `/api/delivered-tps?days=N` for consumers that
-need an end-to-end ranking. The `/cloud` page keeps the throughput distribution
-as its primary visual comparison and does not render a full ranked list. The
+need an end-to-end ranking. Since 2026-09-02 the `/cloud` page renders it again
+above the charts (`components/cloud/DeliveredTpsLeaderboard.tsx`), gated by
+publication state: official endpoints are ranked by tier, preliminary ones are
+listed alphabetically with a figure and no rank, and when nothing qualifies the
+block is one line stating how many endpoints are being measured and what the
+gate is. The throughput distribution stays as the visual comparison of the
+legacy series. The
 64-token `tokens_per_second` series remains as the detail-page "burst" number,
 exposed per row as `legacyTps`. Delivered TPS is profile-independent: it reads
 any published row that carries the field, so chat (512-budget) and reasoning
