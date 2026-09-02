@@ -233,7 +233,10 @@ function buildSummaryFromTable(tableRows: TableRow[], rawSampleCount: number, ru
     const timeToFirstTokenMean = computeAverage(tableRows.map((row) => row.time_to_first_token_mean));
     // Median across the transports that carry one, so a lane whose stream is
     // batched (no value) neither drags the figure nor hides the other lane's.
+    // Same publication rule as the table's Decode column: a lane speaks only
+    // when at least half its runs could be timed.
     const decodeRates = tableRows
+        .filter((row) => (row.decode_resolution_share ?? 0) >= 0.5)
         .map((row) => row.decode_tokens_per_second)
         .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
     const decodeTokensPerSecond = decodeRates.length ? median(decodeRates) : null;

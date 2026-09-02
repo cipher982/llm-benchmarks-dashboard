@@ -72,6 +72,9 @@ const providerStyle: React.CSSProperties = {
 
 const dim: React.CSSProperties = { color: colors.textMute };
 
+/** Share of a window's runs that must be timeable before a decode figure is shown. */
+const DECODE_MIN_SHARE = 0.5;
+
 const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
     const theme = useTheme();
     const isNarrow = useMediaQuery(theme.breakpoints.down('sm'));
@@ -325,23 +328,34 @@ const RawCloudTable: React.FC<RawCloudTableProps> = ({ data, trends }) => {
             sortUndefined: 'last',
             cell: ({ row, getValue }) => {
                 const value = getValue() as number | undefined;
-                if (value == null) {
-                    return (
-                        <Tooltip arrow title="No run in this window streamed finely enough to time the decoder: chunks carried more than a few tokens, or the response was released in one burst.">
-                            <span style={{ ...dim, cursor: 'help' }}>—</span>
-                        </Tooltip>
-                    );
-                }
                 const share = row.original.decode_resolution_share ?? 0;
                 const qualified = row.original.decode_samples ?? 0;
                 const total = row.original.samples;
                 const evidence = total != null ? `${qualified} of ${total}` : `${qualified}`;
+                // Published only when at least half the window's runs could be
+                // timed. The first day on production printed 897 tok/s for a
+                // lane where one run in 140 had slipped past the batching
+                // guard; a minority of runs is not evidence about the lane.
+                if (value == null || share < DECODE_MIN_SHARE) {
+                    return (
+                        <Tooltip
+                            arrow
+                            title={
+                                value == null
+                                    ? 'No run in this window streamed finely enough to time the decoder: chunks carried more than a few tokens, or the response was released in one burst.'
+                                    : `Only ${evidence} runs streamed finely enough to time the decoder; a figure is published once at least half do.`
+                            }
+                        >
+                            <span style={{ ...dim, cursor: 'help' }}>—</span>
+                        </Tooltip>
+                    );
+                }
                 return (
                     <Tooltip
                         arrow
                         title={`Decode rate: visible tokens over the gaps between stream chunks after the first, so time to first token and reasoning are excluded. Measurable only on streams delivering at most 4 tokens per chunk; ${evidence} runs qualified.`}
                     >
-                        <span style={{ cursor: 'help', ...(share < 0.5 ? dim : {}) }}>{fmt.int(value)}</span>
+                        <span style={{ cursor: 'help' }}>{fmt.int(value)}</span>
                     </Tooltip>
                 );
             },
