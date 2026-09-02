@@ -41,6 +41,21 @@ describe('resolveServingProvider', () => {
         expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'AionLabs' })).toBe('aionlabs');
     });
 
+    test('a slug lands on the same id as the name it belongs to', () => {
+        // Eight providers appeared twice on /cloud: rows carrying a slug kept
+        // its hyphen while rows keyed from the display name had lost theirs.
+        expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'AionLabs', observed_provider_slug: 'aion-labs' })).toBe('aionlabs');
+        expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'Z.AI', observed_provider_slug: 'z-ai' })).toBe('zai');
+        expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'Z.AI' })).toBe('zai');
+    });
+
+    test('a display name whose slug has a different stem follows the slug', () => {
+        expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'Claude Platform on AWS', observed_provider_slug: 'claude-on-aws' })).toBe('claudeonaws');
+        expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'Claude Platform on AWS' })).toBe('claudeonaws');
+        expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'Mancer 2', observed_provider_slug: 'mancer' })).toBe('mancer');
+        expect(resolveServingProvider({ provider: 'openrouter', observed_provider: 'Mancer 2' })).toBe('mancer');
+    });
+
     test('falls back to a direct row provider when no upstream was reported', () => {
         expect(resolveServingProvider({ provider: 'groq' })).toBe('groq');
         expect(resolveServingProvider({ provider: 'groq', observed_provider: null })).toBe('groq');

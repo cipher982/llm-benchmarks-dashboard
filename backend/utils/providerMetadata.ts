@@ -52,7 +52,16 @@ const OBSERVED_PROVIDER_ALIASES: Record<string, string> = {
     googlevertex: "vertex",
     vertexai: "vertex",
     azureopenai: "azure",
+    // OpenRouter's display name and its slug do not always share a stem:
+    // "Claude Platform on AWS" is `claude-on-aws`, "Mancer 2" is `mancer`.
+    // Rows written before the feed carried a slug were keyed from the name,
+    // so both spellings exist in history. The slug is the stable identity.
+    claudeplatformonaws: "claudeonaws",
+    mancer2: "mancer",
 };
+
+/** Lowercase alphanumerics only — the shape the direct lanes' provider ids already have. */
+const normaliseProvider = (value: string): string => value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /**
  * The provider a user should see credited for a measurement.
@@ -68,11 +77,16 @@ export const resolveServingProvider = (row: {
     observed_provider?: string | null;
     observed_provider_slug?: string | null;
 }): string => {
-    const slug = (row.observed_provider_slug || "").trim().toLowerCase();
+    // The slug and the display name must normalise to the same id. They did
+    // not: a slug passed through with its hyphens while a name lost them, so
+    // `aion-labs` (rows carrying a slug) and `aionlabs` (rows keyed from
+    // "AionLabs" before the slug existed) sat in the provider table as two
+    // providers — eight of the 82 rows were such pairs.
+    const slug = normaliseProvider(row.observed_provider_slug || "");
     if (slug) {
-        return OBSERVED_PROVIDER_ALIASES[slug.replace(/[^a-z0-9]/g, "")] ?? slug;
+        return OBSERVED_PROVIDER_ALIASES[slug] ?? slug;
     }
-    const observed = (row.observed_provider || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const observed = normaliseProvider(row.observed_provider || "");
     if (observed) {
         return OBSERVED_PROVIDER_ALIASES[observed] ?? observed;
     }

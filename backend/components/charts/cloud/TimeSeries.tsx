@@ -62,6 +62,19 @@ interface TimeSeriesChartProps {
 const MIN_POINTS_TO_DRAW = 1;
 const MAX_FILL_GAP = 2; // Fill gaps of 1-2 nulls, keep gaps of 3+ as breaks (real outages)
 
+// Featuring is not drawing. A lone sample is drawn, as a point, because hiding
+// it would misreport the catalogue. But the grid shows twelve of ~330 models,
+// and choosing those twelve by mean let one 318 tok/s sample from a lane that
+// was called once in the window outrank a model measured 144 times: eleven of
+// the twelve cells held a single dot. A cell is a claim about a series, so
+// models with a series come first, and among them the fastest.
+//
+// Four, not more, because of what the window actually holds at a two-day
+// cadence: on 2026-09-02, 222 of 328 models had exactly one sample in 14
+// days, 66 had four or more, and 21 (Bedrock's hourly lane) had ~144. Eight
+// would have made this a Bedrock-only grid.
+const FEATURE_MIN_POINTS = 4;
+
 const CELL_WIDTH = 190;
 const CELL_HEIGHT = 46;
 
@@ -352,6 +365,8 @@ interface CellDatum {
     provider: string;
     values: (number | null)[];
     mean: number;
+    /** Samples actually observed in the window, before gap filling. */
+    points: number;
     /** `stale` or `critical` when the collector has stopped keeping up. */
     freshness?: string;
     deprecated?: boolean;
@@ -494,7 +509,7 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
 
     // One cell per model, using whichever provider carries the most samples for
     // it. Drawing every provider of every model is what produced the wall.
-    const { cells, hidden } = useMemo(() => {
+    const { cells, hidden, sparse } = useMemo(() => {
         // Defensive about the payload shape rather than the values. A response
         // missing `models` or `timestamps` — a partial projection, a mocked
         // route, a truncated cache entry — used to throw here, and because this
@@ -516,14 +531,25 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
                 provider: best.provider,
                 values,
                 mean: meanOf(values),
+                points: getProviderPointCount(best),
                 freshness: best.freshness_status,
                 deprecated: best.deprecated,
                 otherProviders: visibleProviders.length - 1,
             };
         }).filter((c) => c.mean > 0);
 
-        const sorted = built.sort((a, b) => b.mean - a.mean);
-        return { cells: sorted.slice(0, maxCells), hidden: Math.max(sorted.length - maxCells, 0) };
+        const sorted = built.sort((a, b) => {
+            const aSeries = a.points >= FEATURE_MIN_POINTS ? 1 : 0;
+            const bSeries = b.points >= FEATURE_MIN_POINTS ? 1 : 0;
+            if (aSeries !== bSeries) return bSeries - aSeries;
+            return b.mean - a.mean;
+        });
+        const cells = sorted.slice(0, maxCells);
+        return {
+            cells,
+            hidden: Math.max(sorted.length - maxCells, 0),
+            sparse: cells.filter((c) => c.points < FEATURE_MIN_POINTS).length,
+        };
     }, [data?.models, maxCells]);
 
     /**
@@ -572,8 +598,10 @@ const TimeSeriesChart: React.FC<TimeSeriesChartProps> = ({
             <Note>
                 Generated throughput, including reasoning tokens — so a thinking model&apos;s line does
                 not collapse; the table ranks on visible tokens · one cell per model, showing its
-                best-covered provider · shared vertical scale, 0 to {Math.round(yMax)} tok/s
+                best-covered provider · models with at least {FEATURE_MIN_POINTS} samples in the
+                window first, fastest of those at the top · shared vertical scale, 0 to {Math.round(yMax)} tok/s
                 (99th percentile) · dashed rule is the model&apos;s own mean
+                {sparse > 0 ? ` · ${sparse} cell${sparse === 1 ? '' : 's'} carry fewer than ${FEATURE_MIN_POINTS} samples` : ''}
                 {droppedProviders > 0 ? ` · ${droppedProviders} further provider${droppedProviders === 1 ? '' : 's'} not drawn` : ''}
                 {clipped > 0 ? ` · ${clipped} samples above the ceiling drawn at it` : ''}
                 {hidden > 0 ? ` · ${hidden} slower models not drawn` : ''}
