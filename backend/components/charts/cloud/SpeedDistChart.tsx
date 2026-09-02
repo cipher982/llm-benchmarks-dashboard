@@ -11,9 +11,17 @@
  * Labels are HTML rather than SVG text so they stay selectable and can ellipse
  * cleanly; they sit in a rail beside the plot rather than on top of the curves,
  * which is what made the old direct labels illegible once models overlapped.
+ *
+ * The plot is drawn in pixels, not in a scaled viewBox. The rail positions each
+ * label at `row * 17px`, so the curve for that row has to sit at the same
+ * pixel — and an SVG that scales with its container does not: at 1440px the
+ * two happened to agree, and on a wider screen the curves stretched to 1.7x
+ * the rail and the top label pointed at the wrong ridge. The plot now measures
+ * its own width and lays the curves out in that many pixels, so a row is 17px
+ * tall at every viewport.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { styled, useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Link from 'next/link';
@@ -42,14 +50,28 @@ interface SpeedDistChartProps {
     slugs?: SlugLookup;
 }
 
-const RIDGE_POINTS = 72;
-const ROW_HEIGHT = 17;
 const OVERLAP = 2.4;
-const PLOT_WIDTH = 700;
+const AXIS_HEIGHT = 22;
+const MIN_PLOT_WIDTH = 320;
+
+/**
+ * Row pitch in pixels. 17px at the 1440px layout the chart was drawn for; a
+ * wider plot earns taller rows, otherwise a 1,300px-wide ridgeline is a
+ * 400px-tall band and the curves read as flattened rather than as wide.
+ */
+const rowHeightFor = (plotWidth: number): number => Math.round(Math.min(22, Math.max(17, plotWidth / 60)));
+
+/**
+ * Lanes the collector no longer calls. Their samples are still inside the
+ * window, so they are still drawn — the chart reports the window, not the
+ * catalogue — but a reader choosing a provider today needs to know which
+ * ridges they cannot buy.
+ */
+const OFF_STATUSES = new Set(['disabled', 'deprecated']);
 
 const Frame = styled('div')({
     display: 'grid',
-    gridTemplateColumns: '260px minmax(0, 1fr)',
+    gridTemplateColumns: 'clamp(260px, 18%, 320px) minmax(0, 1fr)',
     padding: `${spacing.scale[3]}px ${spacing.scale[4]}px ${spacing.scale[1]}px`,
 
     [`@media (max-width: ${breakpoints.sm}px)`]: {
@@ -68,12 +90,18 @@ const LabelRail = styled('ul')({
         left: 0,
         right: '12px',
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'baseline',
         gap: '8px',
         fontSize: typography.sizes.xs,
         whiteSpace: 'nowrap',
+        cursor: 'default',
     },
+    // Hovering a label or a ridge names the pair. Twenty overlapping curves
+    // are legible as a stack but not attributable one by one without this.
+    '& li[data-state="muted"]': { opacity: 0.4 },
+    '& li[data-state="active"] .rail-model': { color: colors.text },
+    '& li[data-state="active"] .rail-mean b': { color: colors.accent },
+    '& li[data-off="true"] .rail-model': { color: colors.textMute },
 
     [`@media (max-width: ${breakpoints.sm}px)`]: {
         display: 'none',
@@ -103,7 +131,25 @@ const RailModel = styled('span')({
     },
 });
 
+/**
+ * Marks a lane the collector has stopped calling. Same colour as the table's
+ * `disabled` dot. A sibling of the name rather than part of it, so a long
+ * model name ellipses and the tag survives.
+ */
+const OffTag = styled('em')({
+    flex: '0 0 auto',
+    fontStyle: 'normal',
+    fontFamily: typography.monoFamily,
+    fontSize: typography.sizes.micro,
+    letterSpacing: typography.tracking.tag,
+    textTransform: 'uppercase',
+    color: colors.warn,
+    marginLeft: '-2px',
+});
+
 const RailMean = styled('span')({
+    flex: '0 0 auto',
+    marginLeft: 'auto',
     fontFamily: typography.monoFamily,
     fontVariantNumeric: 'tabular-nums',
     fontSize: typography.sizes.micro,
@@ -117,6 +163,9 @@ const RailMean = styled('span')({
 
 const Plot = styled('div')({
     paddingTop: '8px',
+    minWidth: 0,
+
+    '& svg': { display: 'block' },
 
     '& .ridge-area': {
         fill: colors.accent,
@@ -138,6 +187,24 @@ const Plot = styled('div')({
         fontFamily: typography.monoFamily,
         fontSize: typography.sizes.micro,
         textAnchor: 'middle',
+    },
+
+    // A retired lane keeps its shape but loses its ink.
+    '& g[data-off="true"] .ridge-line': { strokeDasharray: '3 2', strokeOpacity: 0.7 },
+    '& g[data-off="true"] .ridge-area': { fillOpacity: 0.05 },
+    '& g[data-off="true"] .ridge-mean': { fill: colors.textMute },
+
+    // Hover state. The CSS opacity replaces the depth fade set inline, which
+    // is what makes the active ridge come forward from the stack.
+    '& g[data-state="muted"]': { opacity: 0.22 },
+    '& g[data-state="active"]': { opacity: 1 },
+    '& g[data-state="active"] .ridge-line': { strokeWidth: 1.5, strokeOpacity: 1, strokeDasharray: 'none' },
+    '& g[data-state="active"] .ridge-area': { fillOpacity: 0.3 },
+    '& g[data-state="active"] .ridge-mean': { fill: colors.accent, r: 3 },
+    '& .ridge-guide': {
+        stroke: colors.accent,
+        strokeOpacity: 0.5,
+        strokeDasharray: '2 3',
     },
 });
 
@@ -173,6 +240,9 @@ const MobileRows = styled('ol')({
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
     },
+    '& li[data-off="true"] .m-name': { color: colors.textMute },
+    // Inline here, after the provider tag, rather than a flex sibling.
+    '& .m-name em': { marginLeft: '6px' },
     '& a': {
         color: 'inherit',
         textDecoration: 'none',
@@ -211,6 +281,11 @@ const MobileRows = styled('ol')({
         strokeWidth: 1,
         vectorEffect: 'non-scaling-stroke',
     },
+    '& li[data-off="true"] .m-curve path': {
+        fillOpacity: 0.05,
+        strokeOpacity: 0.7,
+        strokeDasharray: '3 2',
+    },
 });
 
 const Note = styled('p')({
@@ -228,7 +303,23 @@ interface RidgeRow {
     model: string;
     provider: string;
     mean: number;
+    off: boolean;
     curve: number[];
+}
+
+/**
+ * Axis ticks for a plot of the given pixel width. `axisTicks` picks a step by
+ * domain alone; on a wide plot that leaves 200px between ticks, so the step is
+ * halved when it stays a round number.
+ */
+function tickValues(max: number, width: number): number[] {
+    const base = axisTicks(max);
+    if (base.length < 2 || width <= 0) return base;
+    const step = base[1] - base[0];
+    if (step % 50 !== 0 || (step / max) * width < 200) return base;
+    const out: number[] = [];
+    for (let t = 0; t <= max; t += step / 2) out.push(t);
+    return out;
 }
 
 const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slugs }) => {
@@ -243,7 +334,13 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
         setMounted(true);
     }, []);
 
-    const { rows, xMax, hidden, beyond } = useMemo(() => {
+    const [active, setActive] = useState<string | null>(null);
+
+    // Pixel width of the plot column, so curves and labels share a y-scale.
+    const plotRef = useRef<HTMLDivElement>(null);
+    const [plotWidth, setPlotWidth] = useState(0);
+
+    const { rows, xMax, hidden, beyond, off } = useMemo(() => {
         const usable = (data ?? []).filter(
             (d) => d.density_points?.length && d.mean_tokens_per_second > 0,
         );
@@ -258,16 +355,44 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
         const domainMax = densityDomainMax(forDomain);
         const beyond = rowsBeyondDomain(forDomain, domainMax);
 
+        // Enough samples that a segment is a few pixels long; the source
+        // density is piecewise linear, so more samples only smooth the render.
+        const points = Math.max(72, Math.round(plotWidth / 5));
+
         const built: RidgeRow[] = shown.map((d, i) => ({
             key: `${d.provider}-${d.model_name}-${i}`,
             model: d.display_name || d.model_name,
             provider: d.provider,
             mean: d.mean_tokens_per_second,
-            curve: resampleDensity(d.density_points, domainMax, RIDGE_POINTS),
+            off: OFF_STATUSES.has(d.lifecycle_status ?? ''),
+            curve: resampleDensity(d.density_points, domainMax, points),
         }));
 
-        return { rows: built, xMax: domainMax, hidden: sorted.length - shown.length, beyond };
-    }, [data, maxRows]);
+        return {
+            rows: built,
+            xMax: domainMax,
+            hidden: sorted.length - shown.length,
+            beyond,
+            off: built.filter((r) => r.off).length,
+        };
+    }, [data, maxRows, plotWidth]);
+
+    useEffect(() => {
+        if (!mounted || isNarrow) return;
+        const node = plotRef.current;
+        if (!node) return;
+
+        const measure = () => {
+            const width = Math.max(Math.floor(node.getBoundingClientRect().width), MIN_PLOT_WIDTH);
+            setPlotWidth((current) => (current === width ? current : width));
+        };
+        measure();
+
+        if (typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(measure);
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [mounted, isNarrow, rows.length]);
 
     if (!mounted) {
         return null;
@@ -303,7 +428,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
                         const link = slugs?.get(slugKey(row.provider, row.model));
 
                         return (
-                            <li key={row.key}>
+                            <li key={row.key} data-off={row.off || undefined}>
                                 <span className="m-name">
                                     {link ? (
                                         <Link href={`/models/${link.providerSlug}/${link.modelSlug}`}>{row.model}</Link>
@@ -313,6 +438,7 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
                                             <Link href={`/providers/${link.providerSlug}`}>{row.provider}</Link>
                                         ) : row.provider}
                                     </span>
+                                    {row.off && <OffTag>off</OffTag>}
                                 </span>
                                 <span className="m-mean">
                                     {Math.round(row.mean)}<i>tok/s</i>
@@ -342,40 +468,58 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
         );
     }
 
-    const amp = ROW_HEIGHT * OVERLAP;
-    const plotHeight = ROW_HEIGHT * rows.length + amp;
-    const ticks = axisTicks(xMax);
+    const width = plotWidth;
+    const rowHeight = rowHeightFor(width);
+    const amp = rowHeight * OVERLAP;
+    const plotHeight = rowHeight * rows.length + amp;
+    const ticks = tickValues(xMax, width);
+    const stateOf = (key: string) => (active == null ? undefined : active === key ? 'active' : 'muted');
 
-    // Slowest first so the faster rows — the ones being compared — sit in front.
-    const bodies = rows
-        .map((row, i) => {
-            const baseY = amp + i * ROW_HEIGHT;
-            const [lo, hi] = support(row.curve);
-            const pts: Array<[number, number]> = row.curve
-                .slice(lo, hi + 1)
-                .map((y, j) => [((lo + j) / (row.curve.length - 1)) * PLOT_WIDTH, baseY - y * amp]);
+    // Slowest first so the faster rows — the ones being compared — sit in front;
+    // the hovered row last of all, so it is never under a neighbour.
+    const bodies = width > 0
+        ? rows
+            .map((row, i) => {
+                const baseY = amp + i * rowHeight;
+                const [lo, hi] = support(row.curve);
+                const pts: Array<[number, number]> = row.curve
+                    .slice(lo, hi + 1)
+                    .map((y, j) => [((lo + j) / (row.curve.length - 1)) * width, baseY - y * amp]);
 
-            if (pts.length < 2) return null;
+                if (pts.length < 2) return null;
 
-            const line = toPath(pts);
-            const x0 = pts[0][0];
-            const x1 = pts[pts.length - 1][0];
-            const area = `${line}L${x1.toFixed(1)} ${baseY}L${x0.toFixed(1)} ${baseY}Z`;
-            const meanX = Math.min(row.mean / xMax, 1) * PLOT_WIDTH;
+                const line = toPath(pts);
+                const x0 = pts[0][0];
+                const x1 = pts[pts.length - 1][0];
+                const area = `${line}L${x1.toFixed(1)} ${baseY}L${x0.toFixed(1)} ${baseY}Z`;
+                const meanX = Math.min(row.mean / xMax, 1) * width;
 
-            // Fade with depth so twenty overlapping rows still read as a stack.
-            const opacity = 0.4 + (0.6 * (rows.length - i)) / rows.length;
+                // Fade with depth so twenty overlapping rows still read as a stack.
+                const opacity = 0.4 + (0.6 * (rows.length - i)) / rows.length;
+                const state = stateOf(row.key);
 
-            return (
-                <g key={row.key} opacity={opacity}>
-                    <path className="ridge-area" d={area} />
-                    <path className="ridge-line" d={line} />
-                    <circle className="ridge-mean" cx={meanX.toFixed(1)} cy={baseY.toFixed(1)} r={2} />
-                </g>
-            );
-        })
-        .filter(Boolean)
-        .reverse();
+                return (
+                    <g
+                        key={row.key}
+                        opacity={opacity}
+                        data-state={state}
+                        data-off={row.off || undefined}
+                        onMouseEnter={() => setActive(row.key)}
+                        onMouseLeave={() => setActive(null)}
+                    >
+                        <path className="ridge-area" d={area} />
+                        <path className="ridge-line" d={line} />
+                        {state === 'active' && (
+                            <line className="ridge-guide" x1={meanX.toFixed(1)} y1={baseY} x2={meanX.toFixed(1)} y2={plotHeight} />
+                        )}
+                        <circle className="ridge-mean" cx={meanX.toFixed(1)} cy={baseY.toFixed(1)} r={2} />
+                    </g>
+                );
+            })
+            .filter((el): el is React.ReactElement => el != null)
+            .reverse()
+            .sort((a, b) => (a.key === active ? 1 : b.key === active ? -1 : 0))
+        : [];
 
     return (
         <>
@@ -384,8 +528,17 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
                     {rows.map((row, i) => {
                         const link = slugs?.get(slugKey(row.provider, row.model));
                         return (
-                            <li key={row.key} style={{ top: `${amp + i * ROW_HEIGHT - 7}px` }}>
-                                <RailModel>
+                            <li
+                                key={row.key}
+                                style={{ top: `${amp + i * rowHeight - 7}px` }}
+                                data-state={stateOf(row.key)}
+                                data-off={row.off || undefined}
+                                onMouseEnter={() => setActive(row.key)}
+                                onMouseLeave={() => setActive(null)}
+                                onFocus={() => setActive(row.key)}
+                                onBlur={() => setActive(null)}
+                            >
+                                <RailModel className="rail-model">
                                     {link ? (
                                         <Link href={`/models/${link.providerSlug}/${link.modelSlug}`}>{row.model}</Link>
                                     ) : row.model}{' '}
@@ -395,40 +548,45 @@ const SpeedDistChart: React.FC<SpeedDistChartProps> = ({ data, maxRows = 22, slu
                                         ) : row.provider}
                                     </i>
                                 </RailModel>
-                                <RailMean>
+                                {row.off && <OffTag>off</OffTag>}
+                                <RailMean className="rail-mean">
                                     <b>{Math.round(row.mean)}</b> tok/s
                                 </RailMean>
                             </li>
                         );
                     })}
                 </LabelRail>
-                <Plot>
-                    <svg
-                        viewBox={`0 0 ${PLOT_WIDTH} ${plotHeight + 22}`}
-                        width="100%"
-                        role="img"
-                        aria-label={`Throughput distribution for ${rows.length} models, fastest at top, ${Math.round(rows[0].mean)} to ${Math.round(rows[rows.length - 1].mean)} tokens per second`}
-                    >
-                        <g>
-                            {ticks.map((t) => {
-                                const x = (t / xMax) * PLOT_WIDTH;
-                                const anchor = t === 0 ? 'start' : x > PLOT_WIDTH - 12 ? 'end' : 'middle';
-                                return (
-                                    <g className="ridge-tick" key={t}>
-                                        <line x1={x.toFixed(1)} y1={0} x2={x.toFixed(1)} y2={plotHeight} />
-                                        <text x={x.toFixed(1)} y={plotHeight + 14} style={{ textAnchor: anchor }}>
-                                            {t}
-                                        </text>
-                                    </g>
-                                );
-                            })}
-                        </g>
-                        {bodies}
-                    </svg>
+                <Plot ref={plotRef}>
+                    {width > 0 && (
+                        <svg
+                            width={width}
+                            height={plotHeight + AXIS_HEIGHT}
+                            viewBox={`0 0 ${width} ${plotHeight + AXIS_HEIGHT}`}
+                            role="img"
+                            aria-label={`Throughput distribution for ${rows.length} models, fastest at top, ${Math.round(rows[0].mean)} to ${Math.round(rows[rows.length - 1].mean)} tokens per second`}
+                        >
+                            <g>
+                                {ticks.map((t) => {
+                                    const x = (t / xMax) * width;
+                                    const anchor = t === 0 ? 'start' : x > width - 12 ? 'end' : 'middle';
+                                    return (
+                                        <g className="ridge-tick" key={t}>
+                                            <line x1={x.toFixed(1)} y1={0} x2={x.toFixed(1)} y2={plotHeight} />
+                                            <text x={x.toFixed(1)} y={plotHeight + 14} style={{ textAnchor: anchor }}>
+                                                {t}
+                                            </text>
+                                        </g>
+                                    );
+                                })}
+                            </g>
+                            {bodies}
+                        </svg>
+                    )}
                 </Plot>
             </Frame>
             <Note>
                 Visible-token throughput, same basis as the table · curves normalised per model
+                {off > 0 && ` · ${off} of the ${rows.length} drawn are disabled lanes still inside the window`}
                 {beyond > 0 && ` · ${beyond} model${beyond === 1 ? "'s tail runs" : "s' tails run"} past the axis`}
                 {hidden > 0 && ` · ${hidden} slower models not drawn, all ${rows.length + hidden} are in the table below`}
             </Note>
