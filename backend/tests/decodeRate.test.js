@@ -44,7 +44,7 @@ describe('estimateDecodeRate', () => {
     it('reads a batched stream from its exact window when the runner recorded one', () => {
         // Azure-style: ~6 tokens a chunk, 20 chunks over 1.9s, 120 tokens after the first chunk.
         const out = estimateDecodeRate({
-            gaps: steady(19, 0.1), visibleTokens: 126, resolution: 'batched', windowTokens: 120, windowSeconds: 1.9,
+            gaps: steady(19, 0.1), visibleTokens: 126, resolution: 'batched', windowTokens: 120, windowSeconds: 1.9, maxTokensPerChunk: 8,
         });
         expect(out.verdict).toBe('usable');
         expect(out.rate).toBeCloseTo(120 / 1.9, 5);
@@ -55,21 +55,61 @@ describe('estimateDecodeRate', () => {
         const out = estimateDecodeRate({
             gaps: steady(12, 0.00575), visibleTokens: 256, resolution: 'batched', windowTokens: 236, windowSeconds: 0.069,
         });
-        expect(out.verdict).toBe('batched');
+        expect(out.verdict).toBe('flushed');
+        expect(out.rate).toBeNull();
     });
 
     it('refuses a batched window with a stall inside it', () => {
         const gaps = [...steady(10, 0.1), 30];
-        const out = estimateDecodeRate({ gaps, visibleTokens: 70, resolution: 'batched', windowTokens: 66, windowSeconds: 31 });
+        const out = estimateDecodeRate({
+            gaps, visibleTokens: 70, resolution: 'batched', windowTokens: 66, windowSeconds: 31, maxTokensPerChunk: 6,
+        });
         expect(out.verdict).toBe('batched');
         expect(out.rate).toBeNull();
     });
 
-    it('refuses a batched flush even with a window', () => {
+    it('refuses a batched window short enough to be a flush', () => {
         const out = estimateDecodeRate({
-            gaps: steady(63, 0.0004), visibleTokens: 64, resolution: 'batched', windowTokens: 63, windowSeconds: 0.3,
+            gaps: steady(63, 0.0004), visibleTokens: 64, resolution: 'batched', windowTokens: 63, windowSeconds: 0.025,
+            maxTokensPerChunk: 1,
         });
         expect(out.verdict).toBe('flushed');
+    });
+
+    it('keeps a long chunked window whose cadence is sub-millisecond', () => {
+        // Five bursts of sub-ms chunks separated by 0.14s pauses: a real 0.7s
+        // window (median gap 0.4ms), not a flush.
+        const burst = [...steady(4, 0.0004), 0.14];
+        const gaps = [...burst, ...burst, ...burst, ...burst, ...burst];
+        const out = estimateDecodeRate({
+            gaps, visibleTokens: 126, resolution: 'batched', windowTokens: 120, windowSeconds: 0.708, maxTokensPerChunk: 6,
+        });
+        expect(out.verdict).toBe('usable');
+        expect(out.rate).toBeCloseTo(120 / 0.708, 5);
+    });
+
+    it('refuses a window whose last chunk is a finish-flush', () => {
+        // 9 chunks of 2 tokens over 0.3s, then a 46-token tail.
+        const out = estimateDecodeRate({
+            gaps: [...steady(9, 0.033), 0.1], visibleTokens: 64, resolution: 'batched', windowTokens: 62,
+            windowSeconds: 0.4, maxTokensPerChunk: 46,
+        });
+        expect(out.verdict).toBe('batched');
+    });
+
+    it('refuses a window dominated by one pause', () => {
+        const out = estimateDecodeRate({
+            gaps: [...steady(8, 0.01), 1.5], visibleTokens: 240, resolution: 'batched', windowTokens: 230,
+            windowSeconds: 1.58, maxTokensPerChunk: 10,
+        });
+        expect(out.verdict).toBe('batched');
+    });
+
+    it('refuses a batched window without a recorded chunk size', () => {
+        const out = estimateDecodeRate({
+            gaps: steady(19, 0.1), visibleTokens: 126, resolution: 'batched', windowTokens: 120, windowSeconds: 1.9,
+        });
+        expect(out.verdict).toBe('batched');
     });
 
     it('infers batching from chunk size when the row predates the label', () => {

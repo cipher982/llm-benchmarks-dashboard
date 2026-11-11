@@ -44,6 +44,7 @@ export interface RawData {
     decode_window_tokens?: number | null;
     /** Seconds from the first to the last visible chunk. */
     decode_window_seconds?: number | null;
+    max_tokens_per_chunk?: number | null;
 }
 
 interface AggregatedData {
@@ -248,6 +249,7 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             resolution: benchmark.stream_resolution,
             windowTokens: benchmark.decode_window_tokens,
             windowSeconds: benchmark.decode_window_seconds,
+            maxTokensPerChunk: benchmark.max_tokens_per_chunk,
         });
         if (decode.rate != null) entry.decode_rates.push(decode.rate);
         entry.generated_tokens_per_second.push(generatedTps);

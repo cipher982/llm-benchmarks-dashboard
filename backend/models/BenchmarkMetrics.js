@@ -34,6 +34,8 @@ const CloudSchema = new mongoose.Schema({
   stream_resolution: String,
   visible_stream_chunks: Number,
   max_tokens_per_chunk: Number,
+  decode_window_tokens: Number,
+  decode_window_seconds: Number,
   openrouter_response_id: String,
   route_policy: String,
   route_snapshot_at: String,

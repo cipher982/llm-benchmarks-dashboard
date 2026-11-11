@@ -46,11 +46,18 @@
  * carries the same number of tokens, which is false for those streams. Rows
  * from 2026-11-11 carry the exact visible tokens after the first chunk and the
  * time from the first to the last chunk, so a batched stream can be read as
- * `window tokens / window seconds` without that assumption. It is still
- * refused when the window is too short to time (`MIN_WINDOW_SECONDS`), when a
- * chunk is so large that the window is a handful of deliveries
- * (`MIN_GAPS`), when the median gap is a flush, or when a stall sits inside
- * the window, because a stall's tokens cannot be separated from the rest.
+ * `window tokens / window seconds` without that assumption. It is refused when:
+ *
+ * - the window is shorter than `MIN_WINDOW_SECONDS`. That is the flush test
+ *   for this path: a held answer released in one burst spans tens of ms. The
+ *   median-gap test is not used here, because in a chunked stream a sub-ms
+ *   median is chunk cadence, not buffering (it refused ~300 real windows);
+ * - any chunk carries more than `MAX_BATCHED_TOKENS_PER_CHUNK` tokens or more
+ *   than `MAX_CHUNK_SHARE` of the window, so a finish-flush tail cannot be
+ *   published as decoder speed;
+ * - any single gap is more than `MAX_GAP_SHARE` of the window, because a
+ *   pause's tokens cannot be separated from the rest the way the resolved
+ *   path drops a stall with its share.
  */
 
 export interface DecodeRateInput {
@@ -65,6 +72,8 @@ export interface DecodeRateInput {
     windowTokens?: number | null;
     /** Seconds from the first to the last visible chunk. */
     windowSeconds?: number | null;
+    /** Largest number of tokens the runner saw in one chunk. */
+    maxTokensPerChunk?: number | null;
 }
 
 export type DecodeVerdict = 'usable' | 'too-few-gaps' | 'batched' | 'flushed';
@@ -84,6 +93,12 @@ export const STALL_MEDIAN_MULTIPLE = 50;
 export const DEFAULT_VISIBLE_TOKENS = 64;
 /** A batched window shorter than this times the socket, not the decoder (Cerebras: 0.069s). */
 export const MIN_WINDOW_SECONDS = 0.25;
+/** Largest chunk a batched window may contain and still time the decoder. */
+export const MAX_BATCHED_TOKENS_PER_CHUNK = 16;
+/** No one chunk may carry more than this share of the window's tokens. */
+export const MAX_CHUNK_SHARE = 0.25;
+/** No one gap may take more than this share of the window's time. */
+export const MAX_GAP_SHARE = 0.25;
 
 export function median(values: ReadonlyArray<number>): number {
     if (!values.length) return NaN;
@@ -108,7 +123,7 @@ export function estimateDecodeRate(input: DecodeRateInput): DecodeEstimate {
     const typical = median(gaps);
 
     if (input.resolution) {
-        if (input.resolution !== 'resolved') return estimateBatchedWindow(input, gaps, typical);
+        if (input.resolution !== 'resolved') return estimateBatchedWindow(input, gaps);
     } else if (tokensPerChunk > MAX_MEAN_TOKENS_PER_CHUNK) {
         return { verdict: 'batched', rate: null };
     }
@@ -125,15 +140,22 @@ export function estimateDecodeRate(input: DecodeRateInput): DecodeEstimate {
     return { verdict: 'usable', rate: (tokensPerChunk * kept.length) / seconds };
 }
 
-function estimateBatchedWindow(input: DecodeRateInput, gaps: number[], typical: number): DecodeEstimate {
+function estimateBatchedWindow(input: DecodeRateInput, gaps: number[]): DecodeEstimate {
     const windowTokens = input.windowTokens;
     const windowSeconds = input.windowSeconds;
-    if (!(windowTokens && windowTokens > 0) || !(windowSeconds && windowSeconds >= MIN_WINDOW_SECONDS)) {
+    if (!(windowTokens && windowTokens > 0) || !(windowSeconds && windowSeconds > 0)) {
         return { verdict: 'batched', rate: null };
     }
-    if (typical < FLUSH_MEDIAN_GAP_SECONDS) return { verdict: 'flushed', rate: null };
-    const cut = Math.max(STALL_FLOOR_SECONDS, STALL_MEDIAN_MULTIPLE * typical);
-    if (gaps.some((g) => g > cut)) return { verdict: 'batched', rate: null };
+    if (windowSeconds < MIN_WINDOW_SECONDS) return { verdict: 'flushed', rate: null };
+    const largest = input.maxTokensPerChunk;
+    if (
+        largest == null ||
+        largest > MAX_BATCHED_TOKENS_PER_CHUNK ||
+        largest > MAX_CHUNK_SHARE * windowTokens
+    ) {
+        return { verdict: 'batched', rate: null };
+    }
+    if (gaps.some((g) => g > MAX_GAP_SHARE * windowSeconds)) return { verdict: 'batched', rate: null };
     return { verdict: 'usable', rate: windowTokens / windowSeconds };
 }
 
