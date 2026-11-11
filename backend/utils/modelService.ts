@@ -543,7 +543,8 @@ async function fetchProcessedBundle(metricSources: MetricSource[], days: number)
             "model_name provider tokens_per_second generated_tokens_per_second visible_tokens_per_second " +
             "benchmark_profile_id transport_provider route_model_id route_endpoint_tag quantization " +
             "observed_provider observed_provider_slug time_to_first_token run_ts display_name " +
-            "times_between_tokens visible_output_tokens generated_output_tokens stream_resolution"
+            "times_between_tokens visible_output_tokens generated_output_tokens stream_resolution " +
+            "decode_window_tokens decode_window_seconds"
         )
         .lean()
         .exec();

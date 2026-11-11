@@ -40,6 +40,10 @@ export interface RawData {
     generated_output_tokens?: number | null;
     /** Runner's stream classification: resolved | batched | unmeasured. */
     stream_resolution?: string | null;
+    /** Visible tokens after the first chunk, counted exactly by the runner (rows from 2026-11-11). */
+    decode_window_tokens?: number | null;
+    /** Seconds from the first to the last visible chunk. */
+    decode_window_seconds?: number | null;
 }
 
 interface AggregatedData {
@@ -242,6 +246,8 @@ export const cleanTransformCloud = (data: RawData[]): ProcessedData[] => {
             visibleTokens: benchmark.visible_output_tokens,
             generatedTokens: benchmark.generated_output_tokens,
             resolution: benchmark.stream_resolution,
+            windowTokens: benchmark.decode_window_tokens,
+            windowSeconds: benchmark.decode_window_seconds,
         });
         if (decode.rate != null) entry.decode_rates.push(decode.rate);
         entry.generated_tokens_per_second.push(generatedTps);

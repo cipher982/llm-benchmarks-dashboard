@@ -39,6 +39,18 @@
  *   their share of tokens. Ordinary jitter (bursts of a few tokens then a
  *   100ms pause, which OpenAI's stream does constantly) stays in, because λ
  *   includes it too.
+ *
+ * Batched streams, revisited 2026-11-11. Half of a week's paid runs (691 of
+ * 1,418) were refused as batched: Azure, Google AI Studio and claude-on-aws
+ * send a few tokens per chunk on every run. The refusal assumed every chunk
+ * carries the same number of tokens, which is false for those streams. Rows
+ * from 2026-11-11 carry the exact visible tokens after the first chunk and the
+ * time from the first to the last chunk, so a batched stream can be read as
+ * `window tokens / window seconds` without that assumption. It is still
+ * refused when the window is too short to time (`MIN_WINDOW_SECONDS`), when a
+ * chunk is so large that the window is a handful of deliveries
+ * (`MIN_GAPS`), when the median gap is a flush, or when a stall sits inside
+ * the window, because a stall's tokens cannot be separated from the rest.
  */
 
 export interface DecodeRateInput {
@@ -49,6 +61,10 @@ export interface DecodeRateInput {
     generatedTokens?: number | null;
     /** The runner's `stream_resolution`: resolved | batched | unmeasured. Absent on older rows. */
     resolution?: string | null;
+    /** Exact visible tokens after the first chunk (runner rows from 2026-11-11). */
+    windowTokens?: number | null;
+    /** Seconds from the first to the last visible chunk. */
+    windowSeconds?: number | null;
 }
 
 export type DecodeVerdict = 'usable' | 'too-few-gaps' | 'batched' | 'flushed';
@@ -66,6 +82,8 @@ export const FLUSH_MEDIAN_GAP_SECONDS = 0.001;
 export const STALL_FLOOR_SECONDS = 2;
 export const STALL_MEDIAN_MULTIPLE = 50;
 export const DEFAULT_VISIBLE_TOKENS = 64;
+/** A batched window shorter than this times the socket, not the decoder (Cerebras: 0.069s). */
+export const MIN_WINDOW_SECONDS = 0.25;
 
 export function median(values: ReadonlyArray<number>): number {
     if (!values.length) return NaN;
@@ -87,13 +105,14 @@ export function estimateDecodeRate(input: DecodeRateInput): DecodeEstimate {
     const chunks = gaps.length + 1;
     const tokensPerChunk = tokens / chunks;
 
+    const typical = median(gaps);
+
     if (input.resolution) {
-        if (input.resolution !== 'resolved') return { verdict: 'batched', rate: null };
+        if (input.resolution !== 'resolved') return estimateBatchedWindow(input, gaps, typical);
     } else if (tokensPerChunk > MAX_MEAN_TOKENS_PER_CHUNK) {
         return { verdict: 'batched', rate: null };
     }
 
-    const typical = median(gaps);
     if (typical < FLUSH_MEDIAN_GAP_SECONDS) return { verdict: 'flushed', rate: null };
 
     const cut = Math.max(STALL_FLOOR_SECONDS, STALL_MEDIAN_MULTIPLE * typical);
@@ -104,6 +123,18 @@ export function estimateDecodeRate(input: DecodeRateInput): DecodeEstimate {
     if (!(seconds > 0)) return { verdict: 'flushed', rate: null };
 
     return { verdict: 'usable', rate: (tokensPerChunk * kept.length) / seconds };
+}
+
+function estimateBatchedWindow(input: DecodeRateInput, gaps: number[], typical: number): DecodeEstimate {
+    const windowTokens = input.windowTokens;
+    const windowSeconds = input.windowSeconds;
+    if (!(windowTokens && windowTokens > 0) || !(windowSeconds && windowSeconds >= MIN_WINDOW_SECONDS)) {
+        return { verdict: 'batched', rate: null };
+    }
+    if (typical < FLUSH_MEDIAN_GAP_SECONDS) return { verdict: 'flushed', rate: null };
+    const cut = Math.max(STALL_FLOOR_SECONDS, STALL_MEDIAN_MULTIPLE * typical);
+    if (gaps.some((g) => g > cut)) return { verdict: 'batched', rate: null };
+    return { verdict: 'usable', rate: windowTokens / windowSeconds };
 }
 
 export interface DecodeSummary {

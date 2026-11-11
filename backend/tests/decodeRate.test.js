@@ -41,6 +41,37 @@ describe('estimateDecodeRate', () => {
         expect(out.rate).toBeNull();
     });
 
+    it('reads a batched stream from its exact window when the runner recorded one', () => {
+        // Azure-style: ~6 tokens a chunk, 20 chunks over 1.9s, 120 tokens after the first chunk.
+        const out = estimateDecodeRate({
+            gaps: steady(19, 0.1), visibleTokens: 126, resolution: 'batched', windowTokens: 120, windowSeconds: 1.9,
+        });
+        expect(out.verdict).toBe('usable');
+        expect(out.rate).toBeCloseTo(120 / 1.9, 5);
+    });
+
+    it('still refuses a batched window too short to time', () => {
+        // Cerebras: 256 tokens in 13 chunks inside 0.069s.
+        const out = estimateDecodeRate({
+            gaps: steady(12, 0.00575), visibleTokens: 256, resolution: 'batched', windowTokens: 236, windowSeconds: 0.069,
+        });
+        expect(out.verdict).toBe('batched');
+    });
+
+    it('refuses a batched window with a stall inside it', () => {
+        const gaps = [...steady(10, 0.1), 30];
+        const out = estimateDecodeRate({ gaps, visibleTokens: 70, resolution: 'batched', windowTokens: 66, windowSeconds: 31 });
+        expect(out.verdict).toBe('batched');
+        expect(out.rate).toBeNull();
+    });
+
+    it('refuses a batched flush even with a window', () => {
+        const out = estimateDecodeRate({
+            gaps: steady(63, 0.0004), visibleTokens: 64, resolution: 'batched', windowTokens: 63, windowSeconds: 0.3,
+        });
+        expect(out.verdict).toBe('flushed');
+    });
+
     it('infers batching from chunk size when the row predates the label', () => {
         // 64 tokens over 11 chunks is ~6 tokens a chunk: transport, not decoder.
         expect(estimateDecodeRate({ gaps: steady(10, 0.05), visibleTokens: 64 }).verdict).toBe('batched');
