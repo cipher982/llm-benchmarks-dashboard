@@ -47,12 +47,11 @@ async function fetchDeprecationSnapshots() {
 }
 
 // Time Series Processing
+// Round on epoch milliseconds, not local wall-clock minutes: setMinutes() inside
+// the repeated hour at a DST change moves a timestamp by a whole hour.
 const roundToNearest30Minutes = (timestamp: number): number => {
-    const date = new Date(timestamp);
-    const minutes = date.getMinutes();
-    const roundedMinutes = Math.round(minutes / MINUTES_INTERVAL) * MINUTES_INTERVAL;
-    const roundedDate = new Date(date.setMinutes(roundedMinutes, 0, 0));
-    return roundedDate.getTime();
+    const step = MINUTES_INTERVAL * 60 * 1000;
+    return Math.round(timestamp / step) * step;
 };
 
 const generateTimestampRange = (days: number) => {

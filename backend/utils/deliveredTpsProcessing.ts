@@ -17,8 +17,13 @@ import type { MetadataLookup } from './modelMappingDB';
 import { PUBLISHED_PROFILE_ID } from './processCloud';
 import { getProviderDisplayName, resolveServingProvider, resolveTransportProvider } from './providerMetadata';
 import { createSlug } from './seoUtils';
-import { median } from './steadyState';
 import { evaluatePublication, type PublicationState } from './endpointPublication';
+
+const median = (values: number[]): number => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
 
 /** The numerator and crossing test agree with the runner (cloud/visible_tokens.py). */
 export const VISIBLE_TOKEN_MARK = 64;
