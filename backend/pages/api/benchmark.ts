@@ -7,6 +7,7 @@ import connectToMongoDB from '../../utils/connectToMongoDB';
 import logger from '../../utils/logger';
 import { roundNumbers } from '../../utils/dataUtils';
 import { mapModelNames } from '../../utils/modelMappingDB';
+import { isValidAdminKey } from '../../utils/adminAuth';
 
 /**
  * Benchmark timing utility function
@@ -24,13 +25,22 @@ async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (!isValidAdminKey(req)) {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   // Default time range in days
-  const days = req.query.days ? parseInt(req.query.days as string) : 3;
-  const MAX_RECORDS = req.query.limit ? parseInt(req.query.limit as string) : 10000;
+  const rawDays = Array.isArray(req.query.days) ? req.query.days[0] : req.query.days;
+  const parsedDays = rawDays ? parseInt(rawDays, 10) : 3;
+  const days = Number.isFinite(parsedDays) ? Math.min(Math.max(parsedDays, 1), 90) : 3;
+
+  const rawLimit = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+  const parsedLimit = rawLimit ? parseInt(rawLimit, 10) : 10000;
+  const MAX_RECORDS = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 50000) : 10000;
   
   logger.info(`Starting benchmark with days=${days}, limit=${MAX_RECORDS}`);
   
@@ -175,9 +185,7 @@ async function handler(
   } catch (error) {
     console.error('Error in benchmark:', error);
     return res.status(500).json({ 
-      error: 'Benchmark failed',
-      message: error instanceof Error ? error.message : String(error),
-      timings // Return timings up to the point of failure
+      error: 'Benchmark failed'
     });
   }
 }

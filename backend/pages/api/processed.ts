@@ -6,6 +6,7 @@ import { corsMiddleware, fetchAndProcessMetrics } from '../../utils/apiMiddlewar
 import logger from '../../utils/logger';
 import { roundNumbers } from '../../utils/dataUtils';
 import { designFixturesEnabled, getFixtureProcessed } from '../../utils/designFixtures';
+import { isBypassStaticRequested, isValidAdminKey } from '../../utils/adminAuth';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -83,9 +84,6 @@ async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<b
     const filename = `processed-${days}days.json`;
     const filepath = path.join(process.cwd(), 'public', 'api', filename);
     
-    // Add debug header with file path attempt
-    res.setHeader('X-Static-Path-Attempted', filepath);
-    
     try {
         // Check if file exists and get its stats
         const stats = await fs.stat(filepath);
@@ -126,7 +124,9 @@ async function tryServeStaticFile(days: number, res: NextApiResponse): Promise<b
 }
 
 function parseTimeRange(req: NextApiRequest) {
-    const days = req.query.days ? parseInt(req.query.days as string) : DEFAULT_DAYS;
+    const rawDays = Array.isArray(req.query.days) ? req.query.days[0] : req.query.days;
+    const parsed = rawDays ? parseInt(rawDays, 10) : DEFAULT_DAYS;
+    const days = Number.isFinite(parsed) ? parsed : DEFAULT_DAYS;
     return {
         days: Math.min(Math.max(days, 1), 90) // Limit between 1-90 days
     };
@@ -334,14 +334,19 @@ async function handler(
             include = undefined;
         }
 
-        // Check if static file serving should be bypassed
+        // Check if static file serving should be bypassed (requires valid x-admin-key)
+        const wantsBypassStatic = isBypassStaticRequested(req);
+        if (wantsBypassStatic && !isValidAdminKey(req)) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+
         // Static only when unfiltered AND all projections included (or default)
         const isFullRequest = !include || (
             include.includes('table') && 
             include.includes('dist') && 
             include.includes('series')
         );
-        const useStatic = req.query.bypass_static !== "true" && !lifecycleFilters && isFullRequest;
+        const useStatic = !wantsBypassStatic && !lifecycleFilters && isFullRequest;
 
         // Design mode (DESIGN_FIXTURES=1) takes the fixture ahead of the static
         // file. A checkout's `processed-*.json` is whatever the last cron pass

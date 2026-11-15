@@ -1,5 +1,6 @@
 const { createServer } = require('http');
 const { parse } = require('url');
+const crypto = require('crypto');
 const next = require('next');
 const cron = require('node-cron');
 const fs = require('fs').promises;
@@ -39,11 +40,18 @@ if (NODE_ENV === 'production' && !process.env.ADMIN_API_KEY) {
 // Drive Next dev mode from NODE_ENV
 const dev = NODE_ENV === 'development';
 
+function safeTokenEqual(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string' || !provided || !expected) {
+    return false;
+  }
+  const providedDigest = crypto.createHash('sha256').update(provided, 'utf8').digest();
+  const expectedDigest = crypto.createHash('sha256').update(expected, 'utf8').digest();
+  return crypto.timingSafeEqual(providedDigest, expectedDigest);
+}
+
 function isAuthorizedAdmin(req) {
   if (dev) return true; // allow in development
-  const token = req.headers['x-admin-key'];
-  const expected = process.env.ADMIN_API_KEY;
-  return Boolean(expected && token === expected);
+  return safeTokenEqual(req.headers['x-admin-key'], process.env.ADMIN_API_KEY);
 }
 const hostname = '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -65,6 +73,8 @@ async function generateStaticData() {
 
     const timeRanges = [3, 7, 12, 14, 30];
     const results = [];
+    const adminKey = process.env.ADMIN_API_KEY;
+    const warmupHeaders = adminKey ? { 'x-admin-key': adminKey } : {};
 
     console.log(`🎯 Generating ${timeRanges.length} processed files...`);
 
@@ -73,7 +83,9 @@ async function generateStaticData() {
       console.log(`📊 Generating ${days}-day file...`);
       
       try {
-        const response = await fetch(`http://localhost:${port}/api/processed?days=${days}&bypass_static=true`);
+        const response = await fetch(`http://localhost:${port}/api/processed?days=${days}&bypass_static=true`, {
+          headers: warmupHeaders
+        });
         if (!response.ok) throw new Error(`API failed: ${response.status}`);
         
         const data = await response.json();
@@ -101,7 +113,9 @@ async function generateStaticData() {
     const localStartTime = Date.now();
     
     try {
-      const localResponse = await fetch(`http://localhost:${port}/api/local?bypass_static=true`);
+      const localResponse = await fetch(`http://localhost:${port}/api/local?bypass_static=true`, {
+        headers: warmupHeaders
+      });
       if (!localResponse.ok) {
         throw new Error(`Local API failed: ${localResponse.status}`);
       }
@@ -179,7 +193,6 @@ app.prepare().then(() => {
     if (err) throw err;
     console.log(`> Ready on http://${hostname}:${port}`);
     console.log(`> Environment: NODE_ENV=${process.env.NODE_ENV}`);
-    console.log(`> Coolify URL: ${process.env.COOLIFY_URL || 'not set'}`);
     console.log(`> Node version: ${process.versions.node}`);
     console.log(`> fetch available: ${typeof fetch !== 'undefined'}`);
     

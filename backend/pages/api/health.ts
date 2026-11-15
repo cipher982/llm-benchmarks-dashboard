@@ -7,7 +7,6 @@ interface HealthStatus {
   status: 'healthy' | 'unhealthy' | 'degraded';
   timestamp: string;
   environment: string;
-  url: string;
   port: number;
   services: {
     mongodb: {
@@ -34,7 +33,6 @@ export default async function handler(
     status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'unknown',
-    url: process.env.COOLIFY_URL || 'not set',
     port: parseInt(process.env.PORT || '3000', 10),
     services: {
       mongodb: { status: 'down' },
@@ -64,7 +62,7 @@ export default async function handler(
   } catch (error) {
     healthStatus.services.mongodb = { 
       status: 'down', 
-      details: error instanceof Error ? error.message : 'Unknown error' 
+      details: 'Database connection failed' 
     };
     overallStatus = 'degraded';
     logger.error('MongoDB health check failed:', error);

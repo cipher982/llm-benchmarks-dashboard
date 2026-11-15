@@ -3,11 +3,16 @@ import { CloudMetrics } from '../../models/BenchmarkMetrics';
 import { cleanTransformCloud } from '../../utils/processCloud';
 import { mapModelNames } from '../../utils/modelMappingDB';
 import { corsMiddleware, fetchAndProcessMetrics } from '../../utils/apiMiddleware';
+import { isValidAdminKey } from '../../utils/adminAuth';
 
 export default async function debugPipeline(req: NextApiRequest, res: NextApiResponse) {
     // Handle CORS
     const corsHandled = await corsMiddleware(req, res);
     if (corsHandled) return;
+
+    if (!isValidAdminKey(req)) {
+        return res.status(403).json({ error: "Unauthorized" });
+    }
 
     if (req.method !== "GET") {
         return res.status(405).json({ error: "Method not allowed" });
@@ -18,7 +23,9 @@ export default async function debugPipeline(req: NextApiRequest, res: NextApiRes
         
         // Step 1: Fetch raw data
         steps.push("🔄 Step 1: Fetching raw metrics from MongoDB...");
-        const days = req.query.days ? parseInt(req.query.days as string) : 3;
+        const rawDays = Array.isArray(req.query.days) ? req.query.days[0] : req.query.days;
+        const parsedDays = rawDays ? parseInt(rawDays, 10) : 3;
+        const days = Number.isFinite(parsedDays) ? Math.min(Math.max(parsedDays, 1), 90) : 3;
         steps.push(`🔧 Using ${days} days of data`);
         
         const rawData = await fetchAndProcessMetrics(
@@ -89,9 +96,9 @@ export default async function debugPipeline(req: NextApiRequest, res: NextApiRes
         });
         
     } catch (error) {
+        console.error('Debug pipeline failed:', error);
         return res.status(500).json({ 
-            error: 'Debug pipeline failed', 
-            details: error instanceof Error ? error.message : String(error)
+            error: 'Debug pipeline failed'
         });
     }
 }

@@ -7,6 +7,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import logger from '../../utils/logger';
 import { designFixturesEnabled } from '../../utils/designFixtures';
+import { isBypassStaticRequested, isValidAdminKey } from '../../utils/adminAuth';
 
 export const daysAgo = 1000;
 
@@ -14,9 +15,6 @@ export const daysAgo = 1000;
 async function tryServeStaticFile(res: NextApiResponse): Promise<boolean> {
     const filename = 'local.json';
     const filepath = path.join(process.cwd(), 'public', 'api', filename);
-    
-    // Add debug header with file path attempt
-    res.setHeader('X-Static-Path-Attempted', filepath);
     
     try {
         // Check if file exists and get its stats
@@ -65,8 +63,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const requestStartTime = Date.now();
 
   try {
-    // Check if static file serving should be bypassed
-    const useStatic = req.query.bypass_static !== "true"; // Static enabled by default
+    // Check if static file serving should be bypassed (requires valid x-admin-key)
+    const wantsBypassStatic = isBypassStaticRequested(req);
+    if (wantsBypassStatic && !isValidAdminKey(req)) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+    const useStatic = !wantsBypassStatic; // Static enabled by default
     
     // First priority: Try to serve static file (unless bypassed)
     if (useStatic) {

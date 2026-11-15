@@ -1,17 +1,20 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import connectToMongoDB from '../../utils/connectToMongoDB';
 import mongoose from 'mongoose';
+import {
+  checkAdminIpWhitelist,
+  checkAdminRateLimit,
+  getClientIp,
+  isValidAdminKey,
+} from '../../utils/adminAuth';
 
 // Simple auth middleware
 function checkAuth(req: NextApiRequest): boolean {
-  const adminKey = process.env.ADMIN_API_KEY;
-  if (!adminKey) {
+  if (!process.env.ADMIN_API_KEY) {
     console.error('ADMIN_API_KEY not set');
     return false;
   }
-  // Only accept header to avoid leaking secrets in URLs
-  const providedKey = req.headers['x-admin-key'];
-  return providedKey === adminKey;
+  return isValidAdminKey(req);
 }
 
 // Model schema (reuse existing)
@@ -27,89 +30,24 @@ const ModelSchema = new mongoose.Schema({
 
 const Model = mongoose.models.AdminModel || mongoose.model('AdminModel', ModelSchema, 'models');
 
-// Rate limiting store (in production, use Redis)
-const rateLimitStore = new Map<string, { count: number; resetTime: number; blocked: boolean }>();
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX_ATTEMPTS = 10; // 10 attempts per window
-const RATE_LIMIT_BLOCK_TIME = 60 * 60 * 1000; // 1 hour block
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const record = rateLimitStore.get(ip);
-  
-  if (!record) {
-    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW, blocked: false });
-    return true;
-  }
-  
-  // Check if blocked
-  if (record.blocked && now < record.resetTime) {
-    return false;
-  }
-  
-  // Reset if window expired
-  if (now > record.resetTime) {
-    record.count = 1;
-    record.resetTime = now + RATE_LIMIT_WINDOW;
-    record.blocked = false;
-    return true;
-  }
-  
-  // Increment count
-  record.count++;
-  
-  // Block if exceeded
-  if (record.count > RATE_LIMIT_MAX_ATTEMPTS) {
-    record.blocked = true;
-    record.resetTime = now + RATE_LIMIT_BLOCK_TIME;
-    console.warn(`🚨 Admin API: IP ${ip} blocked for excessive attempts`);
-    return false;
-  }
-  
-  return true;
-}
-
-function checkIPWhitelist(req: NextApiRequest): boolean {
-  // Get client IP
-  const forwarded = req.headers['x-forwarded-for'] as string;
-  const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
-  
-  // Allow localhost for development
-  if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') {
-    return true;
-  }
-  
-  // Check whitelist from env
-  const whitelist = process.env.ADMIN_IP_WHITELIST?.split(',').map(ip => ip.trim()) || [];
-  if (whitelist.length > 0 && !whitelist.includes(ip || '')) {
-    console.warn(`🚨 Admin API: Blocked IP ${ip} not in whitelist`);
-    return false;
-  }
-  
-  return true;
-}
-
 function logAdminAction(req: NextApiRequest, action: string, details?: any) {
-  const forwarded = req.headers['x-forwarded-for'] as string;
-  const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+  const ip = getClientIp(req);
   const timestamp = new Date().toISOString();
   
   console.log(`🔐 ADMIN ACTION: ${timestamp} | IP: ${ip} | Action: ${action} | Details: ${JSON.stringify(details || {})}`);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Get client IP for rate limiting
-  const forwarded = req.headers['x-forwarded-for'] as string;
-  const clientIP = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress || 'unknown';
+  const clientIP = getClientIp(req);
   
   // IP whitelist check
-  if (!checkIPWhitelist(req)) {
+  if (!checkAdminIpWhitelist(req)) {
     logAdminAction(req, 'IP_BLOCKED');
     return res.status(403).json({ error: 'Access denied' });
   }
   
   // Rate limiting
-  if (!checkRateLimit(clientIP)) {
+  if (!checkAdminRateLimit(clientIP)) {
     logAdminAction(req, 'RATE_LIMITED');
     return res.status(429).json({ error: 'Too many requests. Try again later.' });
   }
@@ -199,9 +137,14 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 // PUT - Update canonical model (friendly name)
 async function handlePut(req: NextApiRequest, res: NextApiResponse) {
   const { canonical_id } = req.query;
-  const { display_name } = req.body;
+  const { display_name } = req.body || {};
   
-  if (!canonical_id || !display_name) {
+  if (
+    typeof canonical_id !== 'string' ||
+    !canonical_id ||
+    typeof display_name !== 'string' ||
+    !display_name
+  ) {
     return res.status(400).json({ error: 'Missing canonical_id or display_name' });
   }
   
@@ -238,9 +181,16 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
 // POST - Add new provider variant to canonical model
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
   const { canonical_id } = req.query;
-  const { provider, model_id } = req.body;
+  const { provider, model_id } = req.body || {};
   
-  if (!canonical_id || !provider || !model_id) {
+  if (
+    typeof canonical_id !== 'string' ||
+    !canonical_id ||
+    typeof provider !== 'string' ||
+    !provider ||
+    typeof model_id !== 'string' ||
+    !model_id
+  ) {
     return res.status(400).json({ 
       error: 'Missing canonical_id, provider, or model_id' 
     });

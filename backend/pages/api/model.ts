@@ -7,8 +7,10 @@ const MIN_DAYS = 1;
 const MAX_DAYS = 90;
 
 function parseTimeRange(req: NextApiRequest) {
-    const value = req.query.days ? parseInt(req.query.days as string, 10) : DEFAULT_DAYS;
-    const bounded = Math.min(Math.max(value || DEFAULT_DAYS, MIN_DAYS), MAX_DAYS);
+    const raw = Array.isArray(req.query.days) ? req.query.days[0] : req.query.days;
+    const parsed = raw ? parseInt(raw, 10) : DEFAULT_DAYS;
+    const value = Number.isFinite(parsed) ? parsed : DEFAULT_DAYS;
+    const bounded = Math.min(Math.max(value, MIN_DAYS), MAX_DAYS);
     return { days: bounded };
 }
 

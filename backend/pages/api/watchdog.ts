@@ -86,7 +86,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       payload.mongo = { reachable: false, details: `connection state ${mongoose.connection.readyState}` };
     }
   } catch (error) {
-    payload.mongo = { reachable: false, details: error instanceof Error ? error.message : 'unknown error' };
+    logger.warn(`Watchdog MongoDB check failed: ${error}`);
+    payload.mongo = { reachable: false, details: 'Database connection failed' };
   }
 
   if (!db) {
